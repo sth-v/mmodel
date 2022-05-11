@@ -1,14 +1,28 @@
 # some version control
+import inspect
 from typing import Optional, Any, TypeVar
 
 from datetime import date
 import compas
 import time
 import json
+from collections.abc import Iterable
+
+import rhino3dm
 
 CONFIG_MM = {}
 
+
 class Mmodel(object):
+    """
+    A base class from which all project classes should be inherited mmodel
+    ....class MmodelProject(Mmodel):
+    ....    ...
+    """
+    configs = CONFIG_MM
+
+
+
 
     def __init__(self, fp="config.json"):
         global CONFIG_MM
@@ -41,9 +55,17 @@ class Mmodel(object):
         self.vc.change_history(name, changed_dict)
         self.vc = VersionController(self.history)
         setattr(BaseItem, 'vc', self.vc)
+        return v()
 
 
 class Timer(object):
+    """
+    Basic immutable class fixing the initialisation time
+    >>>t = Timer()
+    >>>t()
+    >>>t.date_tag
+    >>>t.hours, t.minutes
+    """
     TIME_SIGN = [3, 4]
 
     def __init__(self):
@@ -53,7 +75,8 @@ class Timer(object):
         _init_time = [time.gmtime()[i] for i in range(len(time.gmtime()))]
         _hours, _minutes = [_init_time[i] for i in _ts]
         self.date_tag = int(_init_date.replace('-', '')[2:], 10)
-        self.hours, self.minutes = str(_minutes)[:2], str(_hours)[:2]
+        self.hours = '0{}'.format(_hours) if len(str(_hours)[:2]) == 1 else str(_hours)
+        self.minutes = '0{}'.format(_minutes) if len(str(_minutes)[:2]) == 1 else str(_minutes)
 
     def __str__(self):
         return f'timer at: {self.date_tag} {self.hours} {self.minutes}'
@@ -132,20 +155,26 @@ class VersionController(object):
 
     def change_history(self, name, kwargs: dict):
         history_data = self.read()
-        named_history = history_data[name]
+        if name.upper() not in history_data.keys():
+            v = Version(val=None)
+            history_data[name.upper()] = {v():kwargs}
+
+        named_history = history_data[name.upper()]
         named_history |= kwargs
         history_data |= named_history
         compas.json_dump(history_data, self.history)
 
-
     def item_from_last_version(self, item_cls):
         history_data = self.read()
+        if item_cls.__name__.upper() not in history_data.keys():
+            v = Version(val=None)
+            history_data[item_cls.__name__.upper()] = {v():{'name': item_cls.__name__.lower()}}
         print(f'{self.__class__.__name__}: {item_cls.__name__} search last version...')
         last_v = self.last_version(item_cls, history_data)
         print(f'{self.__class__.__name__}:  ')
         scope_ = history_data[item_cls.__name__.upper()]
         dct = scope_[str(last_v)]
-
+        dct |= {'version': last_v}
         return dct
 
     def item_from_spec_version(self, item_cls, version):
@@ -193,54 +222,53 @@ class BaseItem(type):
 
     """
     configs = CONFIG_MM
+    __rh__ = 'rh'
+    __mmodel__ = None
+    __instances__ = {}
 
     def __new__(mcs, classname, bases, attrs):
 
         print(f'configurate from mcs.configs:\n  {mcs.configs}')
+        print(mcs.__mmodel__)
 
-        c = type(classname, bases, attrs)
-        # fp = mcs.configs["mm_parts"]["dev"]["dumps"] + "/" + classname.upper()
-        # c.fp = fp
-        c.vc = mcs.vc
 
-        def init_by_kwargs(self, kwargs):
 
-            print(kwargs.keys(), kwargs.values())
-            for k, v in kwargs.values():
-                setattr(self, k, v)
 
-            setattr(self.__class__.mmodel, self.name, self)
 
-        if c.load == 'fp':
-            def init__(self, name, version):
-                self.version = version
+        C = type(classname, bases, attrs)
+        C.vc = mcs.vc
+        C.__mmodel__ = mcs.__mmodel__
 
-                self.name = name
-                self.fp = self.__class__.fp + "/" + self.__class__.__name__.lower() + "_" + self.name + "_" + self.version + "_"
-                kwargs = compas.json_load(self.fp + ".json")
-                self.__dict__ |= kwargs
-                setattr(self.__class__.mmodel, self.name, self)
-        if c.load == 'version':
 
-            def init__(self, version='last'):
-                if version == 'last':
-                    kwargs = self.__class__.vc.item_from_last_version(self.__class__)
-                    print(f'[metaclass] {c.__name__} attach attribute action: \n{kwargs.keys()}')
-                else:
-                    kwargs = self.__class__.v.item_from_spec_version(self.__class__, version)
-                    print(
-                        f'[metaclass] {c.__name__} with specific version: {version}\nattach attribute action: \n{kwargs}')
-                self.__dict__ |= kwargs
-                setattr(self.__class__.mmodel, self.name, self)
 
-        if c.load == 'kwargs':
-            def init__(self, name, kwargs):
-                self.name = name
-                init_by_kwargs(self, kwargs)
+        def _new_(cls, *args, **kwargs):
+            if C.load == 'version':
+                hst = C.vc.item_from_last_version(C)
+                if '__rhino__' in attrs.keys():
+                    keys = attrs['__rhino__']
+                    for k in keys:
+                        geom = mcs.__rh_attrs__(hst[k])
+                        hst[k] = geom
+            instance = super(C, cls).__new__(cls)
+            for k, v in hst.items():
+                setattr(instance, k, v)
 
-        def dump_(self, *args, **kwargs) -> str:
-            ...
+            print(f'[metaclass] {C.__name__} attach attribute action: \n{hst.keys()}')
+            instance.__init__(*args, **kwargs)
+            setattr(mcs.__mmodel__, cls.__name__.lower(), instance)
 
-        c.__init__ = init__
-        c.dump = dump_
-        return c
+            return instance
+        C.__new__ = _new_
+        return C
+
+    def __rh_attrs__(mcs, attr):
+        data = attr[mcs.__rh__]
+        if isinstance(data, Iterable):
+            list_ = []
+            for i in data:
+                list_.append(rhino3dm.GeometryBase.Decode(i))
+            g = {"geom": list_}
+        else:
+            g = {"geom": rhino3dm.GeometryBase.Decode(data)}
+        attr |= g
+        return attr

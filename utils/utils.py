@@ -34,6 +34,22 @@ def int_formatter(val: int):
     if int(str(val), 10) in range(9):
         return '0' + str(val)
 
+def np_to_shapely_polygons_z(arr, z=None):
+    for a in arr:
+        poly = []
+        for pt in a:
+            if z is not None:
+                poly.append([pt[0], pt[1], z])
+            else:
+                poly.append([pt[0], pt[1], pt[2]])
+
+        yield Polygon(poly)
+
+def extract_polygon_z(arr):
+    vals=[]
+    for polygon in arr:
+        vals.append(np.unique(np.asarray(polygon)[..., 2])[0])
+    return vals
 
 def read_ply_point(fname):
     """ read point from ply
