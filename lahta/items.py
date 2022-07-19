@@ -8,7 +8,6 @@ class Element(Item):
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
 
-
 class Panel(Item):
     # __init__ нужен только когда требуется задать специфический порядок первой инициализации
     def __call__(self, *args, **kwargs):
