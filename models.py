@@ -1,7 +1,7 @@
 import copy
 from collections.abc import Iterable
 
-from vcs import Mmodel, BaseItem
+from meta import Mmodel, BaseItem
 from utils.utils import *
 import rhino3dm
 import ast
@@ -11,8 +11,6 @@ class MmodelProject(Mmodel):
     def __init__(self, fp):
         super().__init__(fp)
         BaseItem.__mmodel__ = self
-
-        self.__ptc = o3d.io.read_point_cloud(self.ptc_root)
 
     def api_kwargs_example(self, **kwargs):
         arg_dict = self.roofshapes.__dict__
@@ -86,7 +84,7 @@ class MmodelProject(Mmodel):
 mmodel = MmodelProject(fp='config.json')
 
 
-class Grid( metaclass=BaseItem):
+class Grid(metaclass=BaseItem):
     load = 'version'
 
 
@@ -94,7 +92,7 @@ class RoofShapes(metaclass=BaseItem):
     load = 'version'
 
     def multipolygon(self):
-        mpolygon = list(np_to_shapely_polygons(self.contour))[0]
+        mpolygon = list(np_to_shapely_polygons(self.outlines))[0]
         outlines = list(np_to_shapely_polygons(self.outlines))
         for i in outlines:
             if i.is_valid:
@@ -108,23 +106,15 @@ class ZMask(metaclass=BaseItem):
     load = 'version'
 
 
-
-
 class SberLogo(metaclass=BaseItem):
     load = 'version'
     rhino = ['simple', 'crv']
-
-    def __init__(self):
-        print(self.simple)
-    # e is iterable
 
 
 class Rail(metaclass=BaseItem):
     load = 'version'
     rhino = ['profile']
 
-    def __init__(self):
-        print(self.profile)
 
 class Rails(metaclass=BaseItem):
     load = 'version'

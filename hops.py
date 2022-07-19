@@ -3,10 +3,14 @@ import ghhops_server as hs
 import requests
 import json
 import urllib3
+from models import mmodel
+
 urllib3.disable_warnings()
 
-app = Flask(__name__)
-hops = hs.Hops(app)
+apphs = Flask(__name__)
+hops = hs.Hops(apphs)
+
+mmodel_url = f"{mmodel.host}:{mmodel.port}/"
 
 
 @hops.component(
@@ -15,7 +19,7 @@ hops = hs.Hops(app)
     description="GET request",
     inputs=[
         hs.HopsBoolean("run", "run", "run"),
-        hs.HopsString("url", "url", "url"),
+        hs.HopsString("url", "url", "url", default=mmodel_url),
         hs.HopsString("name", "name", "name"),
     ],
     outputs=[
@@ -34,7 +38,7 @@ def req_get(run, url, name):
     description="POST request",
     inputs=[
         hs.HopsBoolean("run", "run", "run"),
-        hs.HopsString("url", "url", "url"),
+        hs.HopsString("url", "url", "url", default=mmodel_url),
         hs.HopsString("name", "name", "name"),
         hs.HopsString("data", "data", "data")
     ],
@@ -54,7 +58,7 @@ def req_post(run, url, name, data):
     description="PUT request",
     inputs=[
         hs.HopsBoolean("run", "run", "run"),
-        hs.HopsString("url", "url", "url"),
+        hs.HopsString("url", "url", "url", default=mmodel_url),
         hs.HopsString("name", "name", "name"),
         hs.HopsString("data", "data", "data")
     ],
@@ -69,7 +73,7 @@ def req_put(run, url, name, data):
 
 
 if __name__ == "__main__":
-    app.run(
-        host='0.0.0.0',
-        port='5000'
+    apphs.run(
+        host='localhost',
+        port=mmodel.hops_port
     )

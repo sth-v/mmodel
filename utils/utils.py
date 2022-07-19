@@ -4,15 +4,12 @@ import copy
 import inspect
 from shapely.geometry import Point, Polygon
 import numpy as np
-import open3d as o3d
-import pye57
 import operator
 from itertools import *
 import math
 
 import rhino3dm
 from rhino3dm import File3dm
-from sklearn.cluster import DBSCAN
 
 from numpy import ndarray
 
@@ -28,11 +25,14 @@ def np_to_shapely_polygons(arr):
         for pt in a:
             poly.append([pt[0], pt[1]])
         yield Polygon(poly)
+
+
 # imports/exports
 
 def int_formatter(val: int):
     if int(str(val), 10) in range(9):
         return '0' + str(val)
+
 
 def np_to_shapely_polygons_z(arr, z=None):
     for a in arr:
@@ -45,44 +45,12 @@ def np_to_shapely_polygons_z(arr, z=None):
 
         yield Polygon(poly)
 
+
 def extract_polygon_z(arr):
-    vals=[]
+    vals = []
     for polygon in arr:
         vals.append(np.unique(np.asarray(polygon)[..., 2])[0])
     return vals
-
-def read_ply_point(fname):
-    """ read point from ply
-    Args:
-        fname (str): path to .ply file
-    Returns:
-        [ndarray]: N x 3 point clouds
-    """
-
-    pcd = o3d.io.read_point_cloud(fname)
-
-    return pcd_to_numpy(pcd)
-
-
-def write_pcd_ply(fname, pcd):
-    return o3d.io.write_point_cloud(fname, pcd)
-
-
-def read_e57_point(fname):
-    """read e57 to numpy **kwargs dict
-    Args:
-        fname (str): path to .e57 file
-    Returns:
-        [dict]: **kwargs
-    """
-    print("\033[92mprocessing... \033[0;37;40m {}".format(fname))
-    e57 = pye57.E57(fname)
-    dt = e57.read_scan(0, ignore_missing_fields=True)
-
-    assert isinstance(dt["cartesianX"], np.ndarray)
-    assert isinstance(dt["cartesianY"], np.ndarray)
-    assert isinstance(dt["cartesianZ"], np.ndarray)
-    return dt
 
 
 def create_set(iterable):
@@ -244,280 +212,6 @@ def solve_normalize(points, bounds):
         yield [x_, y_, z_]
 
 
-def read_e57_multiply(fnames, voxel_size, nb_neighbors, std_ratio):
-    """read e57 to numpy **kwargs dict
-    Args:
-        fname list[str]: multy paths to .e57 file
-    Returns:
-        [ndarray]
-    """
-
-    e57_data = []
-    for a in fnames:
-        dt = read_e57_point(a)
-
-        points = e57_to_numpy(dt)
-        points = remove_nan(points)
-        points = down_sample(points, voxel_size)
-        points = remove_noise(points, nb_neighbors, std_ratio)
-        e57_data.append(points)
-
-    res = np.concatenate(e57_data, axis=0)
-
-    return res
-
-
-def numpy_to_pcd(xyz):
-    """ convert numpy ndarray to open3D point cloud
-    Args:
-        xyz (ndarray):
-    Returns:
-        [open3d.geometry.PointCloud]:
-    """
-
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(xyz)
-
-    return pcd
-
-
-def pcd_to_numpy(pcd):
-    """  convert open3D point cloud to numpy ndarray
-    Args:
-        pcd (open3d.geometry.PointCloud):
-    Returns:
-        [ndarray]:
-    """
-
-    return np.asarray(pcd.points)
-
-
-def e57_to_numpy(e57_data):
-    """read e57 to numpy **kwargs dict
-    Args:
-        e57_data dict: e57 dictionary
-    Returns:
-        [ndarray]: x, y, z
-    """
-
-    x = np.array(e57_data["cartesianX"])
-    y = np.array(e57_data["cartesianY"])
-    z = np.array(e57_data["cartesianZ"])
-    # print(f'e57 x: {x}')
-    points = np.zeros((np.size(x), 3))
-    points[:, 0] = x
-    points[:, 1] = y
-    points[:, 2] = z
-    # print(f'xyz: {points}')
-    return points
-
-
-# processsing
-
-def remove_nan(points):
-    """ remove nan value of point clouds
-    Args:
-        points (ndarray): N x 3 point clouds
-    Returns:
-        [ndarray]: N x 3 point clouds
-    """
-
-    return points[~np.isnan(points[:, 0])]
-
-
-def remove_noise(pc, nb_neighbors=20, std_ratio=2.0):
-    """ remove point clouds noise using statitical noise removal method
-    Args:
-        pc (ndarray): N x 3 point clouds
-        nb_neighbors (int, optional): Defaults to 20.
-        std_ratio (float, optional): Defaults to 2.0.
-    Returns:
-        [ndarray]: N x 3 point clouds
-    """
-
-    pcd = numpy_to_pcd(pc)
-    cl, ind = pcd.remove_statistical_outlier(
-        nb_neighbors=nb_neighbors, std_ratio=std_ratio)
-
-    return pcd_to_numpy(cl)
-
-
-def down_sample(pts, voxel_size=0.5):
-    """ down sample the point clouds
-    Args:
-        pts (ndarray): N x 3 input point clouds
-        voxel_size (float, optional): voxel size. Defaults to 0.003.
-    Returns:
-        [ndarray]:
-    """
-
-    p = numpy_to_pcd(pts).voxel_down_sample(voxel_size=voxel_size)
-
-    return pcd_to_numpy(p)
-
-
-def estimate_pt_normals(pts, radius=1.0, max_nn=30):
-    # p = numpy_to_pcd(pts).voxel_down_sample(voxel_size=voxel_size)
-    # p.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius, max_nn))
-    pcd = numpy_to_pcd(pts)
-    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius, max_nn))
-    return pcd_to_numpy(pcd)
-
-
-# analysis algorithms
-
-def plane_regression(points, threshold=0.01, init_n=3, iterations=1000):
-    """ plane regression using ransac
-    Args:
-        points (ndarray): N x3 point clouds
-        threshold (float, optional): distance threshold. Defaults to 0.003.
-        init_n (int, optional): Number of initial points to be considered inliers in each iteration
-        iterations (int, optional): number of iteration. Defaults to 1000.
-    Returns:
-        [ndarray, List]: 4 x 1 plane equation weights, List of plane point index
-    """
-
-    pcd = numpy_to_pcd(points)
-
-    w, index = pcd.segment_plane(
-        threshold, init_n, iterations)
-
-    return w, index
-
-
-def draw_point_cloud(points):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points)
-    o3d.visualization.draw_geometries([pcd], point_show_normal=True)
-
-
-def draw_result(points, colors):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points)
-    pcd.colors = o3d.utility.Vector3dVector(colors)
-    o3d.visualization.draw_geometries([pcd], point_show_normal=True)
-
-
-def write_result(fname, points, colors):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points)
-    pcd.colors = o3d.utility.Vector3dVector(colors)
-    write_pcd_ply(fname, pcd)
-
-
-# definition of the main function
-
-def e57_pre_processing(fnames, voxel_size=0.1, nb_neighbors=20, std_ratio=0.5, radius=0.1):
-    """ pre processing .e57 data
-    Args:
-        fname (str):
-        root (str):
-        is_iter (bool): Defaults to False
-        voxel_size (float, optional): voxel size. Defaults to 0.1.
-        nb_neighbors (int, optional): Defaults to 20.
-        std_ratio (float, optional): Defaults to 2.0.
-        radius
-
-    Returns:
-        [ndarray]
-    """
-
-    points = read_e57_multiply(fnames, voxel_size, nb_neighbors, std_ratio)
-    points = down_sample(points, voxel_size)
-    points = remove_noise(points, nb_neighbors, std_ratio)
-    points = estimate_pt_normals(points, radius, max_nn=nb_neighbors)
-    return points
-
-
-def meshing_analys(pcd, k=3):
-    distances = pcd.compute_nearest_neighbor_distance()
-    avg_dist = np.mean(distances)
-    radius = k * avg_dist
-    return radius
-
-
-def mesh_clean(mesh, quadric_decimation=100000):
-    dec_mesh = mesh.simplify_quadric_decimation(100000)
-    dec_mesh.remove_degenerate_triangles()
-    dec_mesh.remove_duplicated_triangles()
-    dec_mesh.remove_duplicated_vertices()
-    dec_mesh.remove_non_manifold_edges()
-    return dec_mesh
-
-
-def ply_mesh_processing(pcd, radii, r, nn, voxel_size):
-    dpcd = pcd.voxel_down_sample(voxel_size)
-    dpcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(r, nn))
-    rec_mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(pcd, o3d.utility.DoubleVector(
-        [radii, radii * 2]))
-
-    return rec_mesh
-
-
-def ply_f_mesh_processing(pcd, radii, color, r, nn, voxel_size=0.1, depth=6):
-    dpcd = pcd.voxel_down_sample(voxel_size)
-    dpcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(r, nn))
-
-    rec_mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth, width=0, scale=1,
-                                                                                    linear_fit=False)
-    rec_mesh.paint_uniform_color(color)
-    bbox = pcd.get_axis_aligned_bounding_box()
-    p_mesh_crop = rec_mesh.crop(bbox)
-    return p_mesh_crop
-
-
-def detect_multi_planes(points, min_ratio=0.05, threshold=0.01, iterations=1000):
-    """ Detect multiple planes from given point clouds
-    Args:
-        points (np.ndarray):
-        min_ratio (float, optional): The minimum left points ratio to end the Detection. Defaults to 0.05.
-        threshold (float, optional): RANSAC threshold in (m). Defaults to 0.01.
-        iterations
-    Returns:
-        [List[tuple(np.ndarray, List)]]: Plane equation and plane point index
-    """
-
-    plane_list = []
-    n = len(points)
-    target = points.copy()
-    count = 0
-
-    while count < (1 - min_ratio) * n:
-        w, index = plane_regression(
-            target, threshold=threshold, init_n=3, iterations=iterations)
-
-        count += len(index)
-        plane_list.append((w, target[index]))
-        target = np.delete(target, index, axis=0)
-
-    return plane_list
-
-
-def alpf_mesh_proc(planes, colors):
-    meshlist = []
-
-    for i in range(len(planes)):
-        plane = np.array(planes[i])
-        col = colors[i][0]
-        print(plane)
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(plane)
-
-        # points = down_sample(points,voxel_size=0.1)
-        # points = remove_noise(points, nb_neighbors=50, std_ratio=0.5)
-        # points = estimate_pt_normals(points)
-        # dpcd = pcd.voxel_down_sample(voxel_size=0.1)
-        pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(1.0, 9))
-
-        alpha = 0.3
-        print(f"alpha={alpha:.3f}")
-        mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(pcd, alpha)
-        mesh.compute_vertex_normals()
-        mesh.paint_uniform_color(col)
-        meshlist.append(mesh)
-    return meshlist
-
-
 # compython geometry base methods
 
 def get_clusters(data, labels):
@@ -540,80 +234,6 @@ def map_domains(values, s_min, s_max, t_min, t_max):
             rv = (t_min + t_max) / 2
         mapped.append(rv)
     return mapped
-
-
-def plane_to_color(plane: list[float], k=0.001):
-    a = abs(plane[0])
-    b = abs(plane[1])
-    c = abs(plane[2])
-    d = abs(plane[3] * k)
-
-    targeta = (0.0, 255.0)
-    tmin, tmax = targeta
-    m = map_domains([a + d, b + d, c + d], 0.0, 2.0, tmin, tmax)
-    mm = []
-    for j in m:
-        mm.append(j)
-
-    m.clear()
-    # print(mm)
-    r = map_domains(mm, tmin, tmax, 0.0, 1.0)
-    return (mm)
-
-
-def plane_to_color_(plane: list[float], k=0.001):
-    a = plane[0]
-    b = plane[1]
-    c = plane[2]
-    d = plane[3] * k
-    targeta = (0.0, 254.0)
-    tmin, tmax = targeta
-    m = map_domains([a + d, b + d, c + d], -1.0, 1.0, tmin, tmax)
-
-    sma = m[0] + m[1] + m[2]
-    smb = (254 - m[0]) + (254 - m[1]) + (254 - m[2])
-
-    if sma > smb:
-        m = [m[0], m[1], 254 - m[2]]
-    if smb > sma:
-        m = [254 - m[0], 254 - m[1], 254 - m[2]]
-    if sma == smb:
-        m = [m[0], m[1], m[2]]
-
-    mm = []
-    for j in m:
-        mm.append(int(j))
-
-    m.clear()
-    # print(mm)
-    r = map_domains(mm, tmin, tmax, 0.0, 1.0)
-    return (mm)
-
-
-def plane_to_pt(plane: list[float], yz=[(0, 0), (0, 1), (1, 0)]):
-    a = plane[0]
-    b = plane[1]
-    c = plane[2]
-    d = plane[3]
-    xyz = []
-    for y, z in yz:
-        x = (-b * y - c * z - d) / a
-        xyz.append([x, y, z])
-    return xyz
-
-
-def plane_to_pt_multy(plane, xyz):
-    a = plane[0]
-    b = plane[1]
-    c = plane[2]
-    d = plane[3]
-    xyz = []
-
-    x = (-b * 1 - c * 0 - d) / a
-    y = (-a * 0 - c * 1 - d) / b
-    z = (-a * 1 - b * 0 - d) / c
-    xyz = [(x, 1, 0), (0, y, 1), (1, 0, z)]
-    return xyz
 
 
 def mns(a, b, k=1.9):
@@ -684,55 +304,6 @@ def get_clusters_(data, labels):
     return [data[np.where(labels == i)] for i in range(np.amax(labels) + 1)]
 
 
-class GetClusters(object):
-
-    def __init__(self, lables, data):
-        self.data = data
-
-        self.lables = lables.tolist()
-        self.set = list(self.get_lables_set())
-        self.main_mapping = self.get_clusters_dict()
-        self.tuple = self.get_clusters_tuple()
-
-    def get_lables_set(self):
-        s = set()
-        for l in self.lables:
-            s.add(l)
-        return s
-
-    def get_clusters_flat_list(self):
-        return [self.lables, self.data]
-
-    def get_clusters_tuple(self):
-        return list(zip(self.lables, self.data))
-
-    def get_clusters_dict(self):
-        return {'lables': self.lables, 'data': self.data}
-
-
-def _dbscan(arr, **kwargs):
-    return DBSCAN(**kwargs).fit(arr)
-
-
-def dbscan(ar, eps, min_samples, **kwargs):
-    labl = _dbscan(ar, eps=eps, min_samples=min_samples, **kwargs).labels_
-    data = get_clusters_(ar, labl)
-
-    return data, labl
-
-
-def dh_dbscan(points, eps, min_samples):
-    arr = np.asarray(points)
-    Dbscan = _dbscan(arr, eps=eps, min_samples=min_samples)
-    lables = Dbscan.labels_
-    print(lables)
-    arr_ = arr.tolist()
-    lable_mapper = GetClusters(lables, arr_)
-    main_map = lable_mapper.main_mapping
-    # dl = dict(outpp)
-    return main_map
-
-
 class DynamicAttrs(type):
     def __new__(mcs, classname, parents=None, add_object=True, **kwargs):
 
@@ -780,47 +351,6 @@ def get_index_array(_list, return_ndarray=True):
         return index_arr.tolist()
 
 
-def get_max_cluster(labels):
-    indxs = get_clusters(np.arange(np.size(labels)), labels)
-    ll = []
-    for i, cluster in enumerate(indxs):
-        ll.append((i, len(cluster.tolist())))
-    ll.sort(reverse=True, key=lambda x: x[1])
-    a, b = ll[0]
-    relevant = indxs[a]
-    return np.asarray(relevant)
-
-
-def get_sorted_cluster(labels):
-    indxs = get_clusters(np.arange(np.size(labels)), labels)
-    ll = []
-    for i, cluster in enumerate(indxs):
-        ll.append((i, len(cluster.tolist())))
-    ll.sort(reverse=True, key=lambda x: x[1])
-    return ll
-
-
-def match_labels(labels, sorce_data_shape=(1,)):
-    ss = np.size(labels)
-    for s in sorce_data_shape:
-        ss = ss // s
-
-    shape = (ss, *sorce_data_shape)
-
-    _l = get_index_array(labels)
-
-    i_ = get_index_array(_l.reshape(shape))
-
-    np_r = np.asarray(get_max_cluster(labels))
-
-    f_ = np.asarray([np.where(i_ == v) for v in np_r])
-    print(f_)
-    flat = f_.flatten()
-    print(flat)
-    values, indices__ = np.unique(flat, return_index=True)
-    print(values, indices__)
-    return values, f_
-
 def halfsum(lst, halfs=6000):
     a = [0] * (halfs + 1)
     a[0] = -1
@@ -857,8 +387,11 @@ def line_nest(lst_, halfs):
         print(len(ls))
     return result, ost
 
+
 def conc(*datas):
     return np.c_[datas], np.asarray(list(map(lambda x: len(x.T), datas)))
+
+
 """planes = [
     [-0.7070897228208075, 0.7071237039189138, 0.00043730674572993943, -290.92373799967623],
     [0.7073591552420904, -0.7068542257852676, -0.00035914440886667054, 284.52671035465465],
