@@ -11,7 +11,6 @@ class Element(Item):
 
 class Panel(Item):
     # __init__ нужен только когда требуется задать специфический порядок первой инициализации
-
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
         self.vertices = kwargs['vertices']
