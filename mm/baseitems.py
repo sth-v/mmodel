@@ -5,9 +5,9 @@ import inspect
 import json
 import warnings
 from abc import ABC, ABCMeta
-from collections import Mapping, MutableMapping, Awaitable, ChainMap, namedtuple
+from collections.abc import Mapping, MutableMapping, Awaitable
+from collections import ChainMap, namedtuple
 from typing import Any
-
 import compas
 
 from tools.colors import TemplateBase
@@ -93,8 +93,9 @@ class PathMapping(dict):
                 self.recurse(v, path)
 
 
-json.dumps()
-
+# !!!!!!!!!!!!!!!!!!!!!!! Орет что ошибка поэтому временно пометила !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+''' json.dumps() '''
+# !!!!!!!!!!!!!!!!!!!!!!! Орет что ошибка поэтому временно пометила !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 class Item(object):
     """
@@ -124,11 +125,13 @@ class Item(object):
     def uid(self, val):
         self._uid = hex(val)
 
+
 class ArgsItem(Item):
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
         inspect.signature(self.__class__.__init__)
+
+
 class ItemCollection:
     item = Item
 
@@ -376,7 +379,8 @@ class BaseElement(DictableElement, metaclass=FieldsMeta):
     interfaces = ['BaseField']
 
 
-class Point(BaseElement):
+
+class Point(Item):
     interfaces = ['ArgsField', 'DtypeField']
     required_fields = {'x', 'y', 'z'}
     arg_fields = ['x', 'y', 'z']
@@ -399,7 +403,7 @@ class Point(BaseElement):
         return np.ndarray([self.x, self.y, self.z])
 
 
-class Axis(BaseElement):
+class Axis(Item):
     interfaces = ['ArgsField', 'DtypeField']
     required_fields = {'start', 'end'}
     arg_fields = list(required_fields)
@@ -417,8 +421,7 @@ class Axis(BaseElement):
     def _version(self):
         self.version = self.end.version + self.start.version
 
-
-from collections import MutableSequence
+from collections.abc import MutableSequence
 
 from tools.temps import AXIS_NAMES
 
@@ -439,6 +442,8 @@ class Structure(tuple):
 
     def __add__(self, other):
         return self.__class__(*super(Structure, self).__add__(other))
+
+
 
 
 class StructMeta(type):

@@ -1,5 +1,9 @@
+from __future__ import print_function
+
+import numpy as np
+
 from mm.baseitems import Item
-from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon
+from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, mirror_point_plane
 
 
 class Element(Item):
@@ -36,6 +40,55 @@ class PolygonObj(Item):
     def poly_offset(self, dist):
         return offset_polygon(self.vertices, dist)
 
+    def poly_normal(self):
+        return normal_polygon(self.get_poly())
+
+    def plane_from_side(self, axe):
+        vec = axe[1] - axe[0]
+        return Plane(axe[0], vec)
+
+    def get_third_vector(self, axe):
+        side = axe.vector
+        normal = self.poly_normal()
+        return (np.cross(side, normal)) / np.linalg.norm(np.cross(side, normal))
+
+    def sum_of_vectors(self, axe):
+        return np.sum([np.asarray(self.get_third_vector(axe)), np.asarray(self.poly_normal())], axis=0)
+
+
+
+
+
+
+
+'''class FoldElement:
+    def __init__(self, base_axe, initial_plane):
+        self.base_axe = base_axe  # in the shape of pair of vertices (axe = corner of fold in 3d and )
+        self.plane = initial_plane   # initial plane
+        self.fold_position = self.fold_position()
+        self.unwrap = self.unwrap()
+
+    def fold_position(self):
+        
+
+
+
+
+
+        return extrude_profile
+'''
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -58,7 +111,6 @@ class BendProfile_B(Item):
 
     def profile_geometry(self):
         return self
-
 
 
 # Отгиб панели - профиль получается в зависимости от типа
@@ -87,18 +139,18 @@ class Panel(Item):
         self.grid_hash = kwargs['grid_hash']  # identical for panel and bend
         self.vertices = kwargs['vertices']  # фактическое положение вершин
 
-        #self.perforation = kwargs['perforation']
+        # self.perforation = kwargs['perforation']
 
     # линия офсета от панели в осях, внешний край загиба (до радиуса)
     def panel_outer_bend_line(self):
         dist = 7.5  # may be changed
         frame = PolygonObj(self.vertices)
-        print(frame)
+        print(frame.sum_of_vectors(frame.polygon_lines[0]))
+        #print(frame.polygon_lines[0])
         return frame.poly_offset(dist)
 
 
-b = Panel(grid_hash='1234', vertices = [[-1383.220328, 1499.49728, -160.132],
-[-882.411001, 2121.091646, 186.82],
-[-448.874568, 1451.682329, -186.82],[-1383.220328, 1499.49728, -160.132]
-])
+b = Panel(grid_hash='1234', vertices=[[-1383.220328, 1499.49728, -160.132],
+                                      [-882.411001, 2121.091646, 186.82], [-448.874568, 1451.682329, -186.82],
+                                      [-1383.220328, 1499.49728, -160.132]])
 print(b.panel_outer_bend_line())
