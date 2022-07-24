@@ -1,11 +1,14 @@
 from __future__ import print_function
 
+import math
+import rhino3dm
 import numpy as np
 
 from mm.baseitems import Item
-from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, mirror_point_plane
+from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
+    translate_points, Circle
 
-
+np.set_printoptions(suppress=True)
 class Element(Item):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -43,17 +46,14 @@ class PolygonObj(Item):
     def poly_normal(self):
         return normal_polygon(self.get_poly())
 
-    def plane_from_side(self, axe):
-        vec = axe[1] - axe[0]
-        return Plane(axe[0], vec)
-
     def get_third_vector(self, axe):
-        side = axe.vector
-        normal = self.poly_normal()
+        side = axe.vector / np.linalg.norm(axe.vector)
+        normal = -np.asarray(self.poly_normal())
         return (np.cross(side, normal)) / np.linalg.norm(np.cross(side, normal))
 
     def sum_of_vectors(self, axe):
-        return np.sum([np.asarray(self.get_third_vector(axe)), np.asarray(self.poly_normal())], axis=0)
+        vec = np.sum([np.asarray(self.get_third_vector(axe)), -np.asarray(self.poly_normal())], axis=0)
+        return vec / np.linalg.norm(vec)
 
 
 
@@ -61,22 +61,34 @@ class PolygonObj(Item):
 
 
 
-'''class FoldElement:
-    def __init__(self, base_axe, initial_plane):
+class FoldElement:
+    def __init__(self, base_axe, initial_poly):
         self.base_axe = base_axe  # in the shape of pair of vertices (axe = corner of fold in 3d and )
-        self.plane = initial_plane   # initial plane
-        self.fold_position = self.fold_position()
-        self.unwrap = self.unwrap()
+        self.poly= initial_poly   # initial plane
+        #self.fold_position = self.fold_position()
+        #self.unwrap = self.unwrap()
 
-    def fold_position(self):
+    def fold_position_center(self, radius):
+        transl_dist = math.sqrt(2 * (radius**2))
+        vec = self.poly.sum_of_vectors(self.base_axe) * transl_dist
+        return translate_points([self.base_axe[0]], vec)
+
+    def fold_position_circle(self, radius):
+        point = Point(*self.fold_position_center(radius)[0])
+        pl = Plane(point, self.base_axe.vector / np.linalg.norm(self.base_axe.vector))
+        return Circle(pl, radius)
+
+
+
+
         
 
 
 
 
 
-        return extrude_profile
-'''
+
+
 
 
 
@@ -138,6 +150,7 @@ class Panel(Item):
         # пишу пока просто для общего понимания, что за тип данных будет передан в класс
         self.grid_hash = kwargs['grid_hash']  # identical for panel and bend
         self.vertices = kwargs['vertices']  # фактическое положение вершин
+        self.frame = PolygonObj(self.vertices)
 
         # self.perforation = kwargs['perforation']
 
@@ -145,12 +158,12 @@ class Panel(Item):
     def panel_outer_bend_line(self):
         dist = 7.5  # may be changed
         frame = PolygonObj(self.vertices)
-        print(frame.sum_of_vectors(frame.polygon_lines[0]))
-        #print(frame.polygon_lines[0])
         return frame.poly_offset(dist)
 
 
 b = Panel(grid_hash='1234', vertices=[[-1383.220328, 1499.49728, -160.132],
                                       [-882.411001, 2121.091646, 186.82], [-448.874568, 1451.682329, -186.82],
                                       [-1383.220328, 1499.49728, -160.132]])
-print(b.panel_outer_bend_line())
+
+c = FoldElement(b.frame.polygon_lines[0], b.frame)
+print(c.fold_position_circle(radius = 10))
