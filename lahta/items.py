@@ -1,9 +1,9 @@
 from __future__ import print_function
-
+import Rhino
 import math
 import rhino3dm
 import numpy as np
-
+from compas_rhino.conversions import circle_to_rhino
 from mm.baseitems import Item
 from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
     translate_points, Circle
@@ -76,7 +76,10 @@ class FoldElement:
     def fold_position_circle(self, radius):
         point = Point(*self.fold_position_center(radius)[0])
         pl = Plane(point, self.base_axe.vector / np.linalg.norm(self.base_axe.vector))
-        return Circle(pl, radius)
+        circ = Circle(pl, radius)
+        return circle_to_rhino(circ)
+
+
 
 
 
