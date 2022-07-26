@@ -108,7 +108,8 @@ class Item(object):
         self.__call__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        self.__dict__ |= kwargs
+        # | !!!!!
+        self.__dict__ = kwargs
         self._version()
 
     def _version(self):
