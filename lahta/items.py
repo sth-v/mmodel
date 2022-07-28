@@ -5,7 +5,7 @@ from tools.geoms import OCCNurbsCurvePanels
 import numpy as np
 from mm.baseitems import Item
 from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
-    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector
+    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line
 from compas_occ.geometry import OCCNurbsCurve, OCCCurve
 from compas_view2.app import App
 
@@ -68,6 +68,8 @@ class PointObj(Item):
     def translate_points(self, vector):
         tr = translate_points([self.point], vector)[0]
         return PointObj(tr).point
+
+
 #
 #
 #
@@ -101,11 +103,12 @@ class FoldElement:
 
 
 class StraightElement:
-    def __init__(self, radius, angle, *args, **kwargs):
-        super(StraightElement, self).__init__(*args, **kwargs)
-        self.radius = radius  # radius of the fold
-        self.angle = angle  # angle between vectors of sides of bend after fillet
+    def __init__(self, *args, **kwargs):
+        # super(StraightElement, self).__init__(*args, **kwargs)
+        # self.radius = radius  # radius of the fold
+        # self.angle = angle  # angle between vectors of sides of bend after fillet
         self.plane = Plane.worldXY()
+
 
 #
 #
@@ -116,13 +119,44 @@ class StraightElement:
 # разные типы отгибов
 # думаю это будет класс, который генерит профиль на основе паттерна? значений загиб - прямой кусок и тд
 
-class BendProfile:
-    def __init__(self, *args, **kwargs):
-        super(BendProfile, self).__init__(*args, **kwargs)
-        self.profile = self.profile_geometry()
+class BendProfile(object):
+    instances = set()
 
-    def profile_geometry(self):
-        return self
+    def __init__(self, name_, radius_s, angle_s):
+        self.name_ = name_
+        self.radius_s = radius_s
+        self.f_radius = self.radius_s[0]
+        self.angle_s = angle_s
+        self.f_angle = self.angle_s[0]
+        self.direction_s = None
+        BendProfile.instances.add(self.name_)
+
+
+
+
+def Bends_Factory(name, radius_s, angle_s, **kwargs):
+
+    def __init__(self, **kwarg):
+        for key, value in kwarg.items():
+            setattr(self, key, value)
+        BendProfile.__init__(self, name, radius_s, angle_s)
+
+    def sum_lists(q, r):
+        s = np.asarray(q) + np.asarray(r)
+        return s
+
+    type_class = type('BendType' + name, (BendProfile,),
+                      {"__init__": __init__, "sum_lists": sum_lists(radius_s, angle_s)})
+    return type_class
+
+
+name = "A"
+classes = {}
+classes[name] = Bends_Factory('A', [10, 5, 7], [90, 125, 37], num=int)
+bhg = classes['A'](num=8)
+
+print(classes['A'], bhg.sum_lists, BendProfile.instances, bhg.__dict__)
+
 
 #
 #
@@ -133,13 +167,21 @@ class BendProfile:
 # разные типы панелей
 # думаю это будет класс, который генерит профиль на основе паттерна? значений загиб - прямой кусок и тд
 class FaceProfile(StraightElement):
-    def __init__(self, angle, radius, *args, **kwargs):
+    def __init__(self, bend_types, poly, *args, **kwargs):
         super(FaceProfile, self).__init__(*args, **kwargs)
-        self.radius = radius
-        self.angle = angle
+        self.bend_types = bend_types
+        self.poly = poly
 
-    def profile_geometry(self):
-        return self
+    # @staticmethod
+    # def offset_dist(self):
+
+    # def side_offset_from_type(self):
+    # for key, value in self.bend_types.items():
+
+    # dist = self.offset_dist(value)
+    # offs = Polygon(offset_polygon(self.poly, dist))
+    # return offs.lines[key]
+
 
 #
 #
@@ -157,8 +199,7 @@ class Panel(Item):
         self.vertices = kwargs['vertices']  # фактическое положение вершин
         self.offset_dist = kwargs['offset_dist']
         self.frame = self.panel_safe_offset()  # офсет до точки с расстоянием между панелями
-        self.bend_type =
-
+        self.bend_type = {1: 'A', 2: 'A', 3: 'B'}
 
     # линия офсета от панели в осях, внешний край загиба (до радиуса)
     def panel_safe_offset(self):
@@ -167,22 +208,14 @@ class Panel(Item):
         return PolygonObj(offset)
 
 
-
-
-
-
-
-
-
-
-b = Panel(grid_hash='1234', vertices=[[-1383.220328, 1499.49728, -160.132],
-                                      [-882.411001, 2121.091646, 186.82], [-448.874568, 1451.682329, -186.82],
-                                      [-1383.220328, 1499.49728, -160.132]], offset_dist=10)
+b = Panel(grid_hash='123', vertices=[[-1383.220328, 1499.49728, -160.132],
+                                     [-882.411001, 2121.091646, 186.82], [-448.874568, 1451.682329, -186.82],
+                                     [-1383.220328, 1499.49728, -160.132]], offset_dist=10)
 
 print(b.frame.polygon.to_jsonstring())
 c = FoldElement(10, 135)
 poly = c.circle_center()
-#segment = c.straight_segment()
+# segment = c.straight_segment()
 
 # view = App(width=1600, height=900)
 # view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
