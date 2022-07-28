@@ -131,7 +131,9 @@ class BendProfile(object):
         self.direction_s = None
         BendProfile.instances.add(self.name_)
 
-
+    def calc_fold_start(self):
+        a = math.tan(np.radians(self.f_angle))
+        return self.f_radius / a
 
 
 def Bends_Factory(name, radius_s, angle_s, **kwargs):
@@ -141,22 +143,16 @@ def Bends_Factory(name, radius_s, angle_s, **kwargs):
             setattr(self, key, value)
         BendProfile.__init__(self, name, radius_s, angle_s)
 
-    def sum_lists(q, r):
-        s = np.asarray(q) + np.asarray(r)
-        return s
 
-    type_class = type('BendType' + name, (BendProfile,),
-                      {"__init__": __init__, "sum_lists": sum_lists(radius_s, angle_s)})
+    type_class = type('BendType' + name, (BendProfile,),{"__init__": __init__})
     return type_class
 
 
-name = "A"
-classes = {}
-classes[name] = Bends_Factory('A', [10, 5, 7], [90, 125, 37], num=int)
-bhg = classes['A'](num=8)
-
-print(classes['A'], bhg.sum_lists, BendProfile.instances, bhg.__dict__)
-
+bend_types = {}
+value = 'A'
+bend_types[value] = Bends_Factory(value, [35,67,90], [45,78,56])
+profile = bend_types[value]()
+print (profile.name_, BendProfile.instances, bend_types[value].instances)
 
 #
 #
@@ -167,16 +163,31 @@ print(classes['A'], bhg.sum_lists, BendProfile.instances, bhg.__dict__)
 # разные типы панелей
 # думаю это будет класс, который генерит профиль на основе паттерна? значений загиб - прямой кусок и тд
 class FaceProfile(StraightElement):
-    def __init__(self, bend_types, poly, *args, **kwargs):
+    bend_types = {}
+
+    def __init__(self, bend_types, radius_s, angle_s, poly_, *args, **kwargs):
         super(FaceProfile, self).__init__(*args, **kwargs)
         self.bend_types = bend_types
-        self.poly = poly
+        self.radius_s = radius_s
+        self.angle_s = angle_s
+        self.poly = poly_
+        self.special_args = kwargs
 
-    # @staticmethod
-    # def offset_dist(self):
+   # @staticmethod
+    #def offset_sides():
 
-    # def side_offset_from_type(self):
-    # for key, value in self.bend_types.items():
+
+
+    def side_offset_from_type(self):
+        for key, value in self.bend_types.items():
+            if value in BendProfile.instances:
+                profile = FaceProfile.bend_types[value](**self.special_args)
+
+            else:
+                FaceProfile.bend_types[value] = Bends_Factory(value, self.angle_s, self.radius_s, **self.special_args)
+                profile = FaceProfile.bend_types[value](**self.special_args)
+        return None
+
 
     # dist = self.offset_dist(value)
     # offs = Polygon(offset_polygon(self.poly, dist))
