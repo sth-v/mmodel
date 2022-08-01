@@ -1,11 +1,12 @@
 from __future__ import print_function
 import math
 # import rhino3dm
+from collections import defaultdict
 from tools.geoms import OCCNurbsCurvePanels
 import numpy as np
 from mm.baseitems import Item
 from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
-    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line
+    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line
 from compas_occ.geometry import OCCNurbsCurve, OCCCurve
 from compas_view2.app import App
 
@@ -51,6 +52,7 @@ class PolygonObj(Item):
 
     def poly_offset(self, dist):
         return offset_polygon(self.vertices, dist)
+
 
     def poly_normal(self):
         return normal_polygon(self.get_poly())
@@ -119,40 +121,33 @@ class StraightElement:
 # разные типы отгибов
 # думаю это будет класс, который генерит профиль на основе паттерна? значений загиб - прямой кусок и тд
 
+
 class BendProfile(object):
     instances = set()
 
-    def __init__(self, name_, radius_s, angle_s):
+    def __init__(self, name_, radius_s, angle_s, direction_s):
         self.name_ = name_
         self.radius_s = radius_s
         self.f_radius = self.radius_s[0]
         self.angle_s = angle_s
         self.f_angle = self.angle_s[0]
-        self.direction_s = None
-        BendProfile.instances.add(self.name_)
+        self.direction_s = direction_s
+        BendProfile.instances.add(self)
+
+
+def Bends_Factory(name, radius_s, angle_s, direction_s, **kwargs):
+    def __init__(self, **kwarg):
+        for key, value in kwarg.items():
+            setattr(self, key, value)
+        BendProfile.__init__(self, name, radius_s, angle_s, direction_s)
 
     def calc_fold_start(self):
         a = math.tan(np.radians(self.f_angle))
         return self.f_radius / a
 
-
-def Bends_Factory(name, radius_s, angle_s, **kwargs):
-
-    def __init__(self, **kwarg):
-        for key, value in kwarg.items():
-            setattr(self, key, value)
-        BendProfile.__init__(self, name, radius_s, angle_s)
-
-
-    type_class = type('BendType' + name, (BendProfile,),{"__init__": __init__})
+    type_class = type('BendType' + name, (BendProfile,), {"__init__": __init__, "calc_fold_start": calc_fold_start})
     return type_class
 
-
-bend_types = {}
-value = 'A'
-bend_types[value] = Bends_Factory(value, [35,67,90], [45,78,56])
-profile = bend_types[value]()
-print (profile.name_, BendProfile.instances, bend_types[value].instances)
 
 #
 #
@@ -163,30 +158,40 @@ print (profile.name_, BendProfile.instances, bend_types[value].instances)
 # разные типы панелей
 # думаю это будет класс, который генерит профиль на основе паттерна? значений загиб - прямой кусок и тд
 class FaceProfile(StraightElement):
-    bend_types = {}
+    bend_types = defaultdict(list)
 
-    def __init__(self, bend_types, radius_s, angle_s, poly_, *args, **kwargs):
+    def __init__(self, bend_type, radius_s, angle_s, poly_, directions_s,*args, **kwargs):
         super(FaceProfile, self).__init__(*args, **kwargs)
-        self.bend_types = bend_types
+        self.bend_types = bend_type
         self.radius_s = radius_s
         self.angle_s = angle_s
+        self.directions_s = directions_s
         self.poly = poly_
         self.special_args = kwargs
+        self.panel_offset = self.panel_offset()
 
-   # @staticmethod
-    #def offset_sides():
+    def panel_offset(self):
+        offset_poly=[]
+        for index, bend in enumerate(self.bend_types):
+            bend_type = Bends_Factory(bend, self.radius_s[index], self.angle_s[index], self.directions_s[index])
+            bend_elem = bend_type()
+            FaceProfile.bend_types[bend].append(bend_elem)
+            offset_dist = bend_elem.calc_fold_start()
+            offset_poly.append(PolygonObj(self.poly.poly_offset(offset_dist)).polygon_lines[index])
+
+        return PolygonObj([intersection_line_line(offset_poly[0], offset_poly[1])[0],
+                           intersection_line_line(offset_poly[1], offset_poly[2])[0], intersection_line_line(offset_poly[2], offset_poly[0])[0]])
 
 
 
-    def side_offset_from_type(self):
-        for key, value in self.bend_types.items():
-            if value in BendProfile.instances:
-                profile = FaceProfile.bend_types[value](**self.special_args)
 
-            else:
-                FaceProfile.bend_types[value] = Bends_Factory(value, self.angle_s, self.radius_s, **self.special_args)
-                profile = FaceProfile.bend_types[value](**self.special_args)
-        return None
+
+
+
+
+    # @staticmethod
+    # def offset_sides():
+
 
 
     # dist = self.offset_dist(value)
@@ -210,7 +215,7 @@ class Panel(Item):
         self.vertices = kwargs['vertices']  # фактическое положение вершин
         self.offset_dist = kwargs['offset_dist']
         self.frame = self.panel_safe_offset()  # офсет до точки с расстоянием между панелями
-        self.bend_type = {1: 'A', 2: 'A', 3: 'B'}
+        self.bend_type = ['A', 'A', 'B']
 
     # линия офсета от панели в осях, внешний край загиба (до радиуса)
     def panel_safe_offset(self):
@@ -223,12 +228,18 @@ b = Panel(grid_hash='123', vertices=[[-1383.220328, 1499.49728, -160.132],
                                      [-882.411001, 2121.091646, 186.82], [-448.874568, 1451.682329, -186.82],
                                      [-1383.220328, 1499.49728, -160.132]], offset_dist=10)
 
-print(b.frame.polygon.to_jsonstring())
-c = FoldElement(10, 135)
-poly = c.circle_center()
-# segment = c.straight_segment()
 
-# view = App(width=1600, height=900)
-# view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
+test = FaceProfile(['A', 'A', 'B'], [[2, 2, 2], [2, 2, 2], [2, 2, 2]], [[90, 90, 90], [90, 90, 90], [90, 90, 90]], b.frame, [[-1,-1,-1], [-1,-1,-1],[-1,1]])
+
+print(test.panel_offset.polygon.to_jsonstring())
+c = FoldElement(10, 135)
+poly = c.curved_segment()
+# segment = c.straight_segment()
+print(poly)
+#view = App(width=1600, height=900)
+#view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
 # view.add(Polyline(segment.locus()), linewidth=4, linecolor=(0, 1, 0))
 # view.show()
+
+
+
