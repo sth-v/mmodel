@@ -6,7 +6,8 @@ from tools.geoms import OCCNurbsCurvePanels
 import numpy as np
 from mm.baseitems import Item
 from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
-    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, Translation
+    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, \
+    Translation, Line, Rotation
 from compas_occ.geometry import OCCNurbsCurve, OCCCurve
 from compas_view2.app import App
 
@@ -80,7 +81,7 @@ class PointObj(Item):
 #
 # Элемент отгиба
 class FoldElement:
-    def __init__(self, radius, angle, dir, *args, **kwargs):
+    def __init__(self, angle, radius, dir, *args, **kwargs):
         super(FoldElement, self).__init__(*args, **kwargs)
         self.radius = radius  # radius of the fold
         self.angle = angle  # angle between vectors of sides of bend after fillet
@@ -125,32 +126,56 @@ class FoldElement:
 
 
 class BendConstructor:
-    def __init__(self, angle, radius, dir, straight):
+    def __init__(self, angle, radius, dir, straight, start):
         self.angle = angle
         self.radius = radius
         self.dir = dir
         self.straight = straight
+        self.start = start
+
+    @staticmethod
+    def get_local_plane(line_segment):
+        try:
+            frame = line_segment.frame_at(1.0)
+            return frame
+        except:
+            X = line_segment.tangent_at(1.0).unitized()
+            ea1 = 0.0, 0.0, np.radians(90)
+            R1 = Rotation.from_euler_angles(ea1, False, 'xyz')
+            Y = X.transformed(R1).unitized()
+            return Frame(line_segment.point_at(1.0), X, Y)
+
+    def translate_segment(self, line_segment=None):
+        fold = FoldElement(self.angle[0], self.radius[0], self.dir[0])
+        get_curve = fold.curved_segment()
+        goal_frame=self.get_local_plane(self.start)
+        return goal_frame.to_local_coordinates(get_curve)
+
+
+
 
 
 
 
 c = FoldElement(10, 135, -1)
-
-test = BendConstructor(angle = [90, 90, 90], radius = [2, 2, 2], dir = [-1, -1, -1], straight = [35, 15, 7])
-
+line = OCCNurbsCurve.from_line(Line(Point(5, 2,0), Point(-50, 2,0)))
+test = BendConstructor(angle = [90, 90, 90], radius = [2, 2, 2], dir = [-1, -1, -1], straight = [35, 15, 7], start=line)
+seg = test.translate_segment()
+#print(line.tangent_at(0.0))
 poly = c.curved_segment()
 
 cc = FoldElement(10, 135, 1)
 poly_ = cc.curved_segment()
-frame=poly.frame_at(0.875)
 frame_=poly.frame_at(1.0)
 
 view = App(width=1600, height=900)
 
-view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
-view.add(Polyline(poly_.locus()), linewidth=1, linecolor=(0, 1, 0))
-view.add(frame, size=5)
-view.add(frame_, size=5)
+#view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
+#view.add(Polyline(poly_.locus()), linewidth=1, linecolor=(0, 1, 0))
+view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 1))
+view.add(Polyline(seg.locus()), linewidth=1, linecolor=(0, 0, 1))
+view.add(test.get_local_plane(test.start), size=5)
+
 view.show()
 
 
