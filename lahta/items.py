@@ -6,7 +6,7 @@ from tools.geoms import OCCNurbsCurvePanels
 import numpy as np
 from mm.baseitems import Item
 from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
-    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line
+    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, Translation
 from compas_occ.geometry import OCCNurbsCurve, OCCCurve
 from compas_view2.app import App
 
@@ -80,10 +80,11 @@ class PointObj(Item):
 #
 # Элемент отгиба
 class FoldElement:
-    def __init__(self, radius, angle, *args, **kwargs):
+    def __init__(self, radius, angle, dir, *args, **kwargs):
         super(FoldElement, self).__init__(*args, **kwargs)
         self.radius = radius  # radius of the fold
         self.angle = angle  # angle between vectors of sides of bend after fillet
+        self.dir = dir
         self.plane = Plane.worldXY()
 
     def circle_center(self):
@@ -94,9 +95,25 @@ class FoldElement:
         circ_angle = 180 - self.angle
         return circ_angle / 360
 
+    @staticmethod
+    def transl_to_zero(init_point, goal_point):
+        vec = goal_point - init_point
+        transl = Translation.from_vector(vec)
+        return transl
+
+
     def curved_segment(self):
         circ = OCCNurbsCurvePanels.from_circle_world(self.circle_center())
-        return OCCNurbsCurvePanels.segmented(circ, 0.0, self.circle_param())
+        origin = Point(0.0, 0.0, 0.0)
+        if self.dir >0:
+            seg = OCCNurbsCurvePanels.segmented(circ, 0.0, self.circle_param())
+            transl = self.transl_to_zero(seg.points[2], origin)
+            return seg.transformed(transl)
+        else:
+            seg = OCCNurbsCurvePanels.segmented(circ, 1-self.circle_param(), 1.0)
+            transl = self.transl_to_zero(seg.points[0], origin)
+            return seg.transformed(transl)
+
 
     def straight_segment_len(self):
         full_len = self.circle_center().circumference
@@ -104,7 +121,42 @@ class FoldElement:
         return unfold
 
 
-class StraightElement:
+
+
+
+class BendConstructor:
+    def __init__(self, angle, radius, dir, straight):
+        self.angle = angle
+        self.radius = radius
+        self.dir = dir
+        self.straight = straight
+
+
+
+
+c = FoldElement(10, 135, -1)
+
+test = BendConstructor(angle = [90, 90, 90], radius = [2, 2, 2], dir = [-1, -1, -1], straight = [35, 15, 7])
+
+poly = c.curved_segment()
+
+cc = FoldElement(10, 135, 1)
+poly_ = cc.curved_segment()
+frame=poly.frame_at(0.875)
+frame_=poly.frame_at(1.0)
+
+view = App(width=1600, height=900)
+
+view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
+view.add(Polyline(poly_.locus()), linewidth=1, linecolor=(0, 1, 0))
+view.add(frame, size=5)
+view.add(frame_, size=5)
+view.show()
+
+
+
+
+'''class StraightElement:
     def __init__(self, *args, **kwargs):
         # super(StraightElement, self).__init__(*args, **kwargs)
         # self.radius = radius  # radius of the fold
@@ -231,15 +283,30 @@ b = Panel(grid_hash='123', vertices=[[-1383.220328, 1499.49728, -160.132],
 
 test = FaceProfile(['A', 'A', 'B'], [[2, 2, 2], [2, 2, 2], [2, 2, 2]], [[90, 90, 90], [90, 90, 90], [90, 90, 90]], b.frame, [[-1,-1,-1], [-1,-1,-1],[-1,1]])
 
-print(test.panel_offset.polygon.to_jsonstring())
-c = FoldElement(10, 135)
-poly = c.curved_segment()
-# segment = c.straight_segment()
-print(poly)
-#view = App(width=1600, height=900)
-#view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
-# view.add(Polyline(segment.locus()), linewidth=4, linecolor=(0, 1, 0))
-# view.show()
+before_offset = b.frame.polygon
+start_poly = test.panel_offset.polygon
+
+
+
+
+#segment = c.straight_segment()
+
+
+#from compas_plotters import Plotter
+#plotter = Plotter()
+
+#plotter.add(before_offset, linewidth=3)
+#plotter.zoom_extents()
+#plotter.show()
+view = App(width=1600, height=900)
+#view.add(before_offset, linewidth=1, linecolor=(0, 0, 0))
+
+view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
+view.add(Polyline(poly_.locus()), linewidth=1, linecolor=(0, 1, 0))
+view.add(frame, size=5)
+view.add(frame_, size=5)
+#view.add(Polyline(segment.locus()), linewidth=4, linecolor=(0, 1, 0))
+view.show()'''
 
 
 
