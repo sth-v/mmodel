@@ -122,6 +122,16 @@ class FoldElement:
         return unfold
 
 
+class StraightElement:
+    def __init__(self, length, *args, **kwargs):
+        # super(StraightElement, self).__init__(*args, **kwargs)
+        self.length = length
+        self.plane = Plane.worldXY()
+
+    def build_line(self):
+        start = Point(0, 0, 0)
+        end = Point(self.length, 0, 0)
+        return OCCNurbsCurve.from_line(Line(start, end))
 
 
 
@@ -131,26 +141,51 @@ class BendConstructor:
         self.radius = radius
         self.dir = dir
         self.straight = straight
-        self.start = start
+        self.curve = start
+        self._i = -1
+        self.bend_curve = self.bend()
 
     @staticmethod
-    def get_local_plane(line_segment):
+    def get_local_plane(previous):
         try:
-            frame = line_segment.frame_at(1.0)
+            frame = previous.frame_at(max(previous.domain))
             return frame
         except:
-            X = line_segment.tangent_at(1.0).unitized()
+            X = previous.tangent_at(max(previous.domain)).unitized()
             ea1 = 0.0, 0.0, np.radians(90)
             R1 = Rotation.from_euler_angles(ea1, False, 'xyz')
             Y = X.transformed(R1).unitized()
-            return Frame(line_segment.point_at(1.0), X, Y)
+            return Frame(previous.point_at(max(previous.domain)), X, Y)
 
-    def translate_segment(self, line_segment=None):
-        fold = FoldElement(self.angle[0], self.radius[0], self.dir[0])
-        get_curve = fold.curved_segment()
-        goal_frame=self.get_local_plane(self.start)
-        return goal_frame.to_local_coordinates(get_curve)
+    def translate_segment(self, line_segment, previous):
+        goal_frame=self.get_local_plane(previous)
+        #tr = Transformation.from_frame_to_frame(Frame.worldXY(), goal_frame)
+        return goal_frame.to_world_coordinates(line_segment)
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self._i += 1
+
+        fold = FoldElement(self.angle[self._i], self.radius[self._i], self.dir[self._i])
+        straight = StraightElement(self.straight[self._i])
+        get_fold = fold.curved_segment()
+        get_line = straight.build_line()
+
+        #if self._i == 0:
+        transl_f = self.translate_segment(get_fold, self.curve)
+        transl_s = self.translate_segment(get_line, transl_f)
+        join = transl_f.joined(transl_s)
+        self.curve = join
+        #print(self._i, join)
+        return join
+
+    def bend(self):
+        bend = []
+        while self._i < len(self.angle)-1:
+            bend.append(next(self))
+        return bend
 
 
 
@@ -158,35 +193,39 @@ class BendConstructor:
 
 
 c = FoldElement(10, 135, -1)
-line = OCCNurbsCurve.from_line(Line(Point(5, 2,0), Point(-50, 2,0)))
+line = OCCNurbsCurve.from_line(Line(Point(5, 2,0), Point(-30, 12,0)))
 test = BendConstructor(angle = [90, 90, 90], radius = [2, 2, 2], dir = [-1, -1, -1], straight = [35, 15, 7], start=line)
-seg = test.translate_segment()
-#print(line.tangent_at(0.0))
-poly = c.curved_segment()
+bend = test.bend_curve
 
-cc = FoldElement(10, 135, 1)
-poly_ = cc.curved_segment()
-frame_=poly.frame_at(1.0)
+#print(bend)
+
+
+#seg = test.translate_segment()
+#print(line.tangent_at(0.0))
+#poly = c.curved_segment()
+
+
 
 view = App(width=1600, height=900)
+for i in bend:
+    view.add(Polyline(i.locus()), linewidth=1, linecolor=(0, 0, 1))
 
-#view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
-#view.add(Polyline(poly_.locus()), linewidth=1, linecolor=(0, 1, 0))
 view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 1))
-view.add(Polyline(seg.locus()), linewidth=1, linecolor=(0, 0, 1))
-view.add(test.get_local_plane(test.start), size=5)
+#view.add(Polyline(seg.locus()), linewidth=1, linecolor=(0, 0, 1))
+#view.add(Polyline(test.translate_segment()[1].locus()), linewidth=1, linecolor=(0, 0, 1))
+
+
+
+#view.add(test.get_local_plane(test.start), size=5)
+#view.add(test.translate_segment()[1].frame_at(0.0), size=5)
+#view.add(test.translate_segment()[0].frame_at(0.75), size=5)
 
 view.show()
 
 
 
 
-'''class StraightElement:
-    def __init__(self, *args, **kwargs):
-        # super(StraightElement, self).__init__(*args, **kwargs)
-        # self.radius = radius  # radius of the fold
-        # self.angle = angle  # angle between vectors of sides of bend after fillet
-        self.plane = Plane.worldXY()
+'''
 
 
 #
