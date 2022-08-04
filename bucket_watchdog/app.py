@@ -1,13 +1,15 @@
+import copy
+import json
 import os
 
 import boto3
+import botocore
 import requests
 import time
 import argparse
 from colored import attr, fg
 from datetime import date
-
-
+import botocore.auth
 class Timer(object):
     """
     Basic immutable class fixing the initialisation time
@@ -38,7 +40,7 @@ class Timer(object):
 
 class BucketWatchDog:
     session = boto3.session.Session()
-    storage = os.environ["STORAGE"]
+    storage = "https://storage.yandexcloud.net/"
 
     def __init__(self, bucket=None, prefix=None, postfix=None, url=None):
         self.s3 = self.session.client(
@@ -49,6 +51,7 @@ class BucketWatchDog:
         self.prefix = prefix
         self.postfix = postfix
         self.url = url
+
         self.buffer = self.targets(self.s3.list_objects(Bucket=bucket)["Contents"])
 
         init_changes = {
@@ -58,6 +61,10 @@ class BucketWatchDog:
         }
         print(
             f"\n{Timer()} Bucket Watchdog {fg('#F97BB0')+attr('bold')}init{attr('reset')} \n{fg('#F97BB0')+attr('bold')}configs{attr('reset')}\n    {fg('#FFA245')}bucket:{attr('reset')}{self.bucket}\n    {fg('#FFA245')}prefix:{attr('reset')} {self.prefix}\n    {fg('#FFA245')}postfix:{attr('reset')} {self.postfix}\n    {fg('#FFA245')}url:{attr('reset')} {self.url}\n    {fg('#FFA245')}initial changes:{attr('reset')}  {init_changes}")
+        try:
+            requests.post(self.url, data=json.dumps(init_changes,ensure_ascii=False))
+        except:
+            print("[WARN] Request Failed")
 
     def __call__(self, event="all", **kwargs):
         """
@@ -107,7 +114,7 @@ class BucketWatchDog:
             print(
                 f"\n{Timer()} Bucket Watchdog {fg('#F97BB0')+attr('bold')}changes detection{attr('reset')}\n{fg('#FFA245')}changes:{attr('reset')}  {changes}")
             try:
-                requests.post(self.url, data=changes, **kwargs)
+                requests.post(self.url, data=json.dumps(changes,ensure_ascii=False))
             except:
                 print("[WARN] Request Failed")
             self.buffer = list_obj
@@ -144,10 +151,10 @@ if __name__ == "__main__":
     parser.add_argument('-d', dest='delay', type=float, default=5.0)
     parser.add_argument('-e', dest='event', type=str, default="all", help=BucketWatchDog.__call__.__doc__)
     args = parser.parse_args()
-    watchdog(bucket=os.environ["BUCKET"],
+    watchdog(bucket="lahta.contextmachine.online",
              prefix=os.environ["PREFIX"],
              postfix=os.environ["POSTFIX"],
-             url=os.environ["URL"],
-             event=args.event,
-             delay=args.delay
+             url="http://mmodel.contextmachine.online:8181/update",
+             event="all",
+             delay=1.0
              )

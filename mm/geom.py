@@ -5,13 +5,14 @@ import compas.data
 import compas.datastructures
 import compas
 
-import compas_rhino
-import rhino3dm
-
 from mm.baseitems import Item
 
 RootParents = namedtuple("RootParents", ["main_parent", "FramrworkParent"])
 
+class Point(Item):
+    def __init__(self, x, y, z, **kwargs):
+
+        super().__init__(x, y, z, **kwargs)
 
 class GeometryMeta(type):
     target_framework = compas
