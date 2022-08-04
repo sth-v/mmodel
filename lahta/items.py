@@ -122,6 +122,16 @@ class FoldElement:
         unfold = full_len * self.circle_param()
         return unfold
 
+    # расстояние от точки касания до точки пересечения касательных
+    def calc_extra_length(self):
+        a = math.tan(np.radians(self.angle))
+        return self.radius / a
+
+    # вроде как это всегда будет длина, которая получается от 90 градусов
+    def calc_rightangle_length(self):
+        a = math.tan(math.pi / 4)
+        return self.radius / a
+
 
 class StraightElement:
     def __init__(self, length, *args, **kwargs):
@@ -141,6 +151,7 @@ class BendConstructor:
         self.radius = radius
         self.dir = dir
         self.straight = straight
+        self.start = start
         self.curve = start
         self._i = -1
         self.bend_curve = self.bend_()
@@ -148,16 +159,13 @@ class BendConstructor:
     def get_local_plane(self, previous, domain):
         try:
             frame = previous.frame_at(domain)
-            view.add(frame, size=5)
             return frame
 
         except:
-
             X = previous.tangent_at(domain).unitized()
             ea1 = 0.0, 0.0, np.radians(90)
             R1 = Rotation.from_euler_angles(ea1, False, 'xyz')
             Y = X.transformed(R1).unitized()
-            view.add(Frame(previous.point_at(domain), X, Y), size=5)
             return Frame(previous.point_at(domain), X, Y)
 
     def translate_segment(self, line_segment, previous, domain):
@@ -176,11 +184,11 @@ class BendConstructor:
     def __next__(self):
         self._i += 1
         fold = FoldElement(self.angle[self._i], self.radius[self._i], self.dir[self._i])
-        straight = StraightElement(self.straight[self._i])
+        straight = StraightElement(self.straight[self._i] - (2*fold.calc_rightangle_length()))
         get_fold = fold.curved_segment()
         get_line = straight.build_line()
 
-        if self.dir[self._i-1] < 0:
+        if self.dir[self._i-1] < 0 or self._i==0:
             transl_f = self.translate_segment(get_fold, self.curve, max(self.curve.domain))
         else:
             transl_f = self.translate_segment_inverse(get_fold, self.curve, max(self.curve.domain))
@@ -200,18 +208,18 @@ class BendConstructor:
 
 
     def extrusion(self):
-        vec = self.get_local_plane(self.bend_curve, max(self.bend_curve.domain)).zaxis
+        vec = self.get_local_plane(self.start, max(self.start.domain)).zaxis
         surf = OCCNurbsSurface.from_extrusion(self.bend_curve, vec * 50)
         return surf
 
 
 c = FoldElement(10, 135, -1)
 line = OCCNurbsCurve.from_line(Line(Point(5, 2, 0), Point(-30, 12, 0)))
-test = BendConstructor(angle=[90, 90, 90], radius=[2, 2, 2], dir=[-1, 1, -1], straight=[35, 15, 7], start=line)
+test = BendConstructor(angle=[90, 90, 90, 90], radius=[2, 2, 2, 2], dir=[-1, 1, -1, 1], straight=[35, 15, 7, 12], start=line)
 bend_ = test.bend_curve
 
 
-surf_ = test.extrusion()
+#surf_ = test.extrusion()
 
 
 
@@ -220,7 +228,7 @@ surf_ = test.extrusion()
 view.add(Polyline(bend_.locus()), linewidth=1, linecolor=(0, 0, 1))
 
 view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 1))
-view.add(surf_.to_mesh())
+#view.add(surf_.to_mesh())
 
 view.add(bend_.frame_at(min(bend_.domain)), size=5)
 
