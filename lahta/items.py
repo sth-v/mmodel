@@ -8,7 +8,7 @@ from mm.baseitems import Item
 from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
     translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, \
     Translation, Line, Rotation
-from compas_occ.geometry import OCCNurbsCurve, OCCCurve
+from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
 from compas_view2.app import App
 
 np.set_printoptions(suppress=True)
@@ -54,7 +54,6 @@ class PolygonObj(Item):
     def poly_offset(self, dist):
         return offset_polygon(self.vertices, dist)
 
-
     def poly_normal(self):
         return normal_polygon(self.get_poly())
 
@@ -72,6 +71,8 @@ class PointObj(Item):
         tr = translate_points([self.point], vector)[0]
         return PointObj(tr).point
 
+
+view = App(width=1600, height=900)
 
 #
 #
@@ -102,19 +103,19 @@ class FoldElement:
         transl = Translation.from_vector(vec)
         return transl
 
-
     def curved_segment(self):
         circ = OCCNurbsCurvePanels.from_circle_world(self.circle_center())
         origin = Point(0.0, 0.0, 0.0)
-        if self.dir >0:
+        if self.dir > 0:
             seg = OCCNurbsCurvePanels.segmented(circ, 0.0, self.circle_param())
             transl = self.transl_to_zero(seg.points[2], origin)
-            return seg.transformed(transl)
+            transf = seg.transformed(transl)
+            curve = OCCNurbsCurvePanels.reversed_copy(transf)
+            return curve
         else:
-            seg = OCCNurbsCurvePanels.segmented(circ, 1-self.circle_param(), 1.0)
+            seg = OCCNurbsCurvePanels.segmented(circ, 1 - self.circle_param(), 1.0)
             transl = self.transl_to_zero(seg.points[0], origin)
             return seg.transformed(transl)
-
 
     def straight_segment_len(self):
         full_len = self.circle_center().circumference
@@ -134,7 +135,6 @@ class StraightElement:
         return OCCNurbsCurve.from_line(Line(start, end))
 
 
-
 class BendConstructor:
     def __init__(self, angle, radius, dir, straight, start):
         self.angle = angle
@@ -143,87 +143,88 @@ class BendConstructor:
         self.straight = straight
         self.curve = start
         self._i = -1
-        self.bend_curve = self.bend()
+        self.bend_curve = self.bend_()
 
-    @staticmethod
-    def get_local_plane(previous):
+    def get_local_plane(self, previous, domain):
         try:
-            frame = previous.frame_at(max(previous.domain))
+            frame = previous.frame_at(domain)
+            view.add(frame, size=5)
             return frame
+
         except:
-            X = previous.tangent_at(max(previous.domain)).unitized()
+
+            X = previous.tangent_at(domain).unitized()
             ea1 = 0.0, 0.0, np.radians(90)
             R1 = Rotation.from_euler_angles(ea1, False, 'xyz')
             Y = X.transformed(R1).unitized()
-            return Frame(previous.point_at(max(previous.domain)), X, Y)
+            view.add(Frame(previous.point_at(domain), X, Y), size=5)
+            return Frame(previous.point_at(domain), X, Y)
 
-    def translate_segment(self, line_segment, previous):
-        goal_frame=self.get_local_plane(previous)
-        #tr = Transformation.from_frame_to_frame(Frame.worldXY(), goal_frame)
+    def translate_segment(self, line_segment, previous, domain):
+        goal_frame = self.get_local_plane(previous, domain)
         return goal_frame.to_world_coordinates(line_segment)
+
+    def translate_segment_inverse(self, line_segment, previous, domain):
+        goal_frame = self.get_local_plane(previous, domain)
+        reversed_frame = Frame(goal_frame.point, goal_frame.xaxis, -goal_frame.yaxis)
+        return reversed_frame.to_world_coordinates(line_segment)
+
 
     def __iter__(self):
         return self
 
     def __next__(self):
         self._i += 1
-
         fold = FoldElement(self.angle[self._i], self.radius[self._i], self.dir[self._i])
         straight = StraightElement(self.straight[self._i])
         get_fold = fold.curved_segment()
         get_line = straight.build_line()
 
-        #if self._i == 0:
-        transl_f = self.translate_segment(get_fold, self.curve)
-        transl_s = self.translate_segment(get_line, transl_f)
+        if self.dir[self._i-1] < 0:
+            transl_f = self.translate_segment(get_fold, self.curve, max(self.curve.domain))
+        else:
+            transl_f = self.translate_segment_inverse(get_fold, self.curve, max(self.curve.domain))
+
+        transl_s = self.translate_segment(get_line, transl_f, max(transl_f.domain))
+
         join = transl_f.joined(transl_s)
         self.curve = join
-        #print(self._i, join)
         return join
 
-    def bend(self):
-        bend = []
-        while self._i < len(self.angle)-1:
-            bend.append(next(self))
+
+    def bend_(self):
+        bend = next(self)
+        while self._i+1 < len(self.angle):
+            bend = bend.joined(next(self))
         return bend
 
 
-
-
+    def extrusion(self):
+        vec = self.get_local_plane(self.bend_curve, max(self.bend_curve.domain)).zaxis
+        surf = OCCNurbsSurface.from_extrusion(self.bend_curve, vec * 50)
+        return surf
 
 
 c = FoldElement(10, 135, -1)
-line = OCCNurbsCurve.from_line(Line(Point(5, 2,0), Point(-30, 12,0)))
-test = BendConstructor(angle = [90, 90, 90], radius = [2, 2, 2], dir = [-1, -1, -1], straight = [35, 15, 7], start=line)
-bend = test.bend_curve
-
-#print(bend)
+line = OCCNurbsCurve.from_line(Line(Point(5, 2, 0), Point(-30, 12, 0)))
+test = BendConstructor(angle=[90, 90, 90], radius=[2, 2, 2], dir=[-1, 1, -1], straight=[35, 15, 7], start=line)
+bend_ = test.bend_curve
 
 
-#seg = test.translate_segment()
-#print(line.tangent_at(0.0))
-#poly = c.curved_segment()
+surf_ = test.extrusion()
 
 
 
-view = App(width=1600, height=900)
-for i in bend:
-    view.add(Polyline(i.locus()), linewidth=1, linecolor=(0, 0, 1))
+
+
+view.add(Polyline(bend_.locus()), linewidth=1, linecolor=(0, 0, 1))
 
 view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 1))
-#view.add(Polyline(seg.locus()), linewidth=1, linecolor=(0, 0, 1))
-#view.add(Polyline(test.translate_segment()[1].locus()), linewidth=1, linecolor=(0, 0, 1))
+view.add(surf_.to_mesh())
 
-
-
-#view.add(test.get_local_plane(test.start), size=5)
-#view.add(test.translate_segment()[1].frame_at(0.0), size=5)
-#view.add(test.translate_segment()[0].frame_at(0.75), size=5)
+view.add(bend_.frame_at(min(bend_.domain)), size=5)
 
 view.show()
-
-
-
 
 '''
 
@@ -371,6 +372,3 @@ view.add(frame, size=5)
 view.add(frame_, size=5)
 #view.add(Polyline(segment.locus()), linewidth=4, linecolor=(0, 1, 0))
 view.show()'''
-
-
-
