@@ -165,7 +165,7 @@ class BendConstructor:
         try:
             frame = previous.frame_at(domain)
             return frame
-
+#
         except:
             X = previous.tangent_at(domain).unitized()
             ea1 = 0.0, 0.0, np.radians(90)
