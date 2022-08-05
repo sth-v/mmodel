@@ -97,24 +97,29 @@ class FoldElement:
         circ_angle = 180 - self.angle
         return circ_angle / 360
 
-    @staticmethod
+    '''@staticmethod
     def transl_to_zero(init_point, goal_point):
         vec = goal_point - init_point
         transl = Translation.from_vector(vec)
-        return transl
+        return transl'''
+
+    def transl_to_zero(self, curve):
+        get_frame = curve.frame_at(min(curve.domain))
+        tr = Transformation.from_frame_to_frame(get_frame, Frame.worldXY())
+        return tr
 
     def curved_segment(self):
         circ = OCCNurbsCurvePanels.from_circle_world(self.circle_center())
         origin = Point(0.0, 0.0, 0.0)
         if self.dir > 0:
             seg = OCCNurbsCurvePanels.segmented(circ, 0.0, self.circle_param())
-            transl = self.transl_to_zero(seg.points[2], origin)
+            transl = self.transl_to_zero(seg)
             transf = seg.transformed(transl)
             curve = OCCNurbsCurvePanels.reversed_copy(transf)
-            return curve
+            return transf
         else:
             seg = OCCNurbsCurvePanels.segmented(circ, 1 - self.circle_param(), 1.0)
-            transl = self.transl_to_zero(seg.points[0], origin)
+            transl = self.transl_to_zero(seg)
             return seg.transformed(transl)
 
     def straight_segment_len(self):
@@ -207,22 +212,60 @@ class BendConstructor:
         return bend
 
 
+
+
     def extrusion(self):
         vec = self.get_local_plane(self.start, max(self.start.domain)).zaxis
         surf = OCCNurbsSurface.from_extrusion(self.bend_curve, vec * 50)
         return surf
 
 
+
+
+
+
+
+
+
+
 c = FoldElement(10, 135, -1)
 line = OCCNurbsCurve.from_line(Line(Point(5, 2, 0), Point(-30, 12, 0)))
-test = BendConstructor(angle=[90, 90, 90, 90], radius=[2, 2, 2, 2], dir=[-1, 1, -1, 1], straight=[35, 15, 7, 12], start=line)
+test = BendConstructor(angle=[90, 60], radius=[2, 2], dir=[1, 1], straight=[35, 45], start=line)
 bend_ = test.bend_curve
 
 
+
+
+extra_test = FoldElement(60, 2, 1)
+get_fold = extra_test.curved_segment()
+
+
+def frame_(previous, domain):
+    X = previous.tangent_at(domain).unitized()
+    ea1 = 0.0, 0.0, np.radians(90)
+    R1 = Rotation.from_euler_angles(ea1, False, 'xyz')
+    Y = X.transformed(R1).unitized()
+    view.add(Frame(previous.point_at(domain), X, Y), size=5)
+    return Frame(previous.point_at(domain), X, Y)
+
+frame = frame_(bend_, max(bend_.domain))
+v = frame.to_world_coordinates(get_fold)
+
+view.add(Polyline(get_fold.locus()), linewidth=1, linecolor=(1, 0, 0))
+
+
+view.add(Polyline(v.locus()), linewidth=1, linecolor=(1, 0, 0))
+
+
+circ = OCCNurbsCurvePanels.from_circle_world(Circle(Plane.worldXY(), 2))
+curve = OCCNurbsCurvePanels.segmented(circ, 0.0, (120/360))
+print(curve)
+
+view.add(Polyline(curve.locus()), linewidth=1, linecolor=(1, 0, 0))
+view.add(Frame.worldXY(), size=5)
+view.add(curve.frame_at(min(curve.domain)), size=5)
+view.add(curve.frame_at(max(curve.domain)), size=5)
 #surf_ = test.extrusion()
-
-
-
 
 
 view.add(Polyline(bend_.locus()), linewidth=1, linecolor=(0, 0, 1))
@@ -230,7 +273,6 @@ view.add(Polyline(bend_.locus()), linewidth=1, linecolor=(0, 0, 1))
 view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 1))
 #view.add(surf_.to_mesh())
 
-view.add(bend_.frame_at(min(bend_.domain)), size=5)
 
 view.show()
 
