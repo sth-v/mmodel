@@ -1,17 +1,17 @@
 import unittest
-from mm.baseitems import I\
+from mm.baseitems import Item, RequiredFildItem
 from mm.exceptions import MModelException
 
 
-class A(NamedElement):
+class A(Item):
     ...
 
 
-class B(NamedElement):
+class B(Item):
     ...
 
 
-class PointLike(BaseFieldsInterface):
+class PointLike(RequiredFildItem):
     required_fields = {'x', 'y', 'z'}
 
     @classmethod
