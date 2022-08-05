@@ -19,7 +19,6 @@ import logging
 from mm import Item
 
 
-
 class MetaItem(type):
     """
     [0] Шаблон Создания структурированных коллекций
@@ -101,8 +100,6 @@ class MetaLoggingItem(MetaItem):
         del mcs.log
         mcs.log = ""
         print(f"Sub definition {mcs}, {kwargs}")
-
-
 
 
 class MetaCollection(MetaLoggingItem):
