@@ -1,14 +1,14 @@
 from __future__ import print_function
+
 import math
-# import rhino3dm
-from collections import defaultdict
-from tools.geoms import OCCNurbsCurvePanels
+
 import numpy as np
-from mm.baseitems import Item
-from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
-    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, \
-    Translation, Line, Rotation
+from compas.geometry import Circle, Frame, Line, Plane, Point, Polygon, Rotation, Transformation, normal_polygon, \
+    offset_polygon, translate_points
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
+
+from mm.baseitems import Item
+from tools.geoms import OCCNurbsCurvePanels
 
 np.set_printoptions(suppress=True)
 
