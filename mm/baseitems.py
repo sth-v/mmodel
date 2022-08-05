@@ -577,7 +577,7 @@ from dataclasses import dataclass
 
 """
 
-class NamedElement(BaseFieldsInterface):
+class Item(BaseFieldsInterface):
     required_fields = {'name'}
 
     def __init__(self, *args, **kwargs):
@@ -596,6 +596,6 @@ class NamedElement(BaseFieldsInterface):
         super().__init__(*args, **kwargs)
 
 
-class VNElement(NamedElement):
+class VNElement(Item):
     
     """
