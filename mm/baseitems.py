@@ -7,7 +7,7 @@ import warnings
 from abc import ABC, ABCMeta
 from collections.abc import Mapping, MutableMapping, Awaitable
 from collections import ChainMap, namedtuple
-from typing import Any
+from typing import Any, Callable
 import compas
 
 from tools.colors import TemplateBase
@@ -127,6 +127,30 @@ class ArgsItem(Item):
         super().__init__(*args, **kwargs)
         inspect.signature(self.__class__.__init__)
 
+
+class _ArgGettersItem(Item, Callable):
+    def __init__(self, *args, **kwargs):
+        self.ikw = kwargs
+        self.iar = args
+
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        self.ikw = kwargs
+        self.iar = args
+        super().__call__(*args, **kwargs)
+
+    def __getinitargs__(self):
+        return self.ikw
+
+    def __getnewargs__(self):
+        d = []
+        for k, v in self.__dict__.items():
+            if k in self.ikw.keys():
+                pass
+            else:
+                d.append((k, v))
+        return dict(d)
 
 class ItemCollection:
     item = Item

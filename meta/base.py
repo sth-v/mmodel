@@ -21,7 +21,7 @@ class Mmodel(object):
     """
     configs = CONFIG_MM
 
-    def __init__(cls, fp="config.json"):
+    def __init__(self, fp="config.json"):
         global CONFIG_MM
 
         self.config_fp = fp
@@ -37,10 +37,10 @@ class Mmodel(object):
         self.vc = VersionController(self.history)
         setattr(BaseItem, 'vc', self.vc)
 
-        # cls.VC = VersionController
-        # cls.VC()
+        # self.VC = VersionController
+        # self.VC()
 
-    def change_history(cls, name, kwargs):
+    def change_history(self, name, kwargs):
         name = name.upper()
         print(f'change history about {name}')
         v = Version(val=None)
@@ -70,14 +70,14 @@ class BaseItem(type):
 
     def __new__(mcs, classname, bases, attrs):
 
-        print(f'configurate from cls.configs:\n  {mcs.configs}')
+        print(f'configurate from self.configs:\n  {mcs.configs}')
         print(mcs.__mmodel__)
 
         C = type(classname, bases, attrs)
         C.vc = mcs.vc
         C.__mmodel__ = mcs.__mmodel__
 
-        def _new_(cls, *args, **kwargs):
+        def _new_(self, *args, **kwargs):
             if C.load == 'version':
                 hst = C.vc.item_from_last_version(C)
                 if '__rhino__' in attrs.keys():

@@ -12,39 +12,12 @@ from typing import Iterable, Iterator, List, Optional, Any, Tuple, TypeVar, Call
 import vcs.utils
 import pandas as pd
 
+from mm.collections import _AbstractItemCollection, _ArgGettersItem, _AttrHandlerCollection
 from tools import TemplateBase
 
 import logging
 from mm import Item
 
-
-class _ItemCollectionTemplate(Item):
-    def __init__(self, _cls_collection: Union[List | Tuple | Iterable | List[Item] | Tuple[Item]], *args, **kwargs):
-        self._cls_collection = _cls_collection
-        super().__init__(*args, **kwargs)
-        self._i = 0
-
-    def __getitem__(self, item):
-        return self._cls_collection[item]
-
-    def __setitem__(self, key, value):
-        self._cls_collection[key] = value
-
-    def __delitem__(self, key):
-        del self._cls_collection[key]
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        yield self
-
-    def reset(self):
-        self._i = 0
-
-    def __call__(self, *args, **kwargs):
-        for item in self._cls_collection:
-            item.__call__(*args, **kwargs)
 
 
 class MetaItem(type):
@@ -130,95 +103,7 @@ class MetaLoggingItem(MetaItem):
         print(f"Sub definition {mcs}, {kwargs}")
 
 
-class _ArgGettersItem(Item, Callable):
-    def __init__(self, *args, **kwargs):
-        self.ikw = kwargs
-        self.iar = args
 
-        super().__init__(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs):
-        self.ikw = kwargs
-        self.iar = args
-        super().__call__(*args, **kwargs)
-
-    def __getinitargs__(self):
-        return self.ikw
-
-    def __getnewargs__(self):
-        d = []
-        for k, v in self.__dict__.items():
-            if k in self.ikw.keys():
-                pass
-            else:
-                d.append((k, v))
-        return dict(d)
-
-
-class _AbstractItemCollection(Iterator):
-    target = _ArgGettersItem
-
-    def __init__(self, *args, **kwargs):
-        super(_AbstractItemCollection, self).__init__(**kwargs)
-        self._i = 0
-
-        self._collection = list(map(lambda x: self.target(**dict(x)), args))
-
-        # map(lambda x: self.target(**dict(x)), args, seq if self._collection is None else self._collection)
-
-    def __len__(self):
-        return len(self._collection)
-
-    def __iter__(self):
-        return self
-
-    def __call__(self, *args, **kwargs):
-        self.collection_keys = dict(args[0])
-        self._collection = list(map(lambda x, y: x(**dict(y)), self._collection, args))
-        return self
-
-    def __getitem__(self, item):
-        if isinstance(item, slice):
-            return self._collection[slice(item)]
-        else:
-            return self._collection[item]
-
-    def __setitem__(self, item, val):
-        if isinstance(item, slice):
-            self._collection[slice(item)] = val
-        else:
-            self._collection[item] = val
-
-    def __delitem__(self, item):
-        del self._collection[item]
-
-    def __next__(self):
-        if self._i < len(self._collection):
-            yield self.__getitem__(self._i)
-            self._i += 1
-        else:
-            raise StopIteration
-
-
-
-
-
-
-class _AttrHandlerCollection(_AbstractItemCollection):
-    attrs_handler: Any
-
-    def __call__(self, *args, **kwargs):
-        super().__call__(*args, **kwargs)
-        self.attrs_handler.collection = self
-
-    def __getitem__(self, key):
-        if isinstance(key, str):
-
-            return list(map(lambda x: getattr(x, key), self._collection))
-        elif isinstance(key, int):
-            return self._collection[key]
-        else:
-            return getattr(self[key[1]], key[0])
 
 class MetaCollection(MetaLoggingItem):
     collection_classes = []
@@ -337,4 +222,3 @@ class AbstractItemCollection(_AttrHandlerCollection):
     {'ikw': {'x': 8, 'y': 3}, 'iar': (), '_uid': '0x11fc27e50', 'x': 8, 'y': 3, 'version': '0x4d0x5b0x600x600x62'}
     """
     target = _ArgGettersItem
-
