@@ -42,3 +42,19 @@ class OCCNurbsCurvePanels(OCCNurbsCurve):
         return cls.from_parameters(
             points=points, weights=weights, knots=knots, multiplicities=mults, degree=2
         )
+
+
+    @classmethod
+    def reversed_copy(cls, curve):
+
+        points = curve.points[::-1]
+        weights = curve.weights[::-1]
+        knots = curve.knots
+        mults = curve.multiplicities[::-1]
+        degree = curve.degree
+        return cls.from_parameters(
+            points=points, weights=weights, knots=knots, multiplicities=mults, degree=degree
+        )
+
+
+
