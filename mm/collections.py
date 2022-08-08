@@ -1,7 +1,17 @@
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, Mapping, Tuple
 
-from mm.baseitems import _ArgGettersItem
+from mm.baseitems import _ArgGettersItem, ArgsItem
+from functools import singledispatchmethod
+import types, typing, weakref
+
+weakref.ref()
+singledispatchmethod()
+class ItemCollection(Iterator):
+    target = ArgsItem
+
+    def __init__(self, *args, **kwargs):
+        ...
 
 
 class _AbstractItemCollection(Iterator):

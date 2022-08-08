@@ -12,7 +12,9 @@ from typing import Iterable, Iterator, List, Optional, Any, Tuple, TypeVar, Call
 import vcs.utils
 import pandas as pd
 
+from mm.unactive import DictableElement
 from mm.collections import _AbstractItemCollection, _ArgGettersItem, _AttrHandlerCollection
+from mm.exceptions import MModelException
 from tools import TemplateBase
 
 import logging
@@ -219,3 +221,66 @@ class AbstractItemCollection(_AttrHandlerCollection):
     {'ikw': {'x': 8, 'y': 3}, 'iar': (), '_uid': '0x11fc27e50', 'x': 8, 'y': 3, 'version': '0x4d0x5b0x600x600x62'}
     """
     target = _ArgGettersItem
+
+
+class FieldsMeta(type):
+    root = DictableElement
+    interfaces: dict = {}
+    classname_prefix = "Mmodel"
+
+    def __new__(mcs, classname, bases, attrs, interface=False, **kws):
+
+        main_parent = bases[0]
+        if interface:
+            o = super().__new__(mcs, classname, bases, attrs, **kws)
+            mcs.interfaces[classname] = o
+            return o
+        else:
+            attrs['aliases'] = []
+            attrs['main_parent'] = main_parent
+            attrs['mro'] = lambda x: list(inspect.getmro(x.main_parent))
+            if 'required_fields' in attrs.keys():
+                arf = copy.deepcopy(attrs['required_fields'])
+
+                attrs['required_fields'].update(main_parent.required_fields)
+
+            else:
+                arf = set()
+                attrs['required_fields'] = main_parent.required_fields
+            newarf = attrs['required_fields']
+
+            if 'interfaces' in attrs.keys():
+                call_plugins = []
+                for i in attrs['interfaces']:
+
+                    if (i in mcs.interfaces.keys()) and (not None):
+
+                        call_plugins.append(mcs.interfaces[i])
+
+                    else:
+
+                        raise MModelException(
+                            f'\nDeclared interface "{i}" is not defined!\n{mcs.interfaces.keys()}\n')
+
+                    def call_with_fields(self, *args, **kwargs):
+                        self.args, self.kw = args, kwargs
+                        for plugin in self.call_plugins:
+                            print(f'call {plugin.__name__} interface')
+                            # print(self.args)
+                            # print(self.kw, " ->")
+                            plugin.interface_call(self)
+                            # print("-> ", self.kw)
+                        kws_ = self.kw
+                        # print(kws_)
+                        super(main_parent, self).__call__(*args, **kws_)
+
+                    attrs['call_plugins'] = call_plugins
+                    attrs['__call__'] = call_with_fields
+
+            else:
+                pass
+
+            # print(
+            #   f'{main_parent.__name__} required_fields ({main_parent.required_fields}) -> {classname} required_fields ({arf}) ->  {classname} required_fields ({newarf})')
+
+            return super().__new__(mcs, classname, bases, attrs, **kws)
