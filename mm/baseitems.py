@@ -1,13 +1,14 @@
-__all__ = ['Item', 'RequiredFildItem', 'HashVersion', 'Version']
+__all__ = ['Item', 'DefaultFildItem', 'DictableItem', 'JsItem']
 
 import base64
 import copy
 import inspect
+import itertools
 import json
 from abc import abstractmethod
 from collections import defaultdict
 from typing import Any, Optional
-
+import base64
 import compas
 
 from collections.abc import Callable
@@ -20,10 +21,10 @@ from mm.exceptions import MModelException
 
 class Versioned(object):
     def __init__(self):
-        self.version = HashVersion()
+        self._version()
 
     def _version(self):
-        self.version = HashVersion()
+        self.version = HashVersion().__hex__()
 
     def __eq__(self, other):
         return hex(self.version) == hex(other.version)
@@ -43,6 +44,9 @@ class Identifiable(Versioned):
         self._uid = hex(val)
 
 
+import uuid
+
+
 class Item(Identifiable):
     """
     Base Abstract class
@@ -50,7 +54,9 @@ class Item(Identifiable):
 
     def __init__(self, *args, **kwargs):
         super().__init__()
+        self.dtype = self.__class__.__name__
         self.uid = id(self)
+        self.uuid = uuid.uuid4().hex
         self.__call__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
@@ -97,8 +103,7 @@ class HistoryArgItem(ArgsItem):
         return cls(**data)
 
 
-
-class RequiredFildItem(Item):
+class DefaultFildItem(Item):
     """
     Check name
 
@@ -107,13 +112,16 @@ class RequiredFildItem(Item):
 
     """
 
-    fields: Optional[Any]
+    fields = dict(
+        uuid=''
+    )
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
+
         self._dfields = defaultdict(**self.fields)
         kwargs |= dict(zip(self._dfields.keys(), args[:len(self._dfields.keys())]))
 
@@ -129,26 +137,45 @@ class RequiredFildItem(Item):
                 f"Miss required field: {key} in {cls.__name__}!")
 
 
-class DictableElement(RequiredFildItem):
-    del_keys = ['args', 'kw', 'aliases']
+class FieldItem(DefaultFildItem):
+    def __init__(self, *args, **kwargs):
+        self.fields |= super().fields
+        super().__init__(*args, **kwargs)
+
+
+class DictableItem(FieldItem):
+    fields = dict()
+    del_keys = ['args', 'kw', 'aliases', "dfields", "uid", "__array__"]
+    format_spec = "_uid", "version"
 
     def __init__(self, *args, **kwargs):
-        super(RequiredFildItem, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+
+    def __format__(self, format_spec=None):
+        s = ''
+
+        if format_spec is None:
+            for k in self.format_spec:
+                s += f"{k}={self.__dict__[k]} ,"
+        else:
+            for k in format_spec:
+                s += f"{k}={self.__dict__[k]} ,"
+        return "{}({})".format(self.__class__.__name__, s[:-1])
 
     def __str__(self):
-        return compas.json_dumps(self.encode(), pretty=True)
+        return self.__format__()
 
     def __repr__(self):
-        _d = self.encode()
+        _d = self.to_dict()
         reprdict = {'uid': self._uid}
         for r in self.fields.keys():
             reprdict[r] = _d[r]
 
-        return compas.json_dumps(reprdict, pretty=True)
+        return self.__str__() + f" object at {hex(id(self))}"
 
     def __hash__(self):
         st = ""
-        for k, v in self.encode().items():
+        for k, v in self.to_dict().items():
 
             if not ((k in self.del_keys) or (k == "metadata")):
                 try:
@@ -168,7 +195,7 @@ class DictableElement(RequiredFildItem):
 
         return st
 
-    def encode(self):
+    def to_dict(self):
         st: dict = {'metadata': {}}
 
         for k, v in self.__dict__.items():
@@ -176,12 +203,19 @@ class DictableElement(RequiredFildItem):
             if k in self.del_keys:
                 pass
             else:
+
                 try:
-
-                    vdct = v.encode()
+                    iter(v)
+                    if isinstance(list(itertools.chain(v))[0], DictableItem):
+                        vdct = list(map(lambda x: x.to_dict(), v))
+                    else:
+                        vdct = v
                 except:
+                    if isinstance(v, DictableItem):
+                        vdct = v.to_dict()
+                    else:
 
-                    vdct = v
+                        vdct = v
 
                 if k in self.fields.keys():
 
@@ -191,9 +225,23 @@ class DictableElement(RequiredFildItem):
 
         return st
 
+    def encode(self, **kwargs):
+        return compas.json_dumps(self.to_dict(), **kwargs)
+
+    def to_json(self):
+        return self.encode()
+
+    def b64encode(self, **kwargs):
+        return base64.b64encode(self.encode(**kwargs).encode())
+
     def __call__(self, *args, **kwargs):
-        super(DictableElement, self).__call__(*args, **kwargs)
+        super().__call__(*args, **kwargs)
         self.__dict__["hash"] = self.__hash__()
+
+
+class JsItem(DictableItem):
+    schema_js = dict()
+
 
 
 """

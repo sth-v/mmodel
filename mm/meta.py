@@ -12,7 +12,7 @@ from typing import Iterable, Iterator, List, Optional, Any, Tuple, TypeVar, Call
 import vcs.utils
 import pandas as pd
 
-from mm.unactive import DictableElement
+from mm.unactive import DictableItem
 from mm.collections import _AbstractItemCollection, _ArgGettersItem, _AttrHandlerCollection
 from mm.exceptions import MModelException
 from tools import TemplateBase
@@ -224,7 +224,7 @@ class AbstractItemCollection(_AttrHandlerCollection):
 
 
 class FieldsMeta(type):
-    root = DictableElement
+    root = DictableItem
     interfaces: dict = {}
     classname_prefix = "Mmodel"
 

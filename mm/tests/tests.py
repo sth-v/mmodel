@@ -1,5 +1,5 @@
 import unittest
-from mm.baseitems import Item, RequiredFildItem
+from mm.baseitems import Item, DefaultFildItem
 from mm.exceptions import MModelException
 
 
@@ -11,7 +11,7 @@ class B(Item):
     ...
 
 
-class PointLike(RequiredFildItem):
+class PointLike(DefaultFildItem):
     required_fields = {'x', 'y', 'z'}
 
     @classmethod

@@ -5,7 +5,7 @@ from typing import Any, MutableSequence
 import numpy as np
 
 from mm import BaseField, Item
-from mm.baseitems import DictableElement, RequiredFildItem
+from mm.baseitems import DictableItem, DefaultFildItem
 from mm.exceptions import MModelException
 from mm.meta import FieldsMeta
 from tools import AXIS_NAMES, TemplateBase
@@ -146,7 +146,7 @@ class ZField(KeyField, interface=True):
             return 0.0
 
 
-class BaseElement(DictableElement, metaclass=FieldsMeta):
+class BaseItem(DictableItem, metaclass=FieldsMeta):
     interfaces = ['BaseField']
 
 
@@ -319,7 +319,7 @@ class MeshGrid2dStructure(BaseStructure, ABC):
         self.x_axes
 
 
-class BaseField(RequiredFildItem, metaclass=FieldsMeta, interface=True):
+class BaseField(DefaultFildItem, metaclass=FieldsMeta, interface=True):
     @classmethod
     def interface_call(cls, other):
         ...
