@@ -1,19 +1,76 @@
+import copy
 from abc import ABC
 from collections import namedtuple
 import compas.geometry
 import compas.data
-import compas.datastructures
+
 import compas
+import numpy as np
 
-
-from mm.baseitems import Item
+from mm.baseitems import DictableItem, Item, JsItem
 
 RootParents = namedtuple("RootParents", ["main_parent", "FramrworkParent"])
 
-class Point(Item):
-    def __init__(self, x, y, z, **kwargs):
+mesh_js_schema = {
+    "metadata":dict(),
+    "uuid": '',
+    "type": "BufferGeometry",
+    "data": {"attributes": {"position": {"itemSize": 3,
+                                         "type": "Float32Array",
+                                         "array": []}
+                            }
+             },
+}
 
-        super().__init__(x, y, z, **kwargs)
+pts_js_schema = {
+    "metadata":dict(),
+    "uuid": '',
+    "type": "BufferGeometry",
+    "data": {"attributes": {"position": {"itemSize": 3,
+                                         "type": "Float32Array",
+                                         "array": []}
+                            }
+             },
+}
+
+class Point(JsItem):
+    fields = dict(
+        x=0.0,
+        y=0.0,
+        z=0.0
+    )
+
+    def __array__(self):
+        return np.array([self.x, self.y, self.z])
+
+    def to_dict(self):
+        st = super().to_dict()
+
+
+class Axis(DictableItem):
+    fields = dict(
+        start=Point(0, 0, 0),
+        end=Point(0, 0, 1),
+    )
+
+
+class Face(DictableItem):
+    fields = dict(
+        vertices=[]
+    )
+    schema_js = copy.deepcopy(mesh_js_schema)
+
+    def __call__(self, vertices=(), **kwargs):
+        super().__call__(vertices=vertices, **kwargs)
+        self.polygon = compas.geometry.Polygon(list(map(lambda x: compas.geometry.Point(x.x, x.y, x.z), vertices)))
+        self.area = self.polygon.area
+
+
+    def encode(self, **kwargs):
+
+        self.schema_js["data"]["attributes"]["position"]["array"] = np.asarray(self.vertices, dtype=np.float32)
+
+
 
 class GeometryMeta(type):
     target_framework = compas
@@ -34,6 +91,3 @@ class GeometryItem(Item, compas.data.Data, ABC):
 
     def __call__(self, *args, **kwargs):
         super(GeometryItem, self).__call__(*args, **kwargs)
-
-
-

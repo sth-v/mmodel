@@ -1,5 +1,6 @@
 import copy
 import hashlib
+import json
 import time
 from datetime import date
 from collections import namedtuple
@@ -181,3 +182,7 @@ class HashVersion(HexTimer):
         return {'version':self.__hex__()}
     def __repr__(self):
         return f"v{self.__hex__()}"
+    def encode(self):
+        return json.dump(self._dict())
+    def to_json(self):
+        return self._dict()
