@@ -226,7 +226,7 @@ view.show()
 # разные типы панелей
 # думаю это будет класс, который генерит профиль на основе паттерна? значений загиб - прямой кусок и тд
 class FaceProfile(StraightElement):
-    bend_types = defaultdict(list)
+    #bend_types = defaultdict(list)
 
     def __init__(self, bend_type, radius_s, angle_s, poly_, directions_s,*args, **kwargs):
         super(FaceProfile, self).__init__(*args, **kwargs)
