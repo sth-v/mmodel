@@ -245,86 +245,6 @@ view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 1))
 view.add(Polyline(bend_.locus()), linewidth=1, linecolor=(1, 0, 0))
 view.show()
 
-'''extra_test = FoldElement(60, 2, 1)
-get_fold = extra_test.curved_segment()
-
-
-def frame_(previous, domain):
-    X = previous.tangent_at(domain).unitized()
-    ea1 = 0.0, 0.0, np.radians(90)
-    R1 = Rotation.from_euler_angles(ea1, False, 'xyz')
-    Y = X.transformed(R1).unitized()
-    view.add(Frame(previous.point_at(domain), X, Y), size=5)
-    return Frame(previous.point_at(domain), X, Y)
-
-frame = frame_(bend_, max(bend_.domain))
-v = frame.to_world_coordinates(get_fold)
-
-view.add(Polyline(get_fold.locus()), linewidth=1, linecolor=(1, 0, 0))
-
-
-view.add(Polyline(v.locus()), linewidth=1, linecolor=(1, 0, 0))
-
-
-circ = OCCNurbsCurvePanels.from_circle_world(Circle(Plane.worldXY(), 2))
-curve = OCCNurbsCurvePanels.segmented(circ, 0.0, (120/360))
-print(curve)
-
-view.add(Polyline(curve.locus()), linewidth=1, linecolor=(1, 0, 0))
-view.add(Frame.worldXY(), size=5)
-view.add(curve.frame_at(min(curve.domain)), size=5)
-view.add(curve.frame_at(max(curve.domain)), size=5)
-#surf_ = test.extrusion()
-
-
-view.add(Polyline(bend_.locus()), linewidth=1, linecolor=(0, 0, 1))
-
-view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 1))
-#view.add(surf_.to_mesh())
-
-
-view.show()'''
-
-'''
-
-
-#
-#
-#
-#
-#
-#
-# разные типы отгибов
-# думаю это будет класс, который генерит профиль на основе паттерна? значений загиб - прямой кусок и тд
-
-
-class BendProfile(object):
-    instances = set()
-
-    def __init__(self, name_, radius_s, angle_s, direction_s):
-        self.name_ = name_
-        self.radius_s = radius_s
-        self.f_radius = self.radius_s[0]
-        self.angle_s = angle_s
-        self.f_angle = self.angle_s[0]
-        self.direction_s = direction_s
-        BendProfile.instances.add(self)
-
-
-def Bends_Factory(name, radius_s, angle_s, direction_s, **kwargs):
-    def __init__(self, **kwarg):
-        for key, value in kwarg.items():
-            setattr(self, key, value)
-        BendProfile.__init__(self, name, radius_s, angle_s, direction_s)
-
-    def calc_fold_start(self):
-        a = math.tan(np.radians(self.f_angle))
-        return self.f_radius / a
-
-    type_class = type('BendType' + name, (BendProfile,), {"__init__": __init__, "calc_fold_start": calc_fold_start})
-    return type_class
-
-
 #
 #
 #
@@ -357,22 +277,6 @@ class FaceProfile(StraightElement):
 
         return PolygonObj([intersection_line_line(offset_poly[0], offset_poly[1])[0],
                            intersection_line_line(offset_poly[1], offset_poly[2])[0], intersection_line_line(offset_poly[2], offset_poly[0])[0]])
-
-
-
-
-
-
-
-
-    # @staticmethod
-    # def offset_sides():
-
-
-
-    # dist = self.offset_dist(value)
-    # offs = Polygon(offset_polygon(self.poly, dist))
-    # return offs.lines[key]
 
 
 #
@@ -412,22 +316,3 @@ start_poly = test.panel_offset.polygon
 
 
 
-
-#segment = c.straight_segment()
-
-
-#from compas_plotters import Plotter
-#plotter = Plotter()
-
-#plotter.add(before_offset, linewidth=3)
-#plotter.zoom_extents()
-#plotter.show()
-view = App(width=1600, height=900)
-#view.add(before_offset, linewidth=1, linecolor=(0, 0, 0))
-
-view.add(Polyline(poly.locus()), linewidth=1, linecolor=(0, 0, 0))
-view.add(Polyline(poly_.locus()), linewidth=1, linecolor=(0, 1, 0))
-view.add(frame, size=5)
-view.add(frame_, size=5)
-#view.add(Polyline(segment.locus()), linewidth=4, linecolor=(0, 1, 0))
-view.show()'''
