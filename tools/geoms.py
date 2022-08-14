@@ -25,15 +25,15 @@ class OCCNurbsCurvePanels(OCCNurbsCurve):
         dy = frame.yaxis * circle.radius
 
         points = [
-            frame.point + dx,
-            frame.point + dy + dx,
-            frame.point + dy,
-            frame.point + dy - dx,
             frame.point - dx,
             frame.point - dy - dx,
             frame.point - dy,
             frame.point - dy + dx,
-            frame.point + dx
+            frame.point + dx,
+            frame.point + dy + dx,
+            frame.point + dy,
+            frame.point + dy - dx,
+            frame.point - dx
         ]
 
         knots = [0, 1 / 4, 1 / 2, 3 / 4, 1]
