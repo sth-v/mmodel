@@ -97,16 +97,18 @@ class FoldElement:
         circ_angle = 180 - self.angle
         return circ_angle / 360
 
-    '''@staticmethod
-    def transl_to_zero(init_point, goal_point):
-        vec = goal_point - init_point
-        transl = Translation.from_vector(vec)
-        return transl'''
-
-    def transl_to_zero(self, curve):
+    '''def transl_to_zero(self, curve):
         get_frame = curve.frame_at(min(curve.domain))
         tr = Transformation.from_frame_to_frame(get_frame, Frame.worldXY())
-        return tr
+        return tr'''
+
+    def transl_to_radius(self, circle):
+        if self.angle > 0:
+            tr = Translation.from_vector(Vector.Yaxis() * (-self.radius))
+        else:
+            tr = Translation.from_vector(Vector.Yaxis() * self.radius)
+        c_t = circle.transformed(tr)
+        return c_t
 
     def curved_segment(self):
         circ = OCCNurbsCurvePanels.from_circle_world(self.circle_center())
@@ -233,10 +235,20 @@ line = OCCNurbsCurve.from_line(Line(Point(5, 2, 0), Point(-30, 12, 0)))
 test = BendConstructor(angle=[90, 60], radius=[2, 2], dir=[1, 1], straight=[35, 45], start=line)
 bend_ = test.bend_curve
 
+def circle_center(radius):
+    circ = Circle(Plane.worldXY(), radius)
+    return circ
+circ = circle_center(10)
+tr = Translation.from_vector(Vector.Yaxis()*(-10))
+c_t = circ.transformed(tr)
+crv = NurbsCurve.from_circle(c_t)
+b = OCCNurbsCurvePanels.segmented(crv, 0.25, 0.35)
+v = App()
+v.add(Polyline(b.locus()), linewidth=3)
+v.run()
 
 
-
-extra_test = FoldElement(60, 2, 1)
+'''extra_test = FoldElement(60, 2, 1)
 get_fold = extra_test.curved_segment()
 
 
@@ -274,7 +286,7 @@ view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 1))
 #view.add(surf_.to_mesh())
 
 
-view.show()
+view.show()'''
 
 '''
 
