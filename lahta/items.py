@@ -103,16 +103,16 @@ class FoldElement:
             circ_angle = 180 - (-self.angle)
         return circ_angle / 360
 
-    def transl_to_radius(self, circle):
+    def transl_to_radius(self, circle, radius):
         if self.angle > 0:
-            tr = Translation.from_vector(Vector.Yaxis() * self.radius)
+            tr = Translation.from_vector(Vector.Yaxis() * radius)
         else:
-            tr = Translation.from_vector(Vector.Yaxis() * (-self.radius - self.metal_width))
+            tr = Translation.from_vector(Vector.Yaxis() * (-radius - self.metal_width))
         c_t = circle.transformed(tr)
         return c_t
 
-    def curved_segment(self, circle):
-        transl = self.transl_to_radius(circle)
+    def curved_segment(self, circle, radius):
+        transl = self.transl_to_radius(circle, radius)
         if self.angle < 0:
             param = 0.75 - self.circle_param()
             seg = OCCNurbsCurvePanels.segmented(transl, 0.75, param)
@@ -127,7 +127,7 @@ class FoldElement:
         folds = []
         for i in self.circle_center():
             circ = OCCNurbsCurvePanels.from_circle_world(i)
-            folds.append(self.curved_segment(circ))
+            folds.append(self.curved_segment(circ, self.radius))
         return folds
 
     def straight_segment_len(self):
@@ -169,8 +169,9 @@ class FoldElementFres(FoldElement):
     def calc_inner_rad(self):
         part = (180 - np.abs(self.angle)) / 360
         # goal_fl = self.fres_len * self.coeff
-        goal_fl = self.fres_len * (self.radius - (self.metal_width / 2))
-        return goal_fl / (2 * math.pi * part)
+        #goal_fl = self.fres_len * (self.radius - (self.metal_width / 2))
+        #return goal_fl / (2 * math.pi * part)
+        return 0.3
 
     def circle_center(self):
         circ_l = Circle(self.plane, self.radius)
@@ -195,16 +196,10 @@ class FoldElementFres(FoldElement):
             args = False, 'xyz'
             R1 = Rotation.from_euler_angles(ea1, *args)
             s_rot = straight.transformed(R1)
-
             c_fr = self.get_local_plane(curve, c)
-
             tr = Translation.from_vector(Vector.from_start_end(s_rot.point_at(max(s_rot.domain)), c_fr.point))
             st = s_rot.transformed(tr)
-
             join = join.joined(st)
-
-            view.add(Polyline(join.locus()), linewidth=1, linecolor=(0, 0, 0))
-
         return join
 
     def crv_str_out(self, curve, straight):
@@ -215,16 +210,12 @@ class FoldElementFres(FoldElement):
             tr = Transformation.from_frame_to_frame(str_fr, c_fr)
             st = straight.transformed(tr)
             join = join.joined(st)
-
-            view.add(Polyline(st.locus()), linewidth=1, linecolor=(1, 0, 0))
-            view.add(Polyline(curve.locus()), linewidth=1, linecolor=(0, 0, 1))
         return join
 
     def construct_folds(self):
-        folds = []
         crv_segments = []
         for c in self.circle_center():
-            crv = self.curved_segment(c)
+            crv = self.curved_segment(c, radius=-0.2)
             ang = np.radians(self.angle / 2)
             x_tr = Translation.from_vector(Vector.Xaxis() * ((self.metal_width / 2) / math.tan(ang)))
             crv_shift = crv.transformed(x_tr)
@@ -232,48 +223,17 @@ class FoldElementFres(FoldElement):
 
         outer = self.crv_str_out(crv_segments[0], self.straight_parts_l()[0])
         inner = self.crv_str_in(crv_segments[1], self.straight_parts_l()[1])
+        view.add(Polyline(inner.locus()), linewidth=1, linecolor=(0, 0, 1))
+        view.add(Polyline(outer.locus()), linewidth=1, linecolor=(0, 0, 1))
 
-        return folds
-
-    '''def translate_inner(self, curve, domain):
-
-        ea1 = 0, 0, np.radians(-self.angle / 2)
-        args = False, 'xyz'
-        R1 = Rotation.from_euler_angles(ea1, *args)
-        ang = np.radians(self.angle / 2)
-        l = (self.metal_width / 2) / math.sin(ang)
-        vec = Vector(l, 0, 0).transformed(R1)
-
-        pl_one = self.get_local_plane(curve, domain)
-        y_tr = Translation.from_vector(pl_one.yaxis * (self.metal_width))
-        l_one = curve.point_at(domain)
-        l_one = l_one.transformed(y_tr)
-        vec_tr = Translation.from_vector(vec)
-        l_two = l_one.transformed(vec_tr)
-        line_one = OCCNurbsCurve.from_line(Line(l_one, l_two))
-        return line_one
-
-    def construct_inner_fold(self):
-        outer = self.construct_folds()
-        seg_one =self.translate_inner(outer, max(outer.domain))
-        seg_two = self.translate_inner(outer, min(outer.domain))
-        join = OCCNurbsCurve.from_line(Line(seg_one.point_at(max(seg_one.domain)), seg_two.point_at(max(seg_two.domain))))
-        return seg_two.joined(seg_one.joined(join))
-
-    def inner_fold(self):
         if self.angle > 0:
-            return self.construct_inner_fold(), self.construct_folds()
+            return [outer, inner]
         else:
-            return self.construct_folds(), self.construct_inner_fold()'''
+            return [inner, outer]
 
-
-test = FoldElementFres(angle=70, radius=0.8, fres_len=1.4)
-tt = test.construct_folds()
-# view.add(Polyline(test.construct_folds().locus()), linewidth=1, linecolor=(0, 0, 1))
-# view.add(Polyline(test.construct_inner_fold().locus()), linewidth=1, linecolor=(0, 0, 0))
-view.show()
-
-
+#TEST = FoldElementFres(angle=70, radius=0.8, fres_len=1.4)
+#t = TEST.construct_folds()
+#view.show()
 class StraightElement:
     metal_width = 1
 
@@ -301,7 +261,7 @@ class StraightElement:
 
         tr = Translation.from_vector(Vector.Yaxis() * (self.metal_width))
         l_out = l_in.transformed(tr)
-        return l_in, l_out
+        return l_out, l_in
 
     @staticmethod
     def cap_elem(c_one, c_two):
@@ -353,17 +313,27 @@ class BendConstructor:
             straight = StraightElement(self.steps[self._i][2] - (2 * fold.calc_rightangle_length()))
             get_line = straight.build_line()
         else:
-            fold = FoldElementFres(angle=self.steps[self._i][0], radius=self.steps[self._i][1])
-            # get_fold = fold.inner_fold()
-            # straight = StraightElement(self.steps[self._i][2] - (2 * fold.calc_rightangle_length()))
-            # get_line = straight.build_line_fres()
+            fold = FoldElementFres(angle=self.steps[self._i][0], radius=self.steps[self._i][1], fres_len=1.4)
+            get_fold = fold.construct_folds()
+            straight = StraightElement(self.steps[self._i][2] - (2 * fold.calc_rightangle_length()))
+            get_line = straight.build_line_fres()
 
         transl_f = self.translate_segment(get_fold, self.curve, max(self.curve.domain))
 
         if self.steps[self._i][1] > 1:
             transl_s = self.translate_segment(get_line, transl_f[0], max(transl_f[0].domain))
         else:
-            transl_s = self.translate_segment(get_line, transl_f[1], max(transl_f[1].domain))
+            transl_s = self.translate_segment(get_line, transl_f[0], max(transl_f[0].domain))
+
+        line = OCCNurbsCurve.from_line(Line(Point(5, 5, 0), Point(-30, 5, 0)))
+
+        view.add(Polyline(transl_s[0].locus()), linewidth=1, linecolor=(0, 0, 1))
+        view.add(Polyline(transl_f[0].locus()), linewidth=1, linecolor=(0, 0, 1))
+        view.add(Polyline(transl_s[1].locus()), linewidth=1, linecolor=(0, 0, 1))
+        view.add(Polyline(transl_f[1].locus()), linewidth=1, linecolor=(0, 0, 1))
+        view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 0))
+        view.show()
+
         join_in, join_out = transl_f[0].joined(transl_s[0]), transl_f[1].joined(transl_s[1])
         self.curve = join_in
         return join_in, join_out
@@ -401,11 +371,11 @@ class BendConstructor:
 
 
 line = OCCNurbsCurve.from_line(Line(Point(5, 5, 0), Point(-30, 5, 0)))
-test = BendConstructor(((70, 1.8, 30), (-160, 1.3, 9.3), (-90, 1.3, 20)), start=line)
+test = BendConstructor(((70, 0.8, 30), (-160, 1.3, 9.3), (-90, 1.3, 20)), start=line)
 
 bend_ = test.bend_curve
-extr = test.extrusion()
-# print(bend_)
+#extr = test.extrusion()
+print(bend_)
 
 
 for i, v in enumerate(bend_):
