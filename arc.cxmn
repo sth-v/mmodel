@@ -1,8 +1,0 @@
-{
-	"includes" : ["project_arc"],
-	"metadata" : {
-		"type": "scene",
-		"name" : "arc",
-		"version" : 202208100618
-	}
-}

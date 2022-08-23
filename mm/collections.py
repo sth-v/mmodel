@@ -1,12 +1,19 @@
 from collections.abc import Iterator
 from typing import Any, Mapping, Tuple
 
-from mm.baseitems import _ArgGettersItem, ArgsItem
+from mm.baseitems import ArgsItem
 from functools import singledispatchmethod
 import types, typing, weakref
 
-weakref.ref()
-singledispatchmethod()
+
+def t(glb):
+    for i, kv in enumerate(glb.items()):
+        k, v = kv
+
+        yield i, k
+
+
+
 class ItemCollection(Iterator):
     target = ArgsItem
 
@@ -15,7 +22,7 @@ class ItemCollection(Iterator):
 
 
 class _AbstractItemCollection(Iterator):
-    target = _ArgGettersItem
+    target = None
 
     def __init__(self, *args, **kwargs):
         super(_AbstractItemCollection, self).__init__(**kwargs)

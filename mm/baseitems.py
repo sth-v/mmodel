@@ -19,35 +19,7 @@ from vcs import Version, HashVersion
 from mm.exceptions import MModelException
 
 
-class Versioned(object):
-    def __init__(self):
-        self._version()
-
-    def _version(self):
-        self.version = HashVersion().__hex__()
-
-    def __eq__(self, other):
-        return hex(self.version) == hex(other.version)
-
-
-class Identifiable(Versioned):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self._uid = None
-
-    @property
-    def uid(self):
-        return self._uid
-
-    @uid.setter
-    def uid(self, val):
-        self._uid = hex(val)
-
-
-import uuid
-
-
-class Item(Identifiable):
+class Base(Callable):
     """
     Base Abstract class
     """
@@ -55,16 +27,63 @@ class Item(Identifiable):
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.dtype = self.__class__.__name__
-        self.uid = id(self)
-        self.uuid = uuid.uuid4().hex
+
         self.__call__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
+        super(Base, self).__call__()
         self.__dict__.update(kwargs)
+
+
+class Versioned(Base):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _version(self):
+        self.version = HashVersion().__hex__()
+
+    def __eq__(self, other):
+        return hex(self.version) == hex(other.version)
+
+    def __call__(self, *args, **kwargs):
+        super().__call__(*args, **kwargs)
         self._version()
+
+
+import uuid
+
+
+class Identifiable(Versioned):
+    def __init__(self, *args, **kwargs):
+        self._uuid = uuid.uuid4().hex
+        super().__init__()
+
+    @property
+    def uid(self):
+        return hex(id(self))
+
+    @property
+    def uuid(self):
+        return self._uuid
+
+    @uuid.setter
+    def uuid(self, v):
+        self._uuid = v
 
     def __hash__(self):
         ...
+
+    def __call__(self, *args, **kwargs):
+        super().__call__(*args, **kwargs)
+
+
+class Item(Identifiable):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        super().__call__(self, *args, **kwargs)
 
 
 class ArgsItem(Item):
@@ -241,7 +260,6 @@ class DictableItem(FieldItem):
 
 class JsItem(DictableItem):
     schema_js = dict()
-
 
 
 """

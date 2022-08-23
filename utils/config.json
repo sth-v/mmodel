@@ -1,0 +1,8 @@
+{
+  "app": "cxms3",
+  "storage": "https://storage.yandexcloud.net/",
+  "bucket": "bucket.contextmachine.online",
+  "host": "0.0.0.0",
+  "port": 7001,
+  "dev_path": "dev/share/{}"
+}
