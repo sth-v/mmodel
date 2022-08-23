@@ -1,18 +1,12 @@
-import copy
-import hashlib
+__all__=["HashVersion", "HashNode", "Version", "HashVerDec", "HexTimer"]
 import json
 import time
 from datetime import date
-from collections import namedtuple
-from functools import reduce
-from operator import add
-import pandas as pd
-import numpy as np
-import networkx as nx
 
-from tools import kwargsmap, kwargsmaps
+import numpy as np
+
 from tools.colors import TemplateVcs, TemplateObjVcs
-import inspect
+
 
 
 class HashNode(type):
