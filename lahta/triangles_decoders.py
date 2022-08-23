@@ -15,7 +15,7 @@ def b1_decoder(
     return bytes
 
 
-def b1_decoderp(path="/Users/andrewastakhov/mmodel_server/tmp/B1.json"):
+def b1_decoderp(path="/Users/andrewastakhov/mmodel_server/tmp/type_map_b1.json"):
     with open(path, "rb") as fp:
         bytes = eval(fp.read())
     return bytes

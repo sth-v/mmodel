@@ -12,7 +12,7 @@ from mm.baseitems import DictableItem, Item, JsItem
 RootParents = namedtuple("RootParents", ["main_parent", "FramrworkParent"])
 
 mesh_js_schema = {
-    "metadata":dict(),
+    "metadata": dict(),
     "uuid": '',
     "type": "BufferGeometry",
     "data": {"attributes": {"position": {"itemSize": 3,
@@ -23,7 +23,7 @@ mesh_js_schema = {
 }
 
 pts_js_schema = {
-    "metadata":dict(),
+    "metadata": dict(),
     "uuid": '',
     "type": "BufferGeometry",
     "data": {"attributes": {"position": {"itemSize": 3,
@@ -32,6 +32,7 @@ pts_js_schema = {
                             }
              },
 }
+
 
 class Point(JsItem):
     fields = dict(
@@ -47,13 +48,6 @@ class Point(JsItem):
         st = super().to_dict()
 
 
-class Axis(DictableItem):
-    fields = dict(
-        start=Point(0, 0, 0),
-        end=Point(0, 0, 1),
-    )
-
-
 class Face(DictableItem):
     fields = dict(
         vertices=[]
@@ -65,11 +59,8 @@ class Face(DictableItem):
         self.polygon = compas.geometry.Polygon(list(map(lambda x: compas.geometry.Point(x.x, x.y, x.z), vertices)))
         self.area = self.polygon.area
 
-
     def encode(self, **kwargs):
-
         self.schema_js["data"]["attributes"]["position"]["array"] = np.asarray(self.vertices, dtype=np.float32)
-
 
 
 class GeometryMeta(type):
