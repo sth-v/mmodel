@@ -25,7 +25,7 @@ class Point2d(Item):
         self.x = x
         self.y = y
 
-import dataclasses
+
     def __array__(self):
         return np.array([self.x, self.y, self.z])
 
