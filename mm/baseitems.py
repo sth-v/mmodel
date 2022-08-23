@@ -1,4 +1,5 @@
-__all__ = ['Item', 'DefaultFildItem', 'DictableItem', 'JsItem']
+__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
+           'DefaultFildItem', 'FieldItem', 'DictableItem','JsItem']
 
 import base64
 import copy
