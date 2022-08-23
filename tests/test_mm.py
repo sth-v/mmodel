@@ -1,6 +1,6 @@
 import unittest
-from meta import mm_meta
-from vcs import HexTimer, Version, HashNode
+
+from vcs.utils import HexTimer, Version, HashNode
 from tools.colors import TemplateObjVcs, TemplateTestsFail, TemplateTestsSucsess
 import numpy as np
 
@@ -36,14 +36,6 @@ class TestDecorate:
             raise Exception()
         del cls.cases
 
-@TestDecorate
-def case0():
-    class ModelItem(metaclass=mm_meta):
-        pass
-
-
-    m = ModelItem()
-    print(m)
 
 
 @TestDecorate
@@ -73,7 +65,7 @@ def case4():
 
 
 def main():
-    case0()
+
     case1()
     case4()
 
