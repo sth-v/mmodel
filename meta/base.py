@@ -1,4 +1,4 @@
-from mm.framework import *
+from mm.mm.framework import *
 
 
 

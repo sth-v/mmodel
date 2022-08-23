@@ -1,6 +1,6 @@
 import unittest
-from mm.baseitems import Item, DefaultFildItem
-from mm.exceptions import MModelException
+from mm.mmbaseitems import Item, DefaultFildItem
+from mm.mmexceptions import MModelException
 
 
 class A(Item):
