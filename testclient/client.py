@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from dataclasses import dataclass
-from mm.mm.baseitems import Item
+from mm.baseitems import Item
 from typing import TypeVar
 import pickle, json
 import compas

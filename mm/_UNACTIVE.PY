@@ -1,13 +1,15 @@
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 import copy
 from abc import ABC
 from typing import Any, MutableSequence
 
 import numpy as np
 
-from mm.mm.baseitems import FieldItem, Item
-from mm.mm.baseitems import DictableItem, DefaultFildItem
-from mm.mm.exceptions import MModelException
-from mm.mm.meta import FieldsMeta
+from mmodel_server.mm.baseitems import FieldItem, Item
+from mm.baseitems import DictableItem, DefaultFildItem
+from mm.exceptions import MModelException
+from mm.meta import FieldsMeta
 from tools.temps import AXIS_NAMES
 
 

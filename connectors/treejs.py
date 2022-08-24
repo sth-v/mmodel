@@ -13,8 +13,8 @@ a=PolyCoords.kwargs[0][2]
 def rgb_int2tuple(rgbint):
     return (1 / 256) * np.array((rgbint // 256 // 256 % 256, rgbint // 256 % 256, rgbint % 256, 256))
 
-
-def from_treejs_object_to_mm_array(source_path, target_path):
+marks_map={}
+def from_treejs_object_to_mmarray(source_path, target_path):
     with open(source_path, 'r') as fp:
         data = json.load(fp)
 

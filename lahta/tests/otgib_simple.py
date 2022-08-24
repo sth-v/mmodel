@@ -1,9 +1,8 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-from enum import Enum
-from typing import Iterator, Iterable
+from typing import Iterator
 import numpy as np
 from math import pi, degrees
-from mm.mm.baseitems import Item, DictableItem, FieldItem
+from mm.baseitems import Item
 
 
 def xform_matrix2d(rotation_angle, translate):

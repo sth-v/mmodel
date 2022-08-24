@@ -1,3 +1,5 @@
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 # some version control
 from __future__ import annotations
 
@@ -9,10 +11,10 @@ from typing import Iterator
 import vcs.utils
 
 
-from mm.mm.item_collections import _AttrHandlerCollection
-from mm.mm.exceptions import MModelException
+from mm.collections import _AttrHandlerCollection
+from mm.exceptions import MModelException
 
-from mm.mm.baseitems import Item, DictableItem
+from mm.baseitems import Item, DictableItem
 
 
 class MetaItem(type):

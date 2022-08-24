@@ -1,9 +1,9 @@
-from mm.mm.baseitems import Base, Item, DictableItem
-from mm.mm.item_collections import BaseCollection
-from typing import TypeVar, Type, Iterable, Union, Any
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
+from mm.baseitems import Base, Item, DictableItem
+from typing import TypeVar
 import numpy as np
-from numpy import ndarray
-from mm.mm.geom import Point
+from mm.geom import Point
 
 ChildItem = TypeVar("ChildItem", bound=DictableItem)
 

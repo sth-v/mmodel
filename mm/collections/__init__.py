@@ -1,9 +1,10 @@
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 from collections.abc import Iterator
 from functools import wraps
-from typing import Any, Mapping, Tuple
+from typing import Any, _T_co
 import inspect
-from mm.mm.baseitems import Base, Item, ArgsItem
-from itertools import groupby
+from mm.baseitems import Item, ArgsItem
 
 
 def t(glb):
@@ -147,6 +148,9 @@ class BaseCollection(Item, Iterator):
 
 
 class ItemCollection(Iterator):
+    def __next__(self) -> _T_co:
+        pass
+
     target = ArgsItem
 
     def __init__(self, *args, **kwargs):

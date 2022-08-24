@@ -1,18 +1,15 @@
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
            'DefaultFildItem', 'FieldItem', 'DictableItem','JsItem']
-__package__="mmodel_server.mm"
+
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import sys
 sys.path.extend(["/Users/andrewastakhov/mmodel_server/mmodel_server", "/Users/andrewastakhov/mmodel_server"])
 import importlib
 mmodel_server = importlib.import_module("mmodel_server")
-import base64
-import copy
 import inspect
 import itertools
 import json
-from abc import abstractmethod
 from collections import defaultdict
 
 import base64
@@ -24,7 +21,7 @@ import numpy as np
 
 from mmodel_server.vcs.utils import HashVersion
 
-from mm.mm.exceptions import MModelException
+from mmodel_server.mm.exceptions import MModelException
 
 
 class Base(Callable):

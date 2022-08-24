@@ -7,7 +7,7 @@ from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_po
     translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, \
     Translation, Line, Rotation, NurbsSurface
 
-from mmodel_server.mm.mm.baseitems import Item
+from mmodel_server.mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
 
 np.set_printoptions(suppress=True)

@@ -96,8 +96,8 @@ class BaseItem(type):
         C.__new__ = _new_
         return C
 
-    def __rh_attrs__(mcs, attr):
-        data = attr[mcs.__rh__]
+    def __rh_attrs__(self, attr):
+        data = attr[self.__rh__]
         if isinstance(data, Iterable):
             list_ = []
             for i in data:

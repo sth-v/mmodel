@@ -1,3 +1,5 @@
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 import copy
 from abc import ABC
 from collections import namedtuple
@@ -7,7 +9,7 @@ import compas.data
 import compas
 import numpy as np
 
-from mm.mm.baseitems import DictableItem, Item, JsItem
+from mm.baseitems import DictableItem, Item
 
 RootParents = namedtuple("RootParents", ["main_parent", "FramrworkParent"])
 
