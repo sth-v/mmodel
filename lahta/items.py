@@ -96,16 +96,14 @@ class BendMethods(Item):
         ea1 = 0.0, 0.0, np.radians(90)
         R1 = Rotation.from_euler_angles(ea1, False, 'xyz')
         Y = X.transformed(R1).unitized()
+        #try:
+            #view.add(Frame(outer.point_at(max(outer.domain)), X, Y), size=1)
+            #view.add(outer.frame_at(min(outer.domain)), size=1)
+            #view.add(outer.frame_at(max(outer.domain)), size=1)
+        #except:
+            #pass
         return Frame(inner.point_at(max(inner.domain)), X, Y)
 
-    def translate_segments(self, inner, to_transl, outer=None):
-        if outer is not None:
-            goal_frame = self.get_plane(inner, outer)
-        else:
-            goal_frame = self.get_plane(inner)
-
-        new_line = goal_frame.to_world_coordinates(to_transl)
-        return new_line
 
 
 class FoldElement(BendMethods, Item):
@@ -120,12 +118,12 @@ class FoldElement(BendMethods, Item):
             self.curve = self.construct_folds()
             self.inner = self.construct_folds()[0]
             self.outer = self.construct_folds()[1]
-            self.inner_parts = 0
+            self.inner_parts_trim = 0
         else:
             super().__call__(inner_curve=inner_curve, outer_curve=outer_curve, *args, **kwargs)
             self.inner = inner_curve
             self.outer = outer_curve
-            self.inner_parts = 0
+            self.inner_parts_trim = 0
 
     def circle_center(self):
         circ_s = Circle(self.plane, self.radius)
@@ -138,6 +136,7 @@ class FoldElement(BendMethods, Item):
     def circle_param(self):
         if self.angle > 0:
             circ_angle = 180 - self.angle
+            print (circ_angle, 'angle')
         else:
             circ_angle = 180 - (-self.angle)
         return circ_angle / 360
@@ -160,6 +159,15 @@ class FoldElement(BendMethods, Item):
         else:
             param = 0.25 + self.circle_param()
             seg = OCCNurbsCurvePanels.segmented(transl, 0.25, param)
+            print(seg)
+            f_one = seg.frame_at(min(seg.domain)).yaxis
+            f_two = seg.frame_at(max(seg.domain)).yaxis
+            print(0.720, 'parammy', param*90/0.25, 'param_alg')
+            view.add(Polyline(seg.locus()), linewidth=1, linecolor=(0, 0, 0))
+            view.add(transl.point_at(0.25), pointcolor=(1, 0, 0))
+            view.add(transl.point_at(param), pointcolor=(1, 0, 0))
+            print(np.degrees(f_one.angles(f_two)[0]), np.degrees(f_one.angles(f_two)[1]), 'vectors')
+
             return seg
 
     def construct_folds(self):
@@ -198,12 +206,12 @@ class FoldElementFres(FoldElement, Item):
             self.curve = self.construct_folds()
             self.inner = self.construct_folds()[0]
             self.outer = self.construct_folds()[1]
-            self.inner_parts = self.inner_parts_l()
+            self.inner_parts_trim = self.outer_parts_l()
         else:
             super().__call__(inner_curve=inner_curve, outer_curve=outer_curve, *args, **kwargs)
             self.inner = inner_curve
             self.outer = outer_curve
-            self.inner_parts = self.inner_parts_l()
+            self.inner_parts_trim = self.outer_parts_l()
 
     # вычисление внутреннего радиуса
     def calc_inner_rad(self):
@@ -218,29 +226,41 @@ class FoldElementFres(FoldElement, Item):
         circ_s = Circle(self.plane, self.calc_inner_rad())
         return OCCNurbsCurvePanels.from_circle_world(circ_s), OCCNurbsCurvePanels.from_circle_world(circ_l)
 
-    def inner_parts_l(self):
-        ang = np.radians(np.abs(self.angle) / 2)
-        l_out = (self.metal_width / 2) / math.tan(ang)
+    def outer_parts_l(self):
+        ang = np.radians((180 - np.abs(self.angle)) / 2)
+        l_out = (self.metal_width / 2) * math.tan(ang)
         return l_out
 
+    def inner_parts_l(self):
+        ang = np.radians((180 - np.abs(self.angle)) / 2)
+        l_in = (self.metal_width / 2) / math.cos(ang)
+        return l_in
+
     def construct_inner(self, curve):
+        ang = np.radians(np.abs(self.angle) / 2)
         old_xy_max = curve.point_at(max(curve.domain))
         old_xy_min = curve.point_at(min(curve.domain))
         if self.angle > 0:
-            new_x = old_xy_max.x - (self.inner_parts_l())
-            new_y = old_xy_max.y + (self.metal_width / 2)
-            new_points = [Point(0, 0, 0), Point(new_x, new_y, 0)]
+            vec = Vector(-math.cos(ang), math.sin(ang))
+            tr = Translation.from_vector(vec*self.inner_parts_l())
+            #view.add(old_xy_min.transformed(tr), pointcolor=(0, 0, 1))
+            #view.add(old_xy_max.transformed(tr), pointcolor=(0, 0, 1))
+            #view.add(old_xy_min, pointcolor=(1, 0, 0))
+            #view.add(old_xy_max, pointcolor=(1, 0, 0))
+            new_points = [old_xy_min.transformed(tr), old_xy_max.transformed(tr)]
         else:
-            new_x_max = old_xy_max.x - (self.inner_parts_l())
-            new_y_max = old_xy_max.y - (self.metal_width / 2)
-            new_x_min = old_xy_min.x - (self.inner_parts_l())
-            new_y_min = old_xy_min.y - (self.metal_width / 2)
-            new_points = [Point(new_x_min, new_y_min, 0), Point(new_x_max, new_y_max, 0)]
+            vec = Vector(-math.cos(ang), -math.sin(ang))
+            tr = Translation.from_vector(vec * self.inner_parts_l())
+            #view.add(old_xy_min.transformed(tr), pointcolor=(0, 0, 1))
+            #view.add(old_xy_max.transformed(tr), pointcolor=(0, 0, 1))
+            #view.add(old_xy_min, pointcolor=(1, 0, 0))
+            #view.add(old_xy_max, pointcolor=(1, 0, 0))
+            new_points = [old_xy_min.transformed(tr), old_xy_max.transformed(tr)]
 
         min_crv = OCCNurbsCurve.from_line(Line(old_xy_min, new_points[0]))
         max_crv = OCCNurbsCurve.from_line(Line(old_xy_max, new_points[1]))
-        view.add(Polyline(max_crv.locus()), linewidth=1, linecolor=(1, 0, 0))
-        view.add(Polyline(min_crv.locus()), linewidth=1, linecolor=(1, 0, 0))
+        view.add(Polyline(max_crv.locus()), linewidth=1, linecolor=(0, 0, 0))
+        view.add(Polyline(min_crv.locus()), linewidth=1, linecolor=(0, 0, 0))
         return max_crv.joined(curve.joined(min_crv))
 
     def construct_folds(self):
@@ -248,13 +268,17 @@ class FoldElementFres(FoldElement, Item):
         for i, c in enumerate(self.circle_center()):
             crv = self.curved_segment(c, radius=-0.2)
             if self.angle > 0:
-                x_tr = Translation.from_vector(Vector.Xaxis() * (self.inner_parts_l()))
+                x_tr = Translation.from_vector(Vector.Xaxis() * (self.outer_parts_l()))
                 crv_shift = crv.transformed(x_tr)
+                view.add(Polyline(crv_shift.locus()), linewidth=1, linecolor=(0, 0, 0))
             else:
                 crv_shift = crv
+                view.add(Polyline(crv_shift.locus()), linewidth=1, linecolor=(0, 0, 0))
             crv_segments.append(crv_shift)
 
         inner = self.construct_inner(crv_segments[0])
+        #print(compas.geometry.distance_point_point(crv_segments[0].point_at(max(crv_segments[0].domain)),crv_segments[1].point_at(max(crv_segments[1].domain))))
+
         outer = crv_segments[1]
         if self.angle>0:
             return [inner, outer]
@@ -263,7 +287,7 @@ class FoldElementFres(FoldElement, Item):
 
     def calc_rightangle_length(self):
         a = math.tan(math.pi / 4)
-        return (self.radius / a) + self.inner_parts_l()
+        return (self.radius / a) + self.outer_parts_l()
 
 
 #TEST = FoldElementFres(angle=70, radius=0.8, fres_len=1.4)
@@ -287,13 +311,13 @@ class StraightElement(BendMethods, Item):
             self.outer = outer_curve
 
     def build_line(self):
-        start = Point(0, 0, 0)
-        end = Point(self.length_in, 0, 0)
-        l_in = OCCNurbsCurve.from_line(Line(start, end))
-
-        start = Point(-self.length_out[0], -self.metal_width, 0)
-        end = Point(self.length_in+self.length_out[1], -self.metal_width, 0)
+        start = Point(-self.length_in[0], -self.metal_width, 0)
+        end = Point(self.length_out-self.length_in[0], -self.metal_width, 0)
         l_out = OCCNurbsCurve.from_line(Line(start, end))
+
+        start = Point(0, 0, 0)
+        end = Point(self.length_out-self.length_in[0]-self.length_in[1], 0, 0)
+        l_in = OCCNurbsCurve.from_line(Line(start, end))
         return l_in, l_out
 
     @staticmethod
@@ -307,14 +331,14 @@ class StraightElement(BendMethods, Item):
 
 import json
 
-js = {'poly': [], 'seg': []}
+js = {'poly': []}
 
 
 class BendConstructor:
     def __init__(self, *args, start):
         self.steps = args[0]
         self.start = start
-        self.curve = StraightElement(inner_curve=start, outer_curve=OCCNurbsCurve.from_line(Line(Point(5, 6, 0), Point(-30, 6, 0))))
+        self.curve = StraightElement(inner_curve=start, outer_curve=OCCNurbsCurve.from_line(Line(Point(-30, -1, 0), Point(0, -1, 0))))
         self._i = -1
         self.bend_curve = self.close_curve()
 
@@ -323,6 +347,7 @@ class BendConstructor:
 
         if isinstance(previous, FoldElementFres):
             goal_frame = previous.get_plane(previous.inner, previous.outer)
+            view.add(goal_frame, size=1)
         else:
             goal_frame = previous.get_plane(previous.inner)
 
@@ -343,17 +368,23 @@ class BendConstructor:
             fold = FoldElement(angle=self.steps[self._i][0], radius=self.steps[self._i][1])
         else:
             fold = FoldElementFres(angle=self.steps[self._i][0], radius=self.steps[self._i][1], fres_len=1.4)
-        straight = StraightElement(length_in=self.steps[self._i][2] - (2 * fold.calc_rightangle_length()), length_out=[fold.inner_parts, 0])
+        straight = StraightElement(length_in=[fold.inner_parts_trim, 0], length_out=self.steps[self._i][2] - (2 * fold.calc_rightangle_length()))
 
         transl_f = self.translate_segments(fold, self.curve)
         transl_s = self.translate_segments(straight, transl_f)
-        print(compas.geometry.distance_point_line(transl_f.inner.point_at(max(transl_f.inner.domain)), (transl_s.outer.point_at(max(transl_s.outer.domain)),transl_s.outer.point_at(min(transl_s.outer.domain)) )))
-
         view.add(Polyline(transl_f.outer.locus()), linewidth=1, linecolor=(0, 0, 0))
         view.add(Polyline(transl_s.outer.locus()), linewidth=1, linecolor=(0, 0, 1))
         view.add(Polyline(transl_f.inner.locus()), linewidth=1, linecolor=(0, 0, 0))
         view.add(Polyline(transl_s.inner.locus()), linewidth=1, linecolor=(0, 0, 1))
         view.show()
+
+        js['poly'].append(transl_f.outer.to_jsonstring())
+        js['poly'].append(transl_s.outer.to_jsonstring())
+        js['poly'].append(transl_f.inner.to_jsonstring())
+        js['poly'].append(transl_s.inner.to_jsonstring())
+
+        with open("/Users/sofyadobycina/Documents/GitHub/mmodel/tests/triangl.json", "w") as outfile:
+            json.dump(js, outfile)
 
         join_in, join_out = transl_f.inner.joined(transl_s.inner), transl_f.outer.joined(transl_s.outer)
         self.curve = transl_s
@@ -391,15 +422,15 @@ class BendConstructor:
         return surf
 
 
-line = OCCNurbsCurve.from_line(Line(Point(5, 5, 0), Point(-30, 5, 0)))
-test = BendConstructor(((70, 0.8, 30), (110, 1.3, 9.3), (90, 1.3, 20)), start=line)
+line = OCCNurbsCurve.from_line(Line(Point(-30, 0, 0), Point(0, 0, 0)))
+test = BendConstructor(((10, 1.8, 30), (110, 1.3, 9.3), (90, 1.3, 20)), start=line)
 
 bend_ = test.bend_curve
 # extr = test.extrusion()
 print(bend_)
 
 for i, v in enumerate(bend_):
-    b = v.to_polyline(n=45)
+
     js['poly'].append(v.to_jsonstring())
 
 with open("/Users/sofyadobycina/Documents/GitHub/mmodel/tests/triangl.json", "w") as outfile:
