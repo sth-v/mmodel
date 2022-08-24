@@ -1,24 +1,18 @@
-__all__=["HashVersion", "HashNode", "Version", "HashVerDec", "HexTimer"]
+__all__ = ["HashVersion", "HashNode", "Version", "HashVerDec", "HexTimer"]
+
 import json
 import time
 from datetime import date
 
 import numpy as np
 
-from tools.colors import TemplateVcs, TemplateObjVcs
-
-
 
 class HashNode(type):
-    __template__ = TemplateVcs
-
     key = np.array([99, 99, 99, 99, 99])
     val = None
 
     def __new__(mcs, name, bases, dct, **kws):
-        mcs.__template__(mcs.__name__, f'create new class: {name}')
-        if not ('__template__' in dct.keys()):
-            dct['__template__'] = mcs.__template__
+
         if not ('key' in dct.keys()):
             dct['key'] = mcs.key
 
@@ -105,7 +99,6 @@ class Version(Timer):
 
 class HexTimer(Timer, metaclass=HashNode):
     key = np.array([99, 99, 99, 99, 99])
-    __template__ = TemplateObjVcs
 
     def __init__(self):
         super().__init__()
@@ -130,7 +123,6 @@ class HashVerDec:
 
 @HashVerDec
 class HashVersion(HexTimer):
-    __template__ = TemplateObjVcs
     key = np.array([99, 99, 99, 99, 99])
 
     def __init__(self, val):
@@ -173,10 +165,13 @@ class HashVersion(HexTimer):
 
     def _dict(self):
 
-        return {'version':self.__hex__()}
+        return {'version': self.__hex__()}
+
     def __repr__(self):
         return f"v{self.__hex__()}"
+
     def encode(self):
         return json.dump(self._dict())
+
     def to_json(self):
         return self._dict()

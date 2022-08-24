@@ -7,9 +7,8 @@ from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_po
     translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, \
     Translation, Line, Rotation, NurbsSurface
 
-from mm.baseitems import Item
+from mmodel_server.mm.mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
-from compas_view2.app import App
 
 np.set_printoptions(suppress=True)
 
@@ -22,12 +21,6 @@ class Element(Item):
         super().__call__(*args, **kwargs)
 
 
-#
-#
-#
-#
-#
-#
 # геометрические примитивы
 class PolygonObj(Item):
     def __call__(self, *args, **kwargs):
@@ -72,12 +65,6 @@ class PointObj(Item):
         return PointObj(tr).point
 
 
-#
-#
-#
-#
-#
-#
 # Элемент отгиба
 class FoldElement:
     metal_width = 1
@@ -146,9 +133,6 @@ class FoldElement:
         return self.radius / a
 
 
-view = App(width=1600, height=900)
-
-
 class FoldElementFres(FoldElement):
     metal_width = 1
     coeff = 0.3
@@ -169,8 +153,8 @@ class FoldElementFres(FoldElement):
     def calc_inner_rad(self):
         part = (180 - np.abs(self.angle)) / 360
         # goal_fl = self.fres_len * self.coeff
-        #goal_fl = self.fres_len * (self.radius - (self.metal_width / 2))
-        #return goal_fl / (2 * math.pi * part)
+        # goal_fl = self.fres_len * (self.radius - (self.metal_width / 2))
+        # return goal_fl / (2 * math.pi * part)
         return 0.3
 
     def circle_center(self):
@@ -223,17 +207,13 @@ class FoldElementFres(FoldElement):
 
         outer = self.crv_str_out(crv_segments[0], self.straight_parts_l()[0])
         inner = self.crv_str_in(crv_segments[1], self.straight_parts_l()[1])
-        view.add(Polyline(inner.locus()), linewidth=1, linecolor=(0, 0, 1))
-        view.add(Polyline(outer.locus()), linewidth=1, linecolor=(0, 0, 1))
 
         if self.angle > 0:
             return [outer, inner]
         else:
             return [inner, outer]
 
-#TEST = FoldElementFres(angle=70, radius=0.8, fres_len=1.4)
-#t = TEST.construct_folds()
-#view.show()
+
 class StraightElement:
     metal_width = 1
 
@@ -327,28 +307,17 @@ class BendConstructor:
 
         line = OCCNurbsCurve.from_line(Line(Point(5, 5, 0), Point(-30, 5, 0)))
 
-        view.add(Polyline(transl_s[0].locus()), linewidth=1, linecolor=(0, 0, 1))
-        view.add(Polyline(transl_f[0].locus()), linewidth=1, linecolor=(0, 0, 1))
-        view.add(Polyline(transl_s[1].locus()), linewidth=1, linecolor=(0, 0, 1))
-        view.add(Polyline(transl_f[1].locus()), linewidth=1, linecolor=(0, 0, 1))
-        view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 0))
-        view.show()
-
         join_in, join_out = transl_f[0].joined(transl_s[0]), transl_f[1].joined(transl_s[1])
         self.curve = join_in
         return join_in, join_out
 
     def bend_(self):
         bend_in, bend_out = next(self)
-        # view.add(Polyline(bend_in.locus()), linewidth=1, linecolor=(0, 0, 1))
-        # view.add(Polyline(bend_out.locus()), linewidth=1, linecolor=(0, 0, 1))
         while self._i + 1 < len(self.steps):
             try:
                 b_in, b_out = next(self)
             except:
                 pass
-            # view.add(Polyline(b_in.locus()), linewidth=1, linecolor=(0, 0, 1))
-            # view.add(Polyline(b_out.locus()), linewidth=1, linecolor=(0, 0, 1))
             bend_in = bend_in.joined(b_in)
             bend_out = bend_out.joined(b_out)
         return bend_in, bend_out
@@ -370,100 +339,3 @@ class BendConstructor:
         return surf
 
 
-line = OCCNurbsCurve.from_line(Line(Point(5, 5, 0), Point(-30, 5, 0)))
-test = BendConstructor(((70, 0.8, 30), (-160, 1.3, 9.3), (-90, 1.3, 20)), start=line)
-
-bend_ = test.bend_curve
-#extr = test.extrusion()
-print(bend_)
-
-
-for i, v in enumerate(bend_):
-    b = v.to_polyline(n=45)
-    js['poly'].append(v.to_jsonstring())
-
-with open("/Users/sofyadobycina/Documents/GitHub/mmodel/tests/triangl.json", "w") as outfile:
-    json.dump(js, outfile)
-
-
-# view.add(Polyline(line.locus()), linewidth=1, linecolor=(0, 0, 1))
-# for i in bend_:
-# view.add(Polyline(i.locus()), linewidth=1, linecolor=(1, 0, 0))
-
-# for i in extr:
-#    try:
-#        view.add(i.to_mesh())
-#    except:
-#        for ii in i:
-#            view.add(ii.to_mesh())
-
-
-#
-#
-#
-#
-#
-#
-# разные типы панелей
-# думаю это будет класс, который генерит профиль на основе паттерна? значений загиб - прямой кусок и тд
-class FaceProfile(StraightElement):
-    # bend_types = defaultdict(list)
-
-    def __init__(self, bend_type, radius_s, angle_s, poly_, directions_s, *args, **kwargs):
-        super(FaceProfile, self).__init__(*args, **kwargs)
-        self.bend_types = bend_type
-        self.radius_s = radius_s
-        self.angle_s = angle_s
-        self.directions_s = directions_s
-        self.poly = poly_
-        self.special_args = kwargs
-        self.panel_offset = self.panel_offset()
-
-    def panel_offset(self):
-        offset_poly = []
-        for index, bend in enumerate(self.bend_types):
-            bend_type = Bends_Factory(bend, self.radius_s[index], self.angle_s[index], self.directions_s[index])
-            bend_elem = bend_type()
-            FaceProfile.bend_types[bend].append(bend_elem)
-            offset_dist = bend_elem.calc_fold_start()
-            offset_poly.append(PolygonObj(self.poly.poly_offset(offset_dist)).polygon_lines[index])
-
-        return PolygonObj([intersection_line_line(offset_poly[0], offset_poly[1])[0],
-                           intersection_line_line(offset_poly[1], offset_poly[2])[0],
-                           intersection_line_line(offset_poly[2], offset_poly[0])[0]])
-
-
-#
-#
-#
-#
-#
-#
-# Сама панель
-class Panel(Item):
-    def __call__(self, *args, **kwargs):
-        super().__call__(*args, **kwargs)
-
-        # пишу пока просто для общего понимания, что за тип данных будет передан в класс
-        self.grid_hash = kwargs['grid_hash']  # identical for panel and bend
-        self.vertices = kwargs['vertices']  # фактическое положение вершин
-        self.offset_dist = kwargs['offset_dist']
-        self.frame = self.panel_safe_offset()  # офсет до точки с расстоянием между панелями
-        self.bend_type = ['A', 'A', 'B']
-
-    # линия офсета от панели в осях, внешний край загиба (до радиуса)
-    def panel_safe_offset(self):
-        frame = PolygonObj(self.vertices)
-        offset = frame.poly_offset(self.offset_dist)
-        return PolygonObj(offset)
-
-
-b = Panel(grid_hash='123', vertices=[[-1383.220328, 1499.49728, -160.132],
-                                     [-882.411001, 2121.091646, 186.82], [-448.874568, 1451.682329, -186.82],
-                                     [-1383.220328, 1499.49728, -160.132]], offset_dist=10)
-
-test = FaceProfile(['A', 'A', 'B'], [[2, 2, 2], [2, 2, 2], [2, 2, 2]], [[90, 90, 90], [90, 90, 90], [90, 90, 90]],
-                   b.frame, [[-1, -1, -1], [-1, -1, -1], [-1, 1]])
-
-before_offset = b.frame.polygon
-start_poly = test.panel_offset.polygon
