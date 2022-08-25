@@ -3,8 +3,8 @@
 from mm.baseitems import Base, Item, DictableItem
 from typing import TypeVar
 import numpy as np
-from mm.geom import Point
 
+import compas
 ChildItem = TypeVar("ChildItem", bound=DictableItem)
 
 
@@ -22,7 +22,7 @@ class Circle(Item):
     def evaluate(self, t):
         x = self.x0 + self.r * np.cos(t)
         y = self.y0 + self.r * np.sin(t)
-        return Point(x=x, y=y)
+        return x,y
 
 
 class ParametricEquation(Base, ChildItem):

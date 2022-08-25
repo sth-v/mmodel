@@ -1,23 +1,26 @@
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
-           'DefaultFildItem', 'FieldItem', 'DictableItem','JsItem']
+           'DefaultFildItem', 'FieldItem', 'DictableItem', 'JsItem']
 
+import copy
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import sys
+from typing import Any, Union
+
 sys.path.extend(["/Users/andrewastakhov/mmodel_server/mmodel_server", "/Users/andrewastakhov/mmodel_server"])
 import importlib
+
 mmodel_server = importlib.import_module("mmodel_server")
 import inspect
 import itertools
 import json
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 import base64
 import compas
-
+import compas.geometry
 from collections.abc import Callable
 import numpy as np
-
 
 from mmodel_server.vcs.utils import HashVersion
 
@@ -31,13 +34,14 @@ class Base(Callable):
 
     def __init__(self, *args, **kwargs):
         super().__init__()
-        self.dtype = self.__class__.__name__
 
         self.__call__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
         super().__call__()
+
         self.__dict__.update(kwargs)
+        self._dtype = self.__class__.__name__
 
 
 class Versioned(Base):
@@ -161,53 +165,94 @@ class DefaultFildItem(Item):
                 f"Miss required field: {key} in {cls.__name__}!")
 
 
-class FieldItem(DefaultFildItem):
+class FieldItem(Item):
+    fields = []
+    exclude = ("fields", "base_fields", "custom_fields", "del_keys", "__array__", "uid")
+
     def __init__(self, *args, **kwargs):
-        self.fields |= super().fields
+        self.custom_fields = []
         super().__init__(*args, **kwargs)
 
+    def __call__(self, *args, **kwargs):
 
-class DictableItem(FieldItem):
-    fields = dict()
-    del_keys = ['args', 'kw', 'aliases', "dfields", "uid", "__array__"]
-    format_spec = "_uid", "version"
+        super().__call__(self, *args, **kwargs)
+        self.check_fields()
+        self.base_fields = self.__class__.fields
+
+    def check_fields(self):
+        self.__class__.fields = []
+        self.custom_fields = []
+        for k in self.__dict__.keys():
+            if k in self.exclude:
+                continue
+            else:
+                if hasattr(self.__class__, k):
+                    self.__class__.fields.append(k)
+                else:
+
+                    self.custom_fields.append(k)
+
+
+class ItemFormatter:
+    _dtype = "ItemFormatter"
+    format_spec = {"_dtype"}
+
+    def __format__(self, format_spec: set = None):
+        s = ''
+
+        if format_spec is None:
+            format_spec = self.__class__.format_spec
+
+        elif format_spec is not None:
+            format_spec.update(self.__class__.format_spec)
+
+        for k in format_spec:
+            s += f"{k}={getattr(self, k)} ,"
+
+        return "{}({})".format(self.__class__.__name__, s[:-1])
+
+    def __str__(self):
+        """
+        Item Format str
+        """
+
+        return self.__format__()
+
+    def __repr__(self):
+        return f"<{self.__format__()} at {hex(id(self))}>"
+
+
+class DictableItem(FieldItem, ItemFormatter):
+    fields = []
+    exclude = ('args', 'kw', 'aliases', "dfields", "uid", "__array__")
+    format_spec = {"uid", "version"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def __format__(self, format_spec=None):
-        s = ''
 
-        if format_spec is None:
-            for k in self.format_spec:
-                s += f"{k}={self.__dict__[k]} ,"
-        else:
-            for k in format_spec:
-                s += f"{k}={self.__dict__[k]} ,"
-        return "{}({})".format(self.__class__.__name__, s[:-1])
+        return super(DictableItem, self).__format__(format_spec=format_spec)
 
     def __str__(self):
-        return self.__format__()
+
+        return self.__format__(format_spec=set(self.__class__.fields))
 
     def __repr__(self):
-        _d = self.to_dict()
-        reprdict = {'uid': self._uid}
-        for r in self.fields.keys():
-            reprdict[r] = _d[r]
 
-        return self.__str__() + f" object at {hex(id(self))}"
+        return f"<{self.__format__(format_spec=set(self.__class__.fields))} at {self.uid}>"
 
     def __hash__(self):
         st = ""
         for k, v in self.to_dict().items():
 
-            if not ((k in self.del_keys) or (k == "metadata")):
+            if not ((k in self.exclude) or (k == "metadata")):
                 try:
                     iter(v)
 
                     if not isinstance(v, str):
                         print(f'hash iter {v}')
-                        st.join([hex(int(n)) for n in np.asarray(np.ndarray(v) * 100, dtype=int)])
+                        st.join([hex(int(n)) for n in np.asarray(np.ndarray(v) * 100, _dtype=int)])
                     else:
                         continue
                 except:
@@ -224,7 +269,7 @@ class DictableItem(FieldItem):
 
         for k, v in self.__dict__.items():
             k = k[1:] if k[0] == "_" else k
-            if k in self.del_keys:
+            if k in self.exclude:
                 pass
             else:
 
@@ -241,7 +286,7 @@ class DictableItem(FieldItem):
 
                         vdct = v
 
-                if k in self.fields.keys():
+                if k in self.__class__.fields:
 
                     st |= {k: vdct}
                 else:
@@ -252,6 +297,11 @@ class DictableItem(FieldItem):
     def encode(self, **kwargs):
         return compas.json_dumps(self.to_dict(), **kwargs)
 
+    def to_data(self):
+        data = self.to_dict()
+        data |= {"guid": self.uuid}
+        return data
+
     def to_json(self):
         return self.encode()
 
@@ -261,6 +311,9 @@ class DictableItem(FieldItem):
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
         self.__dict__["hash"] = self.__hash__()
+
+    def to_compas(self):
+        ...
 
 
 class JsItem(DictableItem):
@@ -291,3 +344,4 @@ class Item(BaseFieldsInterface):
 class VNElement(Item):
     
     """
+
