@@ -248,12 +248,12 @@ class DictableItem(FieldItem, ItemFormatter):
                     iter(v)
 
                     if not isinstance(v, str):
-                        print(f'hash iter {v}')
+                        #print(f'hash iter {v}')
                         st.join([hex(int(n)) for n in np.asarray(np.ndarray(v) * 100, _dtype=int)])
                     else:
                         continue
                 except:
-                    print(f'hash not iter {v}')
+                    #print(f'hash not iter {v}')
                     if isinstance(v, int) or isinstance(v, float):
                         st += hex(int(v * 100))
                     else:

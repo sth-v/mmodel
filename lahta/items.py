@@ -170,12 +170,13 @@ class FoldElement(BendMethods, Item):
     # расстояние от точки касания до точки пересечения касательных
     def calc_extra_length(self):
         a = math.tan(np.radians(self.angle))
-        return self.radius / a
+        return (self.radius+self.metal_width) / a
 
     # вроде как это всегда будет длина, которая получается от 90 градусов
     def calc_rightangle_length(self):
         a = math.tan(math.pi / 4)
-        return self.radius / a
+        print(self.radius+self.metal_width)
+        return (self.radius+self.metal_width) / a
 
 
 class FoldElementFres(FoldElement, Item):
@@ -257,7 +258,7 @@ class FoldElementFres(FoldElement, Item):
 
     def calc_rightangle_length(self):
         a = math.tan(math.pi / 4)
-        return (self.radius / a) + self.outer_parts_l()
+        return self.radius / a
 
 
 class StraightElement(BendMethods):
@@ -298,7 +299,7 @@ class StraightElement(BendMethods):
 
     def build_line(self):
         start = Point(-self.length_in[0], -self.metal_width, 0)
-        print(self.length_out, self.length_in[0])
+        #print(self.length_out, self.length_in)
         end = Point(self.length_out - self.length_in[0], -self.metal_width, 0)
         l_out = OCCNurbsCurve.from_line(Line(start, end))
 
@@ -334,7 +335,7 @@ class BendConstructorFres:
                 fold = FoldElement(angle=i[0], radius=i[1])
             self.folds.append(fold)
 
-            straight = StraightElement(length_out=i[2] - (2 * fold.calc_rightangle_length()))
+            straight = StraightElement(length_out=i[2])
             self.straights.append(straight)
 
         self.folds.append(FoldElement(angle=10, radius=10))
@@ -361,8 +362,12 @@ class BendConstructorFres:
         fold_start = self.folds[self._i][0]
         fold_end = self.folds[self._i][1]
 
+
         straight = self.straights[self._i]
-        straight(length_in=[fold_start.inner_parts_trim, fold_end.inner_parts_trim])
+        if self._i != len(self.steps)-1:
+            straight(length_in=[fold_start.inner_parts_trim, fold_end.inner_parts_trim], length_out=straight.length_out - (fold_start.calc_rightangle_length()+fold_end.calc_rightangle_length()))
+        else:
+            straight(length_in=[fold_start.inner_parts_trim, 0], length_out=straight.length_out - fold_start.calc_rightangle_length())
 
         transl_f = self.translate_segments(fold_start, self.curve)
         transl_s = self.translate_segments(straight, transl_f)
@@ -403,4 +408,4 @@ for i, v in enumerate(bend_):
 with open("/Users/sofyadobycina/Documents/GitHub/mmodel/tests/triangl.json", "w") as outfile:
     json.dump(js, outfile)
 
-view.run()
+#view.run()
