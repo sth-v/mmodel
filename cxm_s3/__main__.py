@@ -15,14 +15,14 @@
 import json
 import os
 
-with open("/home/sthv/cxm-s3/env.json") as env_file:
+with open("/home/sthv/cxm_s3/env.json") as env_file:
     os.environ |= json.load(env_file)
 import typing
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from whatchers import WatchSession
+from cxm_s3.sessions import WatchSession
 from apps import AppSession
 from fastapi.middleware.gzip import GZipMiddleware
 

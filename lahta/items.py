@@ -1,4 +1,5 @@
 from __future__ import print_function
+import sys,os
 
 import math
 from tools.geoms import OCCNurbsCurvePanels
@@ -7,7 +8,7 @@ from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_po
     translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, \
     Translation, Line, Rotation, NurbsSurface
 
-from mmodel_server.mm.baseitems import Item
+from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
 
 np.set_printoptions(suppress=True)

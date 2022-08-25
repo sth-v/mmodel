@@ -61,8 +61,8 @@ class Arc(Circle, DictableItem):
 
     def to_compas(self):
         self.cc = cg.NurbsCurve.from_circle(cg.Circle(cg.Plane([self.x0, self.y0, 0.0], [0, 0, 1]), self.r))
-        s, self.ts = self.cc.closest_point(self.start.to_compas(), return_parameter=True)
-        es, self.te = self.cc.closest_point(self.end.to_compas(), return_parameter=True)
+        _, self.ts = self.cc.closest_point(self.start.to_compas(), return_parameter=True)
+        _, self.te = self.cc.closest_point(self.end.to_compas(), return_parameter=True)
         return self.cc.segmented(self.ts, self.te)
 
     def evaluate(self, t):

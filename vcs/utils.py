@@ -1,4 +1,4 @@
-__all__ = ["HashVersion", "HashNode", "Version", "HashVerDec", "HexTimer"]
+__all__ = ["Timer","HashVersion", "HashNode", "Version", "HashVerDec", "HexTimer"]
 
 import json
 import time

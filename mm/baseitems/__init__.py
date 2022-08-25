@@ -7,10 +7,10 @@ import copy
 import sys
 from typing import Any, Union
 
-sys.path.extend(["/Users/andrewastakhov/mmodel_server/mmodel_server", "/Users/andrewastakhov/mmodel_server"])
+#sys.path.extend(["/Users/andrewastakhov/mmodel_server/mmodel_server", "/Users/andrewastakhov/mmodel_server"])
 import importlib
 
-mmodel_server = importlib.import_module("mmodel_server")
+#mmodel_server = importlib.import_module("mmodel_server")
 import inspect
 import itertools
 import json
@@ -22,9 +22,9 @@ import compas.geometry
 from collections.abc import Callable
 import numpy as np
 
-from mmodel_server.vcs.utils import HashVersion
+from vcs.utils import HashVersion
 
-from mmodel_server.mm.exceptions import MModelException
+from mm.exceptions import MModelException
 
 
 class Base(Callable):

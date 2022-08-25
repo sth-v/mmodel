@@ -2,7 +2,7 @@
 
 from collections.abc import Iterator
 from functools import wraps
-from typing import Any, _T_co
+from typing import Any
 import inspect
 from mm.baseitems import Item, ArgsItem
 
@@ -148,7 +148,7 @@ class BaseCollection(Item, Iterator):
 
 
 class ItemCollection(Iterator):
-    def __next__(self) -> _T_co:
+    def __next__(self):
         pass
 
     target = ArgsItem

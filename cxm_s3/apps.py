@@ -14,7 +14,7 @@
 #
 import json
 import os
-from whatchers import BucketSession, S3Session, WatchSession, WatchTargets
+from cxm_s3.sessions import BucketTargetSession, S3Session, WatchSession, WatchTargets
 import boto3
 import typing
 import typing_extensions as tyex

@@ -5,8 +5,8 @@ from typing import Iterable
 
 import rhino3dm
 
-from mmodel_server.vcs.utils import Version
-from mmodel_server.vcs.controller import VersionController
+from vcs.utils import Version
+from vcs.controller import VersionController
 
 CONFIG_MM = {}
 

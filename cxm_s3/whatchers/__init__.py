@@ -12,75 +12,14 @@
 #
 #
 import json
-import os
 import time
-import boto3
 import requests
 from colored import attr, fg
-from dataclasses import dataclass, field, fields
-from timer import Timer
-from typing import Union, Any
+from dataclasses import dataclass, field
 
-
-class WatchSession:
-    session = boto3.session.Session()
-    storage = os.environ["STORAGE"]
-
-    def __init__(self, bucket=None):
-        self.bucket = bucket
-
-
-class S3Session(WatchSession):
-    def __init__(self, bucket=None):
-        super().__init__(bucket)
-        self.s3 = self.session.client(
-            service_name='s3',
-            endpoint_url=self.storage
-        )
-
-
-class WatchTargets:
-    def __init__(self):
-        self._postfix = None
-        self._prefix = None
-
-    @property
-    def prefix(self):
-        return self._prefix
-
-    @prefix.setter
-    def prefix(self, val):
-        self._prefix = val
-
-    @prefix.deleter
-    def prefix(self):
-        del self._prefix
-
-    @property
-    def postfix(self):
-        return self._postfix
-
-    @postfix.setter
-    def postfix(self, val):
-        self._postfix = val
-
-    @postfix.deleter
-    def postfix(self):
-        del self._postfix
-
-    def targets(self, items):
-        lst = []
-        for path in items:
-
-            split_targ = self.prefix.split("/")
-            splitted = path["Key"].split("/")[:len(split_targ)]
-            if self.postfix is not None:
-                if (split_targ == splitted) and (path["Key"].split(".")[-1] == self.postfix):
-                    lst.append(path)
-            else:
-                if split_targ == splitted:
-                    lst.append(path)
-        return set(lst)
+from cxm_s3.sessions import BucketTargetSession
+from vcs.utils import Timer
+from typing import Union
 
 
 @dataclass
@@ -99,22 +38,7 @@ class Changes:
             self.patch.update(patch)
 
 
-class BucketSession(S3Session, WatchTargets):
-    def __init__(self, bucket=None, prefix=None, postfix=None, **kwargs):
-        super().__init__(bucket=bucket, **kwargs)
-
-        self.prefix = prefix
-        self.postfix = postfix
-        self.buffer = self.state
-
-
-
-    @property
-    def state(self):
-        return self.targets(self.s3.list_objects(Bucket=self.bucket)["Contents"])
-
-
-class BucketWatchDog(BucketSession):
+class BucketTargetWatchDog(BucketTargetSession):
     def __init__(self,url=None, **kwargs):
 
         super().__init__(**kwargs)
@@ -177,7 +101,7 @@ class BucketWatchDog(BucketSession):
 
 
 async def bucket_watch_session(bucket, target_url, delay=5.0, **kwargs):
-    observer = BucketWatchDog(bucket=bucket, url=target_url, **kwargs)
+    observer = BucketTargetWatchDog(bucket=bucket, url=target_url, **kwargs)
     try:
         print(f"\n{observer.__class__.__name__} ID: {id(observer)} Running.")
         while True:
