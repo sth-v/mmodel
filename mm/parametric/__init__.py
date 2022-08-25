@@ -1,11 +1,9 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 from mm.baseitems import Base, Item, DictableItem
-from typing import TypeVar
 import numpy as np
 
 import compas
-ChildItem = TypeVar("ChildItem", bound=DictableItem)
 
 
 class AbstractParametricFunction(Item):
@@ -14,7 +12,7 @@ class AbstractParametricFunction(Item):
         ...
 
 
-class Circle(Item):
+class Circle(DictableItem):
     x0 = 0.0
     y0 = 0.0
     r = 1.0
@@ -22,10 +20,10 @@ class Circle(Item):
     def evaluate(self, t):
         x = self.x0 + self.r * np.cos(t)
         y = self.y0 + self.r * np.sin(t)
-        return x,y
+        return x, y
 
 
-class ParametricEquation(Base, ChildItem):
+class ParametricEquation(Base):
     ...
 
 

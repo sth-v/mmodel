@@ -33,8 +33,6 @@ class Base(Callable):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__()
-
         self.__call__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
@@ -82,9 +80,6 @@ class Identifiable(Versioned):
     def __hash__(self):
         ...
 
-    def __call__(self, *args, **kwargs):
-        super().__call__(*args, **kwargs)
-
 
 class Item(Identifiable):
 
@@ -92,7 +87,7 @@ class Item(Identifiable):
         super().__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        super().__call__(self, *args, **kwargs)
+        super().__call__(*args, **kwargs)
 
 
 class ArgsItem(Item):
@@ -170,14 +165,16 @@ class FieldItem(Item):
     exclude = ("fields", "base_fields", "custom_fields", "del_keys", "__array__", "uid")
 
     def __init__(self, *args, **kwargs):
-        self.custom_fields = []
+
+        self.custom_fields = None
         super().__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
+        self.custom_fields = []
+        self.base_fields = []
+        super().__call__(*args, **kwargs)
 
-        super().__call__(self, *args, **kwargs)
         self.check_fields()
-        self.base_fields = self.__class__.fields
 
     def check_fields(self):
         self.__class__.fields = []
@@ -188,6 +185,7 @@ class FieldItem(Item):
             else:
                 if hasattr(self.__class__, k):
                     self.__class__.fields.append(k)
+                    self.base_fields.append(k)
                 else:
 
                     self.custom_fields.append(k)
@@ -198,6 +196,7 @@ class ItemFormatter:
     format_spec = {"_dtype"}
 
     def __format__(self, format_spec: set = None):
+
         s = ''
 
         if format_spec is None:
@@ -205,7 +204,8 @@ class ItemFormatter:
 
         elif format_spec is not None:
             format_spec.update(self.__class__.format_spec)
-
+        else:
+            pass
         for k in format_spec:
             s += f"{k}={getattr(self, k)} ,"
 
@@ -226,9 +226,6 @@ class DictableItem(FieldItem, ItemFormatter):
     fields = []
     exclude = ('args', 'kw', 'aliases', "dfields", "uid", "__array__")
     format_spec = {"uid", "version"}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def __format__(self, format_spec=None):
 
@@ -344,4 +341,3 @@ class Item(BaseFieldsInterface):
 class VNElement(Item):
     
     """
-
