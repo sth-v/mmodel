@@ -3,8 +3,7 @@ from collections.abc import Iterable
 
 from meta import Mmodel, BaseItem
 from utils.utils import *
-import rhino3dm
-import ast
+
 
 
 class MmodelProject(Mmodel):

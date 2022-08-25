@@ -1,0 +1,59 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Title",
+    "description": "mmodel",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "fields": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "enum",
+            "enum": ["aa", "bb"]
+          }
+        }
+      }
+    },
+    "parameters": {
+      "name": {
+        "name": "name",
+        "in": "query",
+        "required": true,
+        "description": ""
+      }
+    }
+  },
+  "paths": {
+
+    "/name": {
+      "get": {
+        "description": "",
+        "parameters": ["name"],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "description": "",
+        "parameters": ["ref$fields" ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+
+  },
+
+}
