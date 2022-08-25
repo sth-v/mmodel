@@ -5,7 +5,9 @@ from functools import wraps
 
 import boto3
 
-os.environ["STORAGE"]="https://storage.yandexcloud.net/"
+os.environ["STORAGE"] = "https://storage.yandexcloud.net/"
+
+
 class WatchSession:
     session = boto3.session.Session()
     storage = os.environ["STORAGE"]
@@ -75,18 +77,25 @@ class BucketSession(S3Session):
         self.postfix = postfix
         self.__dict__ |= kwargs
         for k in self.s3.meta.method_to_api_mapping.keys():
-
-            setattr(self, k, self._decorate(getattr(self.s3,k)))
+            setattr(self, k, self._decorate(getattr(self.s3, k)))
             print(f"decorate {k}")
 
     def _decorate(self, m):
         @wraps(m)
-        def wrapper(key, body=None, prefix=self.prefix, postfix=self.postfix, **kwargs):
-            if body is not None:
-                return m(Bucket=self.bucket, Key=f"{prefix}/{key}{postfix}", **kwargs)
-            else:
-                return m(Bucket=self.bucket, Key=f"{prefix}/{key}{postfix}", Body=body, **kwargs)
+        def wrapper(Key=None, Body=None, Prefix=self.prefix, Postfix=self.postfix, **kwargs):
 
+            kwargs["Key"] = f"{Key}{Postfix}"
+            kwargs["Body"] = Body
+            kwargs["Prefix"] = Prefix
+            kwargs["Bucket"] = self.bucket
+            kw = dict()
+            for k, v in kwargs.items():
+
+                if k in m.__code__.co_varnames and (v is not None):
+                    kw[k] = v
+                else:
+                    continue
+            return m(**kw)
 
         return wrapper
 
