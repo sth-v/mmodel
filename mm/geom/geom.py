@@ -9,7 +9,7 @@ import compas.geometry as cg
 import numpy as np
 import rhino3dm
 from mm.baseitems import DictableItem, Item
-from mm.parametric import Circle
+from mm.parametric import SimpleCircle
 
 RootParents = namedtuple("RootParents", ["main_parent", "FramrworkParent"])
 mesh_js_schema = {
@@ -40,6 +40,7 @@ class Point(DictableItem):
     z = 0.0
     exclude = ["version", "uid"]
 
+
     def to_compas(self):
         return cg.Point(self.x, self.y, self.z)
 
@@ -47,7 +48,8 @@ class Point(DictableItem):
 from rhino3dm import CommonObject, GeometryBase
 
 
-class Arc(Circle, DictableItem):
+class Arc(SimpleCircle, DictableItem):
+
     r = 1.0
     x0 = 0.0
     y0 = 0.0
