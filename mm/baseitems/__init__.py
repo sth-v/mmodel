@@ -1,20 +1,10 @@
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
            'DefaultFildItem', 'FieldItem', 'DictableItem', 'JsItem']
 
-import copy
-#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-
-import sys
-from typing import Any, Union
-
-#sys.path.extend(["/Users/andrewastakhov/mmodel_server/mmodel_server", "/Users/andrewastakhov/mmodel_server"])
-import importlib
-
-#mmodel_server = importlib.import_module("mmodel_server")
 import inspect
 import itertools
 import json
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 
 import base64
 import compas
@@ -92,31 +82,31 @@ class Item(Identifiable):
 
 class ArgsItem(Item):
     def __init__(self, *args, **kwargs):
-        self.initargs = locals()
-        self._insp = inspect.getfullargspec(self.__class__.__init__)
+        self.init_args = locals()
+        self.arg_spec = inspect.getfullargspec(self.__class__.__init__)
         super().__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
         super(ArgsItem, self).__call__(*args, **kwargs)
-        self.newargs = locals()
+        self.new_args = locals()
 
     def __getinitargs__(self):
-        return self.initargs
+        return self.init_args
 
     def __getnewargs__(self):
-        return self.newargs
+        return self.new_args
 
 
 class HistoryArgItem(ArgsItem):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         with open(f"tmp/{self.uid}", "wb") as fp:
-            fp.write(base64.b64encode((json.dumps(self.__dict__['initargs']['kwargs']) + '\n').encode()))
+            fp.write(base64.b64encode((json.dumps(self.__dict__['init_args']['kwargs']) + '\n').encode()))
 
     def __call__(self, *args, **kwargs):
         super(HistoryArgItem, self).__call__(*args, **kwargs)
         with open(f"tmp/{self.uid}", "ab") as fp:
-            fp.write(base64.b64encode((json.dumps(self.__dict__['newargs']['kwargs']) + '\n').encode()))
+            fp.write(base64.b64encode((json.dumps(self.__dict__['new_args']['kwargs']) + '\n').encode()))
 
     @classmethod
     def read_log(cls, path):
@@ -145,16 +135,16 @@ class DefaultFildItem(Item):
 
     def __call__(self, *args, **kwargs):
 
-        self._dfields = defaultdict(**self.fields)
-        kwargs |= dict(zip(self._dfields.keys(), args[:len(self._dfields.keys())]))
+        self._default_fields = defaultdict(**self.fields)
+        kwargs |= dict(zip(self._default_fields.keys(), args[:len(self._default_fields.keys())]))
 
         super().__call__(**kwargs)
         for field in self.__class__.fields.keys():
             if field not in self.__dict__.keys():
-                self.__field_missing__(field, kwargs)
+                self.__field_missing__(field)
 
     @classmethod
-    def __field_missing__(cls, key, kws):
+    def __field_missing__(cls, key):
         if key in cls.fields.keys():
             raise MModelException(
                 f"Miss required field: {key} in {cls.__name__}!")
@@ -224,7 +214,7 @@ class ItemFormatter:
 
 class DictableItem(FieldItem, ItemFormatter):
     fields = []
-    exclude = ('args', 'kw', 'aliases', "dfields", "uid", "__array__")
+    exclude = ('args', 'kw', 'aliases', "fields", "uid", "__array__")
     format_spec = {"uid", "version"}
 
     def __format__(self, format_spec=None):
@@ -273,21 +263,21 @@ class DictableItem(FieldItem, ItemFormatter):
                 try:
                     iter(v)
                     if isinstance(list(itertools.chain(v))[0], DictableItem):
-                        vdct = list(map(lambda x: x.to_dict(), v))
+                        dct = list(map(lambda x: x.to_dict(), v))
                     else:
-                        vdct = v
+                        dct = v
                 except:
                     if isinstance(v, DictableItem):
-                        vdct = v.to_dict()
+                        dct = v.to_dict()
                     else:
 
-                        vdct = v
+                        dct = v
 
                 if k in self.__class__.fields:
 
-                    st |= {k: vdct}
+                    st |= {k: dct}
                 else:
-                    st['metadata'] |= {k: vdct}
+                    st['metadata'] |= {k: dct}
 
         return st
 
@@ -316,28 +306,3 @@ class DictableItem(FieldItem, ItemFormatter):
 class JsItem(DictableItem):
     schema_js = dict()
 
-
-"""
-
-class Item(BaseFieldsInterface):
-    required_fields = {'name'}
-
-    def __init__(self, *args, **kwargs):
-
-        key = list(self.required_fields)[0]
-        if key not in kwargs.keys():
-            kwargs['name'] = self.__class__.__name__
-
-        elif not (kwargs[key] == self.__class__.__name__):
-
-            raise MModelException(
-                f"The class name does not match the descriptor signature!"
-                f"\nclassname: {self.__class__.__name__}, input name: {key}")
-        else:
-            pass
-        super().__init__(*args, **kwargs)
-
-
-class VNElement(Item):
-    
-    """
