@@ -11,7 +11,7 @@ from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
 from more_itertools import pairwise
 import itertools
-from compas_view2.app import App
+
 
 np.set_printoptions(suppress=True)
 import json
@@ -100,7 +100,7 @@ class BendMethods(Item):
         return Frame(inner.point_at(max(inner.domain)), X, Y)
 
 
-view = App()
+
 
 
 class FoldElement(BendMethods, Item):
@@ -170,13 +170,13 @@ class FoldElement(BendMethods, Item):
     # расстояние от точки касания до точки пересечения касательных
     def calc_extra_length(self):
         a = math.tan(np.radians(self.angle))
-        return (self.radius+self.metal_width) / a
+        return (self.radius + self.metal_width) / a
 
     # вроде как это всегда будет длина, которая получается от 90 градусов
     def calc_rightangle_length(self):
         a = math.tan(math.pi / 4)
-        print(self.radius+self.metal_width)
-        return (self.radius+self.metal_width) / a
+        print(self.radius + self.metal_width)
+        return (self.radius + self.metal_width) / a
 
 
 class FoldElementFres(FoldElement, Item):
@@ -267,10 +267,10 @@ class StraightElement(BendMethods):
     @property
     def inner(self):
 
-        if hasattr(self,"curve"):
+        if hasattr(self, "curve"):
             self._inner = self.curve[0]
             return self._inner
-        elif hasattr(self,"length_out") and hasattr(self,"length_in"):
+        elif hasattr(self, "length_out") and hasattr(self, "length_in"):
             self._inner = self.build_line()[0]
             return self._inner
         else:
@@ -282,10 +282,10 @@ class StraightElement(BendMethods):
 
     @property
     def outer(self):
-        if hasattr(self,"curve"):
+        if hasattr(self, "curve"):
             self._outer = self.curve[1]
             return self._outer
-        elif hasattr(self,"length_out") and hasattr(self,"length_in"):
+        elif hasattr(self, "length_out") and hasattr(self, "length_in"):
             self._outer = self.build_line()[1]
             return self._outer
         else:
@@ -295,11 +295,9 @@ class StraightElement(BendMethods):
     def outer(self, v):
         self._outer = v
 
-
-
     def build_line(self):
         start = Point(-self.length_in[0], -self.metal_width, 0)
-        #print(self.length_out, self.length_in)
+        # print(self.length_out, self.length_in)
         end = Point(self.length_out - self.length_in[0], -self.metal_width, 0)
         l_out = OCCNurbsCurve.from_line(Line(start, end))
 
@@ -319,9 +317,9 @@ class StraightElement(BendMethods):
 
 class BendConstructorFres:
 
-    def __init__(self, *args, start):
+    def __init__(self, args, start):
         # super().__init__(*args, start=start)
-        self.steps = args[0]
+        self.steps = args
         self.start = start
         self.curve = StraightElement(curve=[start, OCCNurbsCurve.from_line(Line(Point(-30, -1, 0), Point(0, -1, 0)))])
         self._i = 0
@@ -362,12 +360,14 @@ class BendConstructorFres:
         fold_start = self.folds[self._i][0]
         fold_end = self.folds[self._i][1]
 
-
         straight = self.straights[self._i]
-        if self._i != len(self.steps)-1:
-            straight(length_in=[fold_start.inner_parts_trim, fold_end.inner_parts_trim], length_out=straight.length_out - (fold_start.calc_rightangle_length()+fold_end.calc_rightangle_length()))
+        if self._i != len(self.steps) - 1:
+            straight(length_in=[fold_start.inner_parts_trim, fold_end.inner_parts_trim],
+                     length_out=straight.length_out - (
+                                 fold_start.calc_rightangle_length() + fold_end.calc_rightangle_length()))
         else:
-            straight(length_in=[fold_start.inner_parts_trim, 0], length_out=straight.length_out - fold_start.calc_rightangle_length())
+            straight(length_in=[fold_start.inner_parts_trim, 0],
+                     length_out=straight.length_out - fold_start.calc_rightangle_length())
 
         transl_f = self.translate_segments(fold_start, self.curve)
         transl_s = self.translate_segments(straight, transl_f)
@@ -391,21 +391,16 @@ class BendConstructorFres:
         caps = caps.cap_elem(bends[0], bends[1])
         return [*bends, *caps]
 
-
-
-
+"""
 line = OCCNurbsCurve.from_line(Line(Point(-30, 0, 0), Point(0, 0, 0)))
 test = BendConstructorFres(((70, 0.8, 30), (10, 0.8, 29.3), (90, 1.3, 20)), start=line)
 
 bend_ = test.bend_()
-view.add(Polyline(bend_[0].locus()), linewidth=1, linecolor=(1, 0, 0))
-view.add(Polyline(bend_[1].locus()), linewidth=1, linecolor=(1, 0, 0))
-
 
 for i, v in enumerate(bend_):
     js['poly'].append(v.to_jsonstring())
 
-with open("/Users/sofyadobycina/Documents/GitHub/mmodel/tests/triangl.json", "w") as outfile:
+with open("/tmp/mmodel_server_remote/tests/triangl.json", "w") as outfile:
     json.dump(js, outfile)
-
-#view.run()
+"""
+# view.run()

@@ -1,6 +1,8 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import os, sys
-import sys;
+import sys
+
+from compas.geometry import Line, Point
 
 print('Python %s on %s' % (sys.version, sys.platform))
 
@@ -11,7 +13,7 @@ sys.path.extend(
      '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel_server'])
 
 import json
-from typing import Optional
+from typing import Iterable, Optional
 import pickle
 import mm.parametric as prm
 from dataclasses import dataclass
@@ -20,6 +22,7 @@ from cxm_s3.sessions import S3Session
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse, FileResponse
 import uvicorn
+from lahta.items import OCCNurbsCurve, BendConstructorFres
 
 with open("/tmp/mmodel_server_remote/mm/parametric/localconfig.json", "rb") as fp:
     local_configs = json.load(fp)
@@ -53,6 +56,8 @@ class UpdSchema:
 
 
 app = FastAPI(debug=True)
+
+bend = FastAPI(debug=True)
 
 
 @app.get("/")
@@ -129,5 +134,43 @@ def eval_object_single_parametr(item_id: str, data: UpdSchema):
     }
 
 
+@dataclass
+class Segment(tuple):
+    angle: float
+    radius: float
+    length: float
+
+    def __new__(cls, angle, radius, length) -> tuple[float, float, float]:
+        return super().__new__(cls, (angle, radius, length))
+
+
+@dataclass
+class Bending(Iterable):
+    segments: Iterable[Segment]
+
+    def __init__(self, segments: Iterable[Segment] = ()):
+        super().__init__()
+        self.segments = segments
+
+    def __iter__(self):
+        return iter(self.segments)
+
+
+@bend.post("/construct")
+def construct_bend(data: Bending):
+    line = OCCNurbsCurve.from_line(Line(Point(-30, 0, 0), Point(0, 0, 0)))
+    print()
+    test = BendConstructorFres(data, start=line)
+    js = {'poly': []}
+
+    bend_ = test.bend_()
+
+    for i, v in enumerate(bend_):
+        js['poly'].append(v.to_jsonstring())
+
+    return js
+
+
+app.mount("/bend", bend)
 if __name__ == "__main__":
     uvicorn.run("main:app", host='0.0.0.0', port=8888)
