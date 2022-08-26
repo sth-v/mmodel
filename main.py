@@ -13,7 +13,7 @@ sys.path.extend(
      '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel_server'])
 
 import json
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Any
 import pickle
 import mm.parametric as prm
 from dataclasses import dataclass
@@ -23,7 +23,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse, FileResponse
 import uvicorn
 from lahta.items import OCCNurbsCurve, BendConstructorFres
-
+from pydantic import BaseModel
 with open("/tmp/mmodel_server_remote/mm/parametric/localconfig.json", "rb") as fp:
     local_configs = json.load(fp)
     S3Session.storage = local_configs["storage"]
@@ -143,6 +143,10 @@ class Segment(tuple):
     def __new__(cls, angle, radius, length) -> tuple[float, float, float]:
         return super().__new__(cls, (angle, radius, length))
 
+    def __getitem__(self, item):
+        l = [self.angle, self.radius, self.length]
+        return l[item]
+
 
 @dataclass
 class Bending(Iterable):
@@ -156,17 +160,20 @@ class Bending(Iterable):
         return iter(self.segments)
 
 
+
+class FuckingShema(BaseModel):
+    segments:list[Any]
 @bend.post("/construct")
-def construct_bend(data: Bending):
+def construct_bend(data: FuckingShema):
     line = OCCNurbsCurve.from_line(Line(Point(-30, 0, 0), Point(0, 0, 0)))
-    print()
-    test = BendConstructorFres(data, start=line)
+    print(data, data.segments)
+    test = BendConstructorFres(data.segments, start=line)
     js = {'poly': []}
 
     bend_ = test.bend_()
 
     for i, v in enumerate(bend_):
-        js['poly'].append(v.to_jsonstring())
+        js['poly'].append(v.data)
 
     return js
 
