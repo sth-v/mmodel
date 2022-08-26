@@ -4,43 +4,10 @@ import json
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
+import requests
 
 from mm.baseitems import Base, DictableItem, Item
 
-from cxm_s3.sessions import S3Session
-
-SESS = True
-
-
-def sess_():
-    __all__ = []
-    with open("localconfig.json", "rb") as fp:
-        local_configs = json.load(fp)
-        S3Session.storage = local_configs["storage"]
-        sess = S3Session(bucket=local_configs["bucket"])
-        pref = local_configs["prefix"]
-        parent = local_configs["parent"]
-        remote_configs = local_configs["remote"]
-        obj_list = sess.s3.list_objects(Bucket=sess.bucket, Prefix="dev/")
-        print(f"S3 Session {sess.bucket} success!\n\n"
-              f"----------------------------------------------------------------------------------------------------------\n"
-              f"List objects from prefix - ({parent}/{pref}/)\n{obj_list} ")
-        CONFIGS = json.loads(
-            sess.s3.get_object(Bucket=sess.bucket, Key='dev/mm/parametric/cxmmodule.json')["Body"].read())
-        print(f"Get remote configs {sess.bucket,} success!\n\n"
-              f"----------------------------------------------------------------------------------------------------------\n"
-              f"Configs = ({CONFIGS}")
-        __all__.extend(CONFIGS["all"])
-        print(f"Update __all__ success!\n{__all__}")
-
-    return local_configs, CONFIGS, sess
-
-_all=[]
-if SESS:
-    LOCCONFIGS, CONFIGS, sess = sess_()
-    pref = LOCCONFIGS["prefix"]
-    parent = LOCCONFIGS["parent"]
-    remote_configs = LOCCONFIGS["remote"]
 
 class AbstractParametricFunction(Item):
 
@@ -67,11 +34,7 @@ class PrmGenerator(AbstractParametricFunction, metaclass=ABCMeta):
         self._step = None
         super().__init__(*args, **kwargs)
         self.si = self.start
-        if SESS:
-            CONFIGS["all"].append(self.__class__.__name__)
-            cf=CONFIGS["all"]
-            sess.s3.put_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/{remote_configs}", Body=json.dumps(CONFIGS))
-            print(f"Update all success!\n{cf}")
+
 
 
 
@@ -246,3 +209,5 @@ class ParametricEquation(Base):
 class Cone(ParametricEquation):
     def __call__(self, *args, **kwargs):
         ...
+
+

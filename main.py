@@ -1,127 +1,133 @@
-from subprocess import Popen
-import inspect
-from fastapi import FastAPI
-from pydantic import BaseModel
-from numpy import ndarray
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+import os, sys
+import sys;
+
+print('Python %s on %s' % (sys.version, sys.platform))
+
+sys.path.extend(
+    ['/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/bucket_watchdog',
+     '/tmp/mmodel_server_remote/mm/tests', '/tmp/mmodel_server_remote/tests',
+     '/tmp/mmodel_server_remote/bucket_watchdog', '/tmp/mmodel_server_remote/mm/tests',
+     '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel_server'])
+
+import json
 from typing import Optional
-from models import mmodel
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.staticfiles import StaticFiles
+import pickle
+import mm.parametric as prm
+from dataclasses import dataclass
+import importlib
+from cxm_s3.sessions import S3Session
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse, FileResponse
 import uvicorn
 
-app = FastAPI()
-mmodelapi = FastAPI()
+with open("/tmp/mmodel_server_remote/mm/parametric/localconfig.json", "rb") as fp:
+    local_configs = json.load(fp)
+    S3Session.storage = local_configs["storage"]
+    sess = S3Session(bucket=local_configs["bucket"])
+    pref = local_configs["prefix"]
+    parent = local_configs["parent"]
+    remote_configs = local_configs["remote"]
+    obj_list = sess.s3.list_objects(Bucket=sess.bucket, Prefix="dev/")
+    print(f"S3 Session {sess.bucket} success!\n\n"
+          f"----------------------------------------------------------------------------------------------------------\n"
+          f"List objects from prefix - ({parent}/{pref}/)\n{obj_list} ")
+    CONFIGS = json.loads(sess.s3.get_object(Bucket=sess.bucket, Key='dev/mm/parametric/cxmmodule.json')["Body"].read())
+    print(f"Get remote configs {sess.bucket,} success!\n\n"
+          f"----------------------------------------------------------------------------------------------------------\n"
+          f"Configs = ({CONFIGS}")
 
 
-class SimpleApi(BaseModel):
-    kwargs: Optional[dict]
+@dataclass
+class CreateSchema:
+    a: Optional[float] = 0.0
+    b: Optional[float] = 1.0
+    r: Optional[float] = 1.0
+    x0: float = 0.0
+    y0: float = 0.0
 
 
-"""
-origins = [
-    "http://localhost:3000",
-    "https://cxmapp.vercel.app",
-    "*"
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-"""
+@dataclass
+class UpdSchema:
+    patch: dict
 
 
-# app.add_middleware(HTTPSRedirectMiddleware)
+app = FastAPI(debug=True)
 
 
 @app.get("/")
-async def root():
-    return {"available": {
-        "mmodel api": "/mmodelapi/"
+def home():
+    return {"api": "playground"}
+
+
+@app.get("/all")
+def get_all():
+    return json.loads(sess.s3.get_object(Bucket=sess.bucket, Key='dev/mm/parametric/cxmmodule.json')["Body"].read())[
+        "all"]
+
+
+@app.put("/create/{name}")
+def create_object(name: str, data: CreateSchema = CreateSchema()):
+    cls_ = eval("prm.{}".format(name))
+    globals()[name] = [cls_]
+
+    obj = cls_(**data.__dict__)
+    pkl = pickle.dumps(obj=obj)
+    sess.s3.put_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/pkl/{name}/{hex(id(obj))}", Body=pkl)
+    sess.s3.put_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/dump/{hex(id(obj))}", Body=pkl)
+
+    return hex(id(obj))
+
+
+"""
+@app.get("/objects/{name}/{item_id}")
+def get_object_item(name: str, item_id: str):
+    return StreamingResponse(
+        sess.s3.get_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/pkl/{name}/{item_id}")["Body"])
+"""
+
+
+@app.get("/objects/{item_id}")
+def get_objects_by_id(item_id: str):
+    obj = pickle.loads(sess.s3.get_object(Bucket=sess.bucket, Key=f'dev/{parent}/{pref}/dump/{item_id}')["Body"].read())
+    return {
+        "type": obj.__class__.__name__,
+        "id": item_id,
+        "repr": obj.__repr__(),
+        "attrs": obj.__dict__
     }
+
+
+@app.get("/eval/{item_id}")
+def eval_object_by_id(item_id: str, start: float = -1.0, stop: float = 1.0, step: float = 0.1):
+    obj_type = get_objects_by_id(item_id)["type"]
+    obj = pickle.loads(
+        sess.s3.get_object(Bucket=sess.bucket, Key=f'dev/{parent}/{pref}/pkl/{obj_type}/{item_id}')["Body"].read())
+    return list(obj[start:stop:step])
+
+
+@app.get("/eval_single/{item_id}")
+def eval_object_single_parametr(item_id: str, t: float = 0.3):
+    obj = pickle.loads(sess.s3.get_object(Bucket=sess.bucket, Key=f'dev/{parent}/{pref}/dump/{item_id}')["Body"].read())
+    return obj.evaluate(t)
+
+
+@app.post("/objects_patch/{item_id}")
+def eval_object_single_parametr(item_id: str, data: UpdSchema):
+    obj = pickle.loads(sess.s3.get_object(Bucket=sess.bucket, Key=f'dev/{parent}/{pref}/dump/{item_id}')["Body"].read())
+    obj(**data.patch)
+    pkl = pickle.dumps(obj=obj)
+    sess.s3.put_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/pkl/{obj.__class__.__name__}/{item_id}", Body=pkl)
+    sess.s3.put_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/dump/{item_id}", Body=pkl)
+    print(obj)
+
+    return {
+        "type": obj.__class__.__name__,
+        "id": item_id,
+        "repr": obj.__repr__(),
+        "attrs": obj.__dict__
     }
 
 
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
-
-
-@mmodelapi.get("/")
-async def root():
-    return {"message": "mmodel api"}
-
-
-@mmodelapi.get("/attrs/help")
-async def get_attrs():
-    inspect.getmembers(mmodel, inspect.ismethod)
-
-    ans = dir(mmodel)
-
-    return {'help': ans}
-
-
-@mmodelapi.get("/attrs/{name}")
-async def get_attrs(name: str):
-    if name == 'help':
-        ans = str(dir(mmodel))
-    else:
-        val = getattr(mmodel, name)
-        if isinstance(val, ndarray):
-            ans = val.tolist()
-
-        else:
-            ans = val
-    return {name: ans}
-
-
-@mmodelapi.get("/methods/{name}")
-async def get_method(name: str):
-    func = getattr(mmodel, name)
-
-    ans = func()
-
-    return {name: ans}
-
-
-@mmodelapi.post("/methods/{name}")
-async def post_method(name: str, data: Optional[SimpleApi]):
-    func = getattr(mmodel, name)
-    if data:
-
-        ans = func(**data.kwargs)
-    else:
-        ans = func()
-
-    return {name: ans}
-
-
-@mmodelapi.put("/commit/{name}")
-async def commit(name: str, data: SimpleApi):
-    print(data.kwargs)
-    if hasattr(mmodel, name):
-        attr = getattr(mmodel, name)
-        if not isinstance(attr, dict):
-            attr.__dict__ |= data.kwargs
-        else:
-            attr |= data.kwargs
-
-    else:
-        attr = data.kwargs
-    setattr(mmodel, name, attr)
-    v = mmodel.change_history(name, data.kwargs)
-    return {name: v}
-
-
-app.mount("/mmodelapi", mmodelapi)
-
-if __name__ == '__main__':
-    Popen(['python', '-m', 'hops'])  # Add this
-    uvicorn.run(
-        'main:app', port=mmodel.port, host=mmodel.host,
-        reload=True)
+if __name__ == "__main__":
+    uvicorn.run("main:app", host='0.0.0.0', port=8888)
