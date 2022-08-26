@@ -11,6 +11,7 @@ from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
 from more_itertools import pairwise
 from compas_view2.app import App
+from dataclasses import dataclass
 
 np.set_printoptions(suppress=True)
 import json
@@ -24,6 +25,7 @@ class Element(Item):
 
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
+
 
 #
 #
@@ -108,10 +110,10 @@ class FoldElement(BendMethods):
     @property
     def inner(self):
 
-        if hasattr(self,"curve"):
+        if hasattr(self, "curve"):
             self._inner = self.curve[0]
             return self._inner
-        elif hasattr(self,"radius") and hasattr(self,"angle"):
+        elif hasattr(self, "radius") and hasattr(self, "angle"):
             self._inner = self.construct_folds()[0]
             return self._inner
         else:
@@ -187,12 +189,12 @@ class FoldElement(BendMethods):
     # расстояние от точки касания до точки пересечения касательных
     def calc_extra_length(self):
         a = math.tan(np.radians(self.angle))
-        return (self.radius+self.metal_width) / a
+        return (self.radius + self.metal_width) / a
 
     # вроде как это всегда будет длина, которая получается от 90 градусов
     def calc_rightangle_length(self):
         a = math.tan(math.pi / 4)
-        return (self.radius+self.metal_width) / a
+        return (self.radius + self.metal_width) / a
 
 
 class FoldElementFres(FoldElement, Item):
@@ -202,7 +204,7 @@ class FoldElementFres(FoldElement, Item):
     @property
     def inner_parts_trim(self):
 
-        if hasattr(self,"angle"):
+        if hasattr(self, "angle"):
             self._inner_parts_trim = self.outer_parts_l()
             return self._inner_parts_trim
         else:
@@ -218,7 +220,7 @@ class FoldElementFres(FoldElement, Item):
         # goal_fl = self.fres_len * self.coeff
         # goal_fl = self.fres_len * (self.radius - (self.metal_width / 2))
         # return goal_fl / (2 * math.pi * part)
-        return 0.3
+        return 0.1
 
     def circle_center(self):
         circ_s = Arc(r=self.calc_inner_rad())
@@ -277,13 +279,14 @@ class FoldElementFres(FoldElement, Item):
 
 class StraightElement(BendMethods):
     metal_width = 1
+
     @property
     def inner(self):
 
-        if hasattr(self,"curve"):
+        if hasattr(self, "curve"):
             self._inner = self.curve[0]
             return self._inner
-        elif hasattr(self,"length_out") and hasattr(self,"length_in"):
+        elif hasattr(self, "length_out") and hasattr(self, "length_in"):
             self._inner = self.build_line()[0]
             return self._inner
         else:
@@ -295,10 +298,10 @@ class StraightElement(BendMethods):
 
     @property
     def outer(self):
-        if hasattr(self,"curve"):
+        if hasattr(self, "curve"):
             self._outer = self.curve[1]
             return self._outer
-        elif hasattr(self,"length_out") and hasattr(self,"length_in"):
+        elif hasattr(self, "length_out") and hasattr(self, "length_in"):
             self._outer = self.build_line()[1]
             return self._outer
         else:
@@ -308,11 +311,8 @@ class StraightElement(BendMethods):
     def outer(self, v):
         self._outer = v
 
-
-
     def build_line(self):
         start = Point(-self.length_in[0], -self.metal_width, 0)
-        #print(self.length_out, self.length_in)
         end = Point(self.length_out - self.length_in[0], -self.metal_width, 0)
         l_out = OCCNurbsCurve.from_line(Line(start, end))
 
@@ -330,12 +330,29 @@ class StraightElement(BendMethods):
         return l_one, l_two
 
 
-class BendConstructorFres:
+class BendComposer(Item):
+    _i = 0
+    metal_width = 1
 
-    def __init__(self, *args, start):
-        # super().__init__(*args, start=start)
-        self.steps = args[0]
-        self.start = start
+    def __call__(self, steps, startframe=None, metal_width=None, folds=list, straights=list, *args, **kwargs):
+        super().__call__(steps=steps, startframe=startframe, metal_width=metal_width, folds=list, straights=list, *args, **kwargs)
+
+        if type(steps[0]) != list:
+            steps = [steps]
+        for i in steps:
+            if i['radius'] < self.metal_width:
+                fold = FoldElementFres(angle=i['angle'], radius=i['radius'])
+            else:
+                fold = FoldElement(angle=i['angle'], radius=i['radius'])
+            self.folds.append(fold)
+
+            straight = StraightElement(length_out=i['length_out'])
+            self.straights.append(straight)
+
+
+    def __init__(self, steps, start_frame, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.steps = steps
         self.curve = StraightElement(curve=[start, OCCNurbsCurve.from_line(Line(Point(-30, -1, 0), Point(0, -1, 0)))])
         self._i = 0
 
@@ -375,27 +392,34 @@ class BendConstructorFres:
         fold_start = self.folds[self._i][0]
         fold_end = self.folds[self._i][1]
 
-
         straight = self.straights[self._i]
-        if self._i != len(self.steps)-1:
-            straight(length_in=[fold_start.inner_parts_trim, fold_end.inner_parts_trim], length_out=straight.length_out - (fold_start.calc_rightangle_length()+fold_end.calc_rightangle_length()))
+        if self._i != len(self.steps) - 1:
+            straight(length_in=[fold_start.inner_parts_trim, fold_end.inner_parts_trim],
+                     length_out=straight.length_out - (
+                                 fold_start.calc_rightangle_length() + fold_end.calc_rightangle_length()))
         else:
-            straight(length_in=[fold_start.inner_parts_trim, 0], length_out=straight.length_out - fold_start.calc_rightangle_length())
+            straight(length_in=[fold_start.inner_parts_trim, 0],
+                     length_out=straight.length_out - fold_start.calc_rightangle_length())
 
         transl_f = self.translate_segments(fold_start, self.curve)
         transl_s = self.translate_segments(straight, transl_f)
-        join_in, join_out = transl_f.inner.joined(transl_s.inner), transl_f.outer.joined(transl_s.outer)
+        view.add(Polyline(transl_f.inner.locus()), linewidth=1, linecolor=(1, 0, 0))
+        view.add(Polyline(transl_f.outer.locus()), linewidth=1, linecolor=(1, 0, 0))
+        view.add(Polyline(transl_s.inner.locus()), linewidth=1, linecolor=(1, 0, 0))
+        view.add(Polyline(transl_s.outer.locus()), linewidth=1, linecolor=(1, 0, 0))
+        # join_in, join_out = transl_f.inner.joined(transl_s.inner), transl_f.outer.joined(transl_s.outer)
 
         self.curve = transl_s
         self._i += 1
-        return join_in, join_out
+        # return join_in, join_out
+        return transl_f, transl_s
 
     def bend_(self):
         bend_in, bend_out = next(self)
         while self._i < len(self.steps):
             b_in, b_out = next(self)
-            bend_in = bend_in.joined(b_in)
-            bend_out = bend_out.joined(b_out)
+            # bend_in = bend_in.joined(b_in)
+            # bend_out = bend_out.joined(b_out)
         return bend_in, bend_out
 
     def close_curve(self):
@@ -405,20 +429,32 @@ class BendConstructorFres:
         return [*bends, *caps]
 
 
+@dataclass
+class Segment(tuple):
+    angle: float
+    radius: float
+    length: float
 
+    @classmethod
+    def new(cls, angle, radius, length) -> tuple[float, float, float]:
+        return super().new(cls, (angle, radius, length))
+
+    def getitem(self, item):
+        l = [self.angle, self.radius, self.length]
+        return l[item]
 
 line = OCCNurbsCurve.from_line(Line(Point(-30, 0, 0), Point(0, 0, 0)))
-test = BendConstructorFres(((70, 0.8, 30), (50, 1.8, 29.3), (90, 3.3, 20)), start=line)
+test = BendComposer(((70, 0.8, 30), (90, 1.3, 20)), start=line)
 
 bend_ = test.bend_()
-view.add(Polyline(bend_[0].locus()), linewidth=1, linecolor=(1, 0, 0))
-view.add(Polyline(bend_[1].locus()), linewidth=1, linecolor=(1, 0, 0))
+# view.add(Polyline(bend_[0].locus()), linewidth=1, linecolor=(1, 0, 0))
+# view.add(Polyline(bend_[1].locus()), linewidth=1, linecolor=(1, 0, 0))
 
 
-for i, v in enumerate(bend_):
-    js['poly'].append(v.to_jsonstring())
+# for i, v in enumerate(bend_):
+# js['poly'].append(v.to_jsonstring())
 
-with open("/Users/sofyadobycina/Documents/GitHub/mmodel/tests/triangl.json", "w") as outfile:
-    json.dump(js, outfile)
+# with open("/Users/sofyadobycina/Documents/GitHub/mmodel/tests/triangl.json", "w") as outfile:
+# json.dump(js, outfile)
 
 view.run()
