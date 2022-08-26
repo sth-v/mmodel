@@ -435,11 +435,10 @@ class Segment(tuple):
     radius: float
     length: float
 
-    @classmethod
-    def new(cls, angle, radius, length) -> tuple[float, float, float]:
-        return super().new(cls, (angle, radius, length))
+    def __new__(cls, angle, radius, length) -> tuple[float, float, float]:
+        return super().__new__(cls, (angle, radius, length))
 
-    def getitem(self, item):
+    def __getitem__(self, item):
         l = [self.angle, self.radius, self.length]
         return l[item]
 
