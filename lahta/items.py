@@ -10,7 +10,6 @@ from mm.geom.geom import Arc
 from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
 from more_itertools import pairwise
-import itertools
 from compas_view2.app import App
 
 np.set_printoptions(suppress=True)
@@ -25,7 +24,6 @@ class Element(Item):
 
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
-
 
 #
 #
@@ -103,22 +101,41 @@ class BendMethods(Item):
 view = App()
 
 
-class FoldElement(BendMethods, Item):
+class FoldElement(BendMethods):
     metal_width = 1
+    inner_parts_trim = 0
 
-    def __call__(self, angle=None, radius=None, curve=None, *args, **kwargs):
-        if curve is None:
-            super().__call__(angle=angle, radius=radius, *args, **kwargs)
-            self.radius = radius  # radius of the fold
-            self.angle = angle  # angle between vectors of sides of bend after fillet
-            self.inner = self.construct_folds()[0]
-            self.outer = self.construct_folds()[1]
-            self.inner_parts_trim = 0
+    @property
+    def inner(self):
+
+        if hasattr(self,"curve"):
+            self._inner = self.curve[0]
+            return self._inner
+        elif hasattr(self,"radius") and hasattr(self,"angle"):
+            self._inner = self.construct_folds()[0]
+            return self._inner
         else:
-            super().__call__(curve=curve, *args, **kwargs)
-            self.inner = curve[0]
-            self.outer = curve[1]
-            self.inner_parts_trim = 0
+            raise Exception
+
+    @inner.setter
+    def inner(self, v):
+        self._inner = v
+
+    @property
+    def outer(self):
+
+        if hasattr(self, "curve"):
+            self._outer = self.curve[1]
+            return self._outer
+        elif hasattr(self, "radius") and hasattr(self, "angle"):
+            self._outer = self.construct_folds()[1]
+            return self._outer
+        else:
+            raise Exception
+
+    @outer.setter
+    def outer(self, v):
+        self._outer = v
 
     def circle_center(self):
         circ_s = Arc(r=self.radius)
@@ -175,7 +192,6 @@ class FoldElement(BendMethods, Item):
     # вроде как это всегда будет длина, которая получается от 90 градусов
     def calc_rightangle_length(self):
         a = math.tan(math.pi / 4)
-        print(self.radius+self.metal_width)
         return (self.radius+self.metal_width) / a
 
 
@@ -183,20 +199,18 @@ class FoldElementFres(FoldElement, Item):
     metal_width = 1
     coeff = 0.3
 
-    def __call__(self, angle=None, radius=None, fres_len=None, curve=None, *args, **kwargs):
-        if curve is None:
-            super().__call__(angle=angle, radius=radius, *args, **kwargs)
-            self.angle = angle
-            self.radius = radius
-            self.fres_len = fres_len
-            self.inner = self.construct_folds()[0]
-            self.outer = self.construct_folds()[1]
-            self.inner_parts_trim = self.outer_parts_l()
+    @property
+    def inner_parts_trim(self):
+
+        if hasattr(self,"angle"):
+            self._inner_parts_trim = self.outer_parts_l()
+            return self._inner_parts_trim
         else:
-            super().__call__(curve=curve, *args, **kwargs)
-            self.inner = curve[0]
-            self.outer = curve[1]
-            self.inner_parts_trim = self.outer_parts_l()
+            raise Exception
+
+    @inner_parts_trim.setter
+    def inner_parts_trim(self, v):
+        self._inner_parts_trim = v
 
     # вычисление внутреннего радиуса
     def calc_inner_rad(self):
@@ -263,7 +277,6 @@ class FoldElementFres(FoldElement, Item):
 
 class StraightElement(BendMethods):
     metal_width = 1
-
     @property
     def inner(self):
 
@@ -395,7 +408,7 @@ class BendConstructorFres:
 
 
 line = OCCNurbsCurve.from_line(Line(Point(-30, 0, 0), Point(0, 0, 0)))
-test = BendConstructorFres(((70, 0.8, 30), (10, 0.8, 29.3), (90, 1.3, 20)), start=line)
+test = BendConstructorFres(((70, 0.8, 30), (50, 1.8, 29.3), (90, 3.3, 20)), start=line)
 
 bend_ = test.bend_()
 view.add(Polyline(bend_[0].locus()), linewidth=1, linecolor=(1, 0, 0))
@@ -408,4 +421,4 @@ for i, v in enumerate(bend_):
 with open("/Users/sofyadobycina/Documents/GitHub/mmodel/tests/triangl.json", "w") as outfile:
     json.dump(js, outfile)
 
-#view.run()
+view.run()
