@@ -1,15 +1,15 @@
-import copy
+import json
+import argparse
 import json
 import os
+import time
+from datetime import date
 
 import boto3
-import botocore
 import requests
-import time
-import argparse
 from colored import attr, fg
-from datetime import date
-import botocore.auth
+
+
 class Timer(object):
     """
     Basic immutable class fixing the initialisation time

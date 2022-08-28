@@ -1,6 +1,6 @@
-from .utils import Version
 import compas
-import json
+
+from .utils import Version
 
 
 class VersionController(object):

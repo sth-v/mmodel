@@ -14,11 +14,8 @@
 #
 import json
 import os
-from cxm_s3.sessions import BucketTargetSession, S3Session, WatchSession, WatchTargets
-import boto3
-import typing
-import typing_extensions as tyex
-import pandas as pd
+
+from cxm_s3.sessions import S3Session
 
 
 class AppSession(S3Session):

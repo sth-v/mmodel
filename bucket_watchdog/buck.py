@@ -1,7 +1,6 @@
 import copy
 
 import boto3
-import pandas as pd
 
 
 class BucketConsumer:
