@@ -6,7 +6,7 @@ from typing import Any, MutableSequence
 
 import numpy as np
 
-from mmodel_server.mm.baseitems import FieldItem, Item
+from mm.baseitems import FieldItem, Item
 from mm.baseitems import DictableItem, DefaultFildItem
 from mm.exceptions import MModelException
 from mm.meta import FieldsMeta

@@ -1,5 +1,5 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-
+from collections import defaultdict
 from collections.abc import Iterator
 from functools import wraps
 from typing import Any
