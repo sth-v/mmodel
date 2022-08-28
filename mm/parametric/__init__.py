@@ -2,17 +2,22 @@
 import copy
 import json
 from abc import ABCMeta, abstractmethod
+from functools import wraps
 
 import numpy as np
 import requests
-
+import compas
+from mm.xforms import XformParametricDecorator, mirror
+import compas.geometry as cg
 from mm.baseitems import Base, DictableItem, Item
 
 
-class AbstractParametricFunction(Item):
+def to_cmp_point(func):
+    @wraps(func)
+    def wrp(*a, **kw):
+        return cg.Point(*func(*a, **kw))
 
-    def evaluate(self, t):
-        ...
+    return wrp
 
 
 class SimpleCircle(DictableItem):
@@ -26,7 +31,14 @@ class SimpleCircle(DictableItem):
         return x, y
 
 
-class PrmGenerator(AbstractParametricFunction, metaclass=ABCMeta):
+class PrmGenerator(Item, metaclass=ABCMeta):
+    """
+        Это пожалуй одно из лучших решений для реализации коллекции любого типа (Generator)
+        Нюанс в том что не все объекты (тем более содержащиеся в контейнерах должны быть сгенерированы)
+        Достаточно важное место в фреймворке отведено продолжительности жизн и объекта.
+        Таким образом имеет смысл считать генераторы коллекций равносильными __init__ в Item.
+        Контейнерные коллекции в свою очередь ближе к call
+    """
     stop = 2 * np.pi
     start = 0.0
 
@@ -34,9 +46,6 @@ class PrmGenerator(AbstractParametricFunction, metaclass=ABCMeta):
         self._step = None
         super().__init__(*args, **kwargs)
         self.si = self.start
-
-
-
 
     @abstractmethod
     def evaluate(self, t):
@@ -172,10 +181,110 @@ class ClassicLinear(Linear):
 class Circle(Circular):
     r = 1.0
 
+    def __init__(self, *args, **kwargs):
+        self._plane = None
+        super().__init__(*args, **kwargs)
+
     def evaluate(self, t):
         x = self.x0 + self.r * np.cos(t)
         y = self.y0 + self.r * np.sin(t)
         return x, y
+
+    def tan_at(self, t):
+        x, y = np.asarray(self.origin) - np.array(self.evaluate(t))
+        return -y, x
+
+    @property
+    def plane(self):
+        return self._plane
+
+    @plane.setter
+    def plane(self, value):
+        self._plane = value
+
+    @property
+    def origin(self):
+        return self.x0, self.y0
+
+
+class Circle3d(Circle, Circular):
+    z0 = 0.0
+
+    @property
+    def plane(self):
+        return self._plane
+
+    @property
+    def target_pt(self):
+        return self._target_pt
+
+    @target_pt.setter
+    def target_pt(self, v):
+        self._target_pt = v
+
+    def plane_from_normal(self, target):
+
+        v = target - self.origin
+        vunit = v / np.linalg.norm(v)
+        v2 = np.cross(vunit, [0.0, 0.0, 1.0])
+        v3 = np.cross(vunit, v2)
+
+        return cg.Frame(self.origin, v2, v3)
+
+    @property
+    def old_plane(self):
+        return cg.Frame(self.origin, np.asarray([1, 0, 0]), np.asarray([0, 1, 0]))
+
+    @plane.setter
+    def plane(self, value):
+        self._plane = value
+
+    def _plane_xf(self):
+
+        new_plane = self.plane_from_normal(self.target_pt)
+        old_plane = cg.Frame(self.origin, np.asarray([1, 0, 0]), np.asarray([0, 1, 0]))
+        T = cg.Transformation.from_frame_to_frame(old_plane, new_plane)
+        self.plane = new_plane
+
+        return T
+
+    def evaluate(self, t):
+        x, y = super().evaluate(t)
+
+        pt = cg.Point(x, y, self.z0)
+
+        if self.target_pt is not None:
+            pt.transform(self._plane_xf())
+            return list(pt)
+        else:
+
+            return list(pt)
+
+    def tan_at_world(self, t):
+        return self.plane.local_to_local_coordinates(
+            cg.Frame(self.origin, np.asarray([1, 0, 0]), np.asarray([0, 1, 0])), self.plane, self.tan_at(t))
+
+    def tan_at(self, t):
+        #x, y, z = np.array(self.evaluate(t)) - np.asarray(self.origin)
+        #T=self._plane_xf()
+        xyz=[cg.Point(*self.evaluate(t)), cg.Point(*self.origin)]
+        al, bl = cg.world_to_local_coordinates(self.plane, xyz)
+        print(al, bl)
+        rt=np.asarray(bl)-np.asarray(al)
+        lx,ly,lz =rt/ np.linalg.norm(rt)
+        print(lx,ly,lz)
+
+        return -ly, lx, 0.0
+
+    def tan_vec(self, t, ray_k=1):
+        pt, vec = cg.world_to_local_coordinates(self.plane,[self.evaluate(t)])[0], self.tan_at(t)
+        ptj = np.array(pt) + (np.asarray(vec) * ray_k)
+        return np.asarray(cg.local_to_world_coordinates(self.plane,[pt, ptj]))
+
+    @property
+    def origin(self):
+
+        return self.x0, self.y0, self.z0
 
 
 class Ellipse(Quadratic):
@@ -202,6 +311,17 @@ class Hyperbola(Quadratic):
         return x, y
 
 
+class HyperEllipse(Quadratic):
+    a = 1
+    b = 1
+    c = 0.6
+
+    def evaluate(self, t):
+        x = self.x0 + (self.a * np.cosh(t) if np.abs(t) < self.c else self.a * np.sin(t))
+        y = self.y0 + (self.b * np.sinh(t) if np.abs(t) < self.c else self.b * np.cos(t))
+        return x, y
+
+
 class ParametricEquation(Base):
     ...
 
@@ -209,5 +329,3 @@ class ParametricEquation(Base):
 class Cone(ParametricEquation):
     def __call__(self, *args, **kwargs):
         ...
-
-

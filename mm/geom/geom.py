@@ -1,4 +1,5 @@
-__all__=["Point", "Arc"]
+__all__ = ["Point", "Arc"]
+
 import copy
 from abc import ABC
 from collections import namedtuple
@@ -9,7 +10,7 @@ import compas.geometry as cg
 import numpy as np
 import rhino3dm
 from mm.baseitems import DictableItem, Item
-from mm.parametric import SimpleCircle
+from mm.parametric import SimpleCircle, Circle
 
 RootParents = namedtuple("RootParents", ["main_parent", "FramrworkParent"])
 mesh_js_schema = {
@@ -38,18 +39,18 @@ class Point(DictableItem):
     x = 0.0
     y = 0.0
     z = 0.0
-    exclude = ["version", "uid"]
-
+    exclude = ["version", "uid", "__array__"]
 
     def to_compas(self):
         return cg.Point(self.x, self.y, self.z)
 
+    def __array__(self):
+        return np.ndarray([self.x,self.y])
 
 from rhino3dm import CommonObject, GeometryBase
 
 
 class Arc(SimpleCircle, DictableItem):
-
     r = 1.0
     x0 = 0.0
     y0 = 0.0
@@ -82,6 +83,38 @@ class Arc(SimpleCircle, DictableItem):
 
     def to_compas_json(self):
         return self.to_compas().to_jsonstring()
+
+
+class GeomCircle(Circle):
+    def evaluate(self, t) -> Point:
+        return Point(**dict(zip(("x", "y"), super(GeomCircle, self).evaluate(t))))
+
+    @property
+    def origin(self):
+        return Point(x=self.x0, y=self.y0)
+
+    def __repr__(self):
+        return super(GeomCircle, self).__repr__()
+
+
+class Arc1(Circle, DictableItem):
+    r = 1.0
+    x0 = 0.0
+    y0 = 0.0
+    start_angle = 0.0
+    end_angle = np.pi / 2
+
+    def __call__(self, *args, **kwargs):
+        super(Arc1, self).__call__(*args, **kwargs)
+
+        self.start = self.start_angle
+        self.end = self.end_angle
+
+    def __getitem__(self, item: float):
+        return super(Arc1, self).__getitem__(slice(self.start, self.stop, item))
+
+    def __next__(self):
+        super(Arc1, self).__next__()
 
 
 class Face(DictableItem):
