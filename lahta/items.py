@@ -184,6 +184,9 @@ class FoldElement(BendMethods):
         else:
             circle(start_angle=3 * np.pi / 2, end_angle=(3 * np.pi / 2) + self.circle_param())
             seg = OCCNurbsCurvePanels.reversed_copy(circle.to_compas())
+            if self.angle==45:
+                view.add(cg.Polyline(seg.locus()), linewidth=2, linecolor=(0, 0, 0))
+
             transl = self.transl_to_radius(seg, radius)
             return transl
 
@@ -215,7 +218,6 @@ class FoldElementFres(FoldElement, Item):
 
     @property
     def inner_parts_trim(self):
-
         if hasattr(self, "angle"):
             self._inner_parts_trim = self.outer_parts_l()
             return self._inner_parts_trim
@@ -233,12 +235,12 @@ class FoldElementFres(FoldElement, Item):
 
     def outer_parts_l(self):
         ang = np.radians((180 - np.abs(self.angle)) / 2)
-        l_out = self.met_left * math.tan(ang)
+        l_out = (self.metal_width-self.met_left) * math.tan(ang)
         return l_out
 
     def inner_parts_l(self):
         ang = np.radians((180 - np.abs(self.angle)) / 2)
-        l_in = self.met_left / math.cos(ang)
+        l_in = (self.in_rad + (1-self.radius)) / math.cos(ang)
         return l_in
 
     def construct_inner(self, curve):
