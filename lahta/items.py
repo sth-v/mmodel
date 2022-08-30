@@ -4,11 +4,11 @@ import math
 from tools.geoms import OCCNurbsCurvePanels
 import numpy as np
 
-from mm.geom.geom import Arc
+from mm.parametric import Arc
 from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
 from more_itertools import pairwise
-from compas_view2.app import App
+
 from dataclasses import dataclass, astuple, asdict
 import compas.geometry as cg
 
@@ -75,13 +75,7 @@ class PointObj(Item):
         tr = cg.translate_points([self.point], vector)[0]
         return PointObj(tr).point
 
-view = App()
-#
-#
-#
-#
-#
-#
+
 # Элемент отгиба
 class BendMethods(Item):
     def __call__(self, *args, **kwargs):
@@ -111,9 +105,6 @@ class BendMethods(Item):
         outer_crv = goal_frame.to_world_coordinates(line_segment.outer)
         line_segment(curve=[inner_crv, outer_crv])
         return line_segment
-
-
-
 
 
 class FoldElement(BendMethods):
@@ -183,8 +174,6 @@ class FoldElement(BendMethods):
         else:
             circle(start_angle=3 * np.pi / 2, end_angle=(3 * np.pi / 2) + self.circle_param())
             seg = OCCNurbsCurvePanels.reversed_copy(circle.to_compas())
-            if self.angle==45:
-                view.add(cg.Polyline(seg.locus()), linewidth=2, linecolor=(0, 0, 0))
 
             transl = self.transl_to_radius(seg, radius)
             return transl
@@ -213,7 +202,7 @@ class FoldElement(BendMethods):
 
 
 class FoldElementFres(FoldElement, Item):
-    #metal_width = 1
+    # metal_width = 1
 
     @property
     def inner_parts_trim(self):
@@ -234,7 +223,7 @@ class FoldElementFres(FoldElement, Item):
 
     def outer_parts_l(self):
         ang = np.radians((180 - np.abs(self.angle)) / 2)
-        l_out = (self.metal_width-self.met_left) * math.tan(ang)
+        l_out = (self.metal_width - self.met_left) * math.tan(ang)
         return l_out
 
     def inner_parts_l(self):
@@ -283,7 +272,7 @@ class FoldElementFres(FoldElement, Item):
 
 
 class StraightElement(BendMethods):
-    #metal_width = 1
+    # metal_width = 1
 
     @property
     def inner(self):
@@ -368,17 +357,22 @@ class BendSegment(Segment, BendMethods):
             elif self.in_rad is not None:
                 self.met_left = self.radius - self.in_rad
             else:
-                raise ValueError
-            self.fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad, met_left=self.met_left, metal_width=self.metal_width)
+                raise ValueError(f"BendSegmentError: Радиус гибки ({self.radius}) меньше допустимого при заданной "
+                                 f"толщине металла ({self.metal_width})")
+            self.fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad,
+                                        met_left=self.met_left, metal_width=self.metal_width)
         else:
             self.fold = FoldElement(angle=self.angle, radius=self.radius, metal_width=self.metal_width)
 
         if self.end is not None:
             self.straight = StraightElement(length_in=[self.fold.inner_parts_trim, self.end.inner_parts_trim],
-                                            length_out=self.length - (self.fold.calc_rightangle_length() + self.end.calc_rightangle_length()), metal_width=self.metal_width)
+                                            length_out=self.length - (
+                                                        self.fold.calc_rightangle_length() + self.end.calc_rightangle_length()),
+                                            metal_width=self.metal_width)
         else:
             self.straight = StraightElement(length_in=[self.fold.inner_parts_trim, 0],
-                                            length_out=self.length - (self.fold.calc_rightangle_length()), metal_width=self.metal_width)
+                                            length_out=self.length - (self.fold.calc_rightangle_length()),
+                                            metal_width=self.metal_width)
 
         self.real_state = self.get_segment()
 
@@ -387,35 +381,43 @@ class BendSegment(Segment, BendMethods):
         self.straight = self.translate_segments(self.straight, self.fold)
         return [self.fold, self.straight]
 
-    def compas_view(self):
-        view.add(cg.Polyline(self.real_state[0].inner.locus()), linewidth=1, linecolor=(1, 0, 0))
-        view.add(cg.Polyline(self.real_state[1].inner.locus()), linewidth=1, linecolor=(1, 0, 0))
-        view.add(cg.Polyline(self.real_state[0].outer.locus()), linewidth=1, linecolor=(1, 0, 0))
-        view.add(cg.Polyline(self.real_state[1].outer.locus()), linewidth=1, linecolor=(1, 0, 0))
 
+    def to_compas(self):
+        return (cg.NurbsCurve(self.real_state[0].inner),
+                cg.NurbsCurve(self.real_state[1].inner),
+                cg.NurbsCurve(self.real_state[0].outer),
+                cg.NurbsCurve(self.real_state[1].outer))
 
 
 class Bend(Item):
     _i = 0
-
 
     def __init__(self, segments, start=cg.Frame.worldXY(), *args, **kwargs):
         self.bend_stage = []
         self.start_stage = []
         super().__init__(segments=segments, start=start, *args, **kwargs)
 
-
     def __call__(self, segments, start=cg.Frame.worldXY(), *args, **kwargs):
         super().__call__(segments=segments, start=start, *args, **kwargs)
-
-        while self._i < len(self.segments):
+        self._data = []
+        while self._i < self.__len__():
             bend = next(self)
             self.bend_stage.append(bend)
-        self._i = 0
-        view.run()
+
+        self.reload()
+
 
     def __iter__(self):
         return self
+
+    def __len__(self):
+        return len(self.segments)
+
+    def to_compas(self):
+        return self._data
+
+    def reload(self):
+        self._i = 0
 
     # гнем и все остальное относительно внутреннего радиуса
     def __next__(self):
@@ -427,14 +429,21 @@ class Bend(Item):
 
         bend_segment = self.segments[self._i]
 
-        if self._i != len(self.segments)-1:
+        if self._i != len(self.segments) - 1:
             neigh = self.segments[self._i + 1].fold
+            print(neigh)
         else:
             neigh = None
 
         bend_segment(start=self.start, end=neigh)
-        bend_segment.compas_view()
+
+
         self.start = bend_segment.real_state[1]
         self._i += 1
+        self._data.extend(bend_segment.to_compas())
         return bend_segment
 
+
+segments = BendSegment(100, 1.8, 90), BendSegment(29, 6.0, 33), BendSegment(300, 1.8, 110, in_rad=0.5)
+b = Bend(segments)
+print(b)
