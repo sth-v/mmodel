@@ -373,7 +373,13 @@ class BendSegment(Segment, BendMethods):
         self.straight = self.translate_segments(self.straight, self.fold)
         return [self.fold, self.straight]
 
-    def viewer(self, view):
+    def to_compas(self):
+        return (self.real_state[0].inner,
+                self.real_state[1].inner,
+                self.real_state[0].outer,
+                self.real_state[1].outer)
+
+    def viewer(self):
         view.add(cg.Polyline(self.fold.inner.locus()), linewidth=2, linecolor=(1, 0, 0))
         view.add(cg.Polyline(self.fold.outer.locus()), linewidth=2, linecolor=(0, 0, 1))
         view.add(cg.Polyline(self.straight.inner.locus()), linewidth=2, linecolor=(1, 0, 0))
@@ -424,7 +430,11 @@ class Bend(Item):
             bend = next(self)
             self.bend_stage.append(bend)
 
+        for i in self.bend_stage:
+            i.viewer()
+
         self.reload()
+        view.run()
 
     def __iter__(self):
         return self
