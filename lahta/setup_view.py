@@ -1,7 +1,6 @@
 import sys
 
-DRAW = None
-NO_VIEW = ['/Users/andrewastakhov/mmodel', '/tmp/mmodel_server_remote/']
+NO_VIEW = ['/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/bucket_watchdog', '/tmp/mmodel_server_remote/mm/tests', '/tmp/mmodel_server_remote/tests', '/tmp/mmodel_server_remote/bucket_watchdog', '/tmp/mmodel_server_remote/mm/tests', '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel']
 
 
 class AppBind:
@@ -12,6 +11,8 @@ class AppBind:
         pass
 
 
+view = AppBind()
+DRAW = False
 for env in NO_VIEW:
     if env in sys.path:
         DRAW = False
@@ -20,7 +21,7 @@ for env in NO_VIEW:
         break
     else:
         DRAW = True
-        from compas_view2.app import App
-
-        view = App()
         continue
+if DRAW:
+    from compas_view2.app import App
+    view = App()

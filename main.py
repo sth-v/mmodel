@@ -10,7 +10,7 @@ sys.path.extend(
     ['/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/bucket_watchdog',
      '/tmp/mmodel_server_remote/mm/tests', '/tmp/mmodel_server_remote/tests',
      '/tmp/mmodel_server_remote/bucket_watchdog', '/tmp/mmodel_server_remote/mm/tests',
-     '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel_server'])
+     '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel', '/Users/andrewastakhov/mmodel/lahta'])
 
 import json
 from typing import Iterable, Optional, Any
@@ -22,8 +22,9 @@ from cxm_s3.sessions import S3Session
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse, FileResponse
 import uvicorn
-from lahta.items import OCCNurbsCurve, BendConstructorFres
+from lahta.items import OCCNurbsCurve, BendSegment, Bend
 from pydantic import BaseModel
+
 with open("/tmp/mmodel_server_remote/mm/parametric/localconfig.json", "rb") as fp:
     local_configs = json.load(fp)
     S3Session.storage = local_configs["storage"]
@@ -134,48 +135,87 @@ def eval_object_single_parametr(item_id: str, data: UpdSchema):
     }
 
 
-@dataclass
-class Segment(tuple):
-    angle: float
-    radius: float
-    length: float
-
-    def __new__(cls, angle, radius, length) -> tuple[float, float, float]:
-        return super().__new__(cls, (angle, radius, length))
-
-    def __getitem__(self, item):
-        l = [self.angle, self.radius, self.length]
-        return l[item]
-
-
-@dataclass
-class Bending(Iterable):
-    segments: Iterable[Segment]
-
-    def __init__(self, segments: Iterable[Segment] = ()):
-        super().__init__()
-        self.segments = segments
-
-    def __iter__(self):
-        return iter(self.segments)
-
-
-
 class FuckingShema(BaseModel):
-    segments:list[Any]
-@bend.post("/construct")
-def construct_bend(data: FuckingShema):
-    line = OCCNurbsCurve.from_line(Line(Point(-30, 0, 0), Point(0, 0, 0)))
-    print(data, data.segments)
-    test = BendConstructorFres(data.segments, start=line)
-    js = {'poly': []}
+    segments: list[Any]
 
-    bend_ = test.bend_()
 
-    for i, v in enumerate(bend_):
-        js['poly'].append(v.data)
+bend_sess = S3Session(bucket="lahta.contextmachine.online")
 
-    return js
+
+@bend.get("/")
+def construct_bend():
+    return {"api": "bend"}
+
+
+@bend.get("/objects")
+def construct_bend(uid: str):
+    bend_sess.s3.list_objects(Bucket=bend_sess.bucket, Prefix="cxm/playground/bend/pkl/")
+    obj = pickle.loads(bend_sess.s3.get_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{uid}")["Body"].read())
+    return {
+        "data": obj.to_compas(),
+        "metadata": {
+            "uid": obj.uid,
+            "version": obj.version,
+            "dtype": "Bend"
+
+        }
+    }
+
+
+@bend.get("/objects/{uid}")
+def construct_bend(uid: str):
+    obj = pickle.loads(
+        bend_sess.s3.get_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{uid}")["Body"].read())
+    return {
+        "data": obj.to_compas(),
+        "metadata": {
+            "uid": obj.uid,
+            "version": obj.version,
+            "dtype": "Bend"
+
+        }
+    }
+
+
+@bend.post("/objects/create")
+def construct_bend(data: list[BendSegment]):
+    print(list(data), data[0].__dict__)
+    test = Bend(list(data))
+    #pkl = pickle.dumps(obj=test)
+    print(test)
+    #bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
+
+    return {
+        "data": test.to_compas(),
+        "metadata": {
+            "uid": test.uid,
+            "version": test.version,
+            "dtype": "Bend"
+
+        }
+    }
+
+
+@bend.patch("/objects/patch/{uid}")
+def construct_bend(uid: str, data: UpdSchema):
+    print(data)
+
+    cls_ = pickle.loads(
+        bend_sess.s3.get_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/pkl/{uid}")["Body"].read())
+    obj = cls_(**data.__dict__)
+    #pkl = pickle.dumps(obj=obj)
+
+    #bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/pkl/{uid}", Body=pkl)
+
+    return {
+        "data": obj.to_compas(),
+        "metadata": {
+            "uid": obj.uid,
+            "version": obj.version,
+            "dtype": "Bend"
+
+        }
+    }
 
 
 app.mount("/bend", bend)

@@ -8,7 +8,7 @@ from mm.parametric import Arc
 from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
 from more_itertools import pairwise
-
+from lahta.setup_view import view
 from dataclasses import dataclass, astuple, asdict
 import compas.geometry as cg
 
@@ -356,9 +356,7 @@ class BendSegment(Segment, BendMethods):
                 self.in_rad = self.radius - self.met_left
             elif self.in_rad is not None:
                 self.met_left = self.radius - self.in_rad
-            else:
-                raise ValueError(f"BendSegmentError: Радиус гибки ({self.radius}) меньше допустимого при заданной "
-                                 f"толщине металла ({self.metal_width})")
+
             self.fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad,
                                         met_left=self.met_left, metal_width=self.metal_width)
         else:
@@ -367,7 +365,7 @@ class BendSegment(Segment, BendMethods):
         if self.end is not None:
             self.straight = StraightElement(length_in=[self.fold.inner_parts_trim, self.end.inner_parts_trim],
                                             length_out=self.length - (
-                                                        self.fold.calc_rightangle_length() + self.end.calc_rightangle_length()),
+                                                    self.fold.calc_rightangle_length() + self.end.calc_rightangle_length()),
                                             metal_width=self.metal_width)
         else:
             self.straight = StraightElement(length_in=[self.fold.inner_parts_trim, 0],
@@ -381,18 +379,17 @@ class BendSegment(Segment, BendMethods):
         self.straight = self.translate_segments(self.straight, self.fold)
         return [self.fold, self.straight]
 
-
     def to_compas(self):
-        return (cg.NurbsCurve(self.real_state[0].inner),
-                cg.NurbsCurve(self.real_state[1].inner),
-                cg.NurbsCurve(self.real_state[0].outer),
-                cg.NurbsCurve(self.real_state[1].outer))
+        return (self.real_state[0].inner,
+                self.real_state[1].inner,
+                self.real_state[0].outer,
+                self.real_state[1].outer)
 
 
 class Bend(Item):
-    _i = 0
 
-    def __init__(self, segments, start=cg.Frame.worldXY(), *args, **kwargs):
+    def __init__(self, segments: list[BendSegment], start=cg.Frame.worldXY(), *args, **kwargs):
+        self._i = 0
         self.bend_stage = []
         self.start_stage = []
         super().__init__(segments=segments, start=start, *args, **kwargs)
@@ -406,7 +403,6 @@ class Bend(Item):
 
         self.reload()
 
-
     def __iter__(self):
         return self
 
@@ -414,7 +410,8 @@ class Bend(Item):
         return len(self.segments)
 
     def to_compas(self):
-        return self._data
+        for d in self._data:
+            yield d.to_data()
 
     def reload(self):
         self._i = 0
@@ -437,13 +434,7 @@ class Bend(Item):
 
         bend_segment(start=self.start, end=neigh)
 
-
         self.start = bend_segment.real_state[1]
         self._i += 1
         self._data.extend(bend_segment.to_compas())
         return bend_segment
-
-
-segments = BendSegment(100, 1.8, 90), BendSegment(29, 6.0, 33), BendSegment(300, 1.8, 110, in_rad=0.5)
-b = Bend(segments)
-print(b)
