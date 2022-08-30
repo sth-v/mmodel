@@ -83,7 +83,7 @@ class MetaItem(type):
 
 class MetaLoggingItem(MetaItem):
     log = ""
-    logpath = "/Users/andrewastakhov/mmodel_server/meta/definelog"
+    logpath = "/Users/andrewastakhov/mmodel/meta/definelog"
 
     def __new__(mcs, classname, bases, dct, **kws):
         cls = super(MetaLoggingItem, mcs).__new__(classname=classname, bases=bases, dct=dct, **kws)

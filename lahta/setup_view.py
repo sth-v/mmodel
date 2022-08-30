@@ -1,6 +1,11 @@
 import sys
 
-NO_VIEW = ['/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/bucket_watchdog', '/tmp/mmodel_server_remote/mm/tests', '/tmp/mmodel_server_remote/tests', '/tmp/mmodel_server_remote/bucket_watchdog', '/tmp/mmodel_server_remote/mm/tests', '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel']
+NO_VIEW = [
+    '/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/',
+    '/tmp/mmodel_server_remote/bucket_watchdog', '/tmp/mmodel_server_remote/mm/tests',
+    '/tmp/mmodel_server_remote/tests', '/tmp/mmodel_server_remote/bucket_watchdog',
+    '/tmp/mmodel_server_remote/mm/tests', '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel'
+    ]
 
 
 class AppBind:
