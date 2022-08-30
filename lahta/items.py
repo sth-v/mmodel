@@ -365,6 +365,10 @@ class BendSegment(Segment, BendMethods):
     def __init__(self, length, radius, angle, in_rad=None, met_left=None, *args, **kwargs):
         super().__init__(length=length, radius=radius, angle=angle, in_rad=in_rad, met_left=met_left, *args, **kwargs)
         self.init_state = self.real_state
+        view.add(cg.Polyline(self.init_state[0].inner.locus()), linewidth=1, linecolor=(0, 0, 1))
+        view.add(cg.Polyline(self.init_state[1].inner.locus()), linewidth=1, linecolor=(0, 0, 1))
+        view.add(cg.Polyline(self.init_state[0].outer.locus()), linewidth=1, linecolor=(0, 0, 1))
+        view.add(cg.Polyline(self.init_state[1].outer.locus()), linewidth=1, linecolor=(0, 0, 1))
 
     def __call__(self, start=cg.Frame.worldXY(), end=None, *args, **kwargs):
         super().__call__(start=start, end=end, *args, **kwargs)
@@ -438,25 +442,8 @@ class Bend(Item):
 
         bend_segment(start=self.start, end=neigh)
         bend_segment.compas_view()
-        self.start = bend_segment.straight
+        self.start = bend_segment.real_state[1]
         self._i += 1
+        print(self._i)
         return bend_segment
 
-
-
-
-
-line = OCCNurbsCurve.from_line(cg.Line(cg.Point(-30, 0, 0), cg.Point(0, 0, 0)))
-
-# bend_ = test.bend_()
-# view.add(Polyline(bend_[0].locus()), linewidth=1, linecolor=(1, 0, 0))
-# view.add(Polyline(bend_[1].locus()), linewidth=1, linecolor=(1, 0, 0))
-
-
-# for i, v in enumerate(bend_):
-# js['poly'].append(v.to_jsonstring())
-
-# with open("/Users/sofyadobycina/Documents/GitHub/mmodel/tests/triangl.json", "w") as outfile:
-# json.dump(js, outfile)
-
-# view.run()
