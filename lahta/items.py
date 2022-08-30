@@ -1,5 +1,4 @@
 from __future__ import print_function
-from typing import Iterable
 import math
 from tools.geoms import OCCNurbsCurvePanels
 import numpy as np
@@ -340,9 +339,56 @@ class BendSegment(Segment, BendMethods):
     length: float
     radius: float
     angle: float
+    metal_width = 1.0
+
+    def __init__(self, length, radius, angle, *args, **kwargs):
+        super().__init__(length=length, radius=radius, angle=angle, *args, **kwargs)
+        self.init_state = self.real_state
+
+    def __call__(self, start=cg.Frame.worldXY(), end=None, *args, **kwargs):
+        super().__call__(start=start, end=end, *args, **kwargs)
+        self.fold = self.bending_fold()
+        self.straight = self.bending_straight(self.fold)
+
+        self.real_state = self.get_segment()
+
+    def bending_fold(self):
+        fold = FoldElement(angle=self.angle, radius=self.radius, metal_width=self.metal_width)
+        return fold
+
+    def bending_straight(self, fold):
+        if self.end is not None:
+            straight = StraightElement(length_in=[fold.inner_parts_trim, self.end.inner_parts_trim],
+                                       length_out=self.length - (
+                                               fold.calc_rightangle_length() + self.end.calc_rightangle_length()),
+                                       metal_width=self.metal_width)
+        else:
+            straight = StraightElement(length_in=[fold.inner_parts_trim, 0],
+                                       length_out=self.length - (fold.calc_rightangle_length()),
+                                       metal_width=self.metal_width)
+        return straight
+
+    def get_segment(self):
+        self.fold = self.translate_segments(self.fold, self.start)
+        self.straight = self.translate_segments(self.straight, self.fold)
+        return [self.fold, self.straight]
+
+    def viewer(self, view):
+        view.add(cg.Polyline(self.fold.inner.locus()), linewidth=2, linecolor=(1, 0, 0))
+        view.add(cg.Polyline(self.fold.outer.locus()), linewidth=2, linecolor=(0, 0, 1))
+        view.add(cg.Polyline(self.straight.inner.locus()), linewidth=2, linecolor=(1, 0, 0))
+        view.add(cg.Polyline(self.straight.outer.locus()), linewidth=2, linecolor=(0, 0, 1))
+        return view
+
+
+@dataclass
+class BendSegmentFres(BendSegment):
+    length: float
+    radius: float
+    angle: float
     in_rad: float = None
     met_left: float = None
-    metal_width = 1.5
+    metal_width = 1.0
 
     def __init__(self, length, radius, angle, in_rad=None, met_left=None, *args, **kwargs):
         super().__init__(length=length, radius=radius, angle=angle, in_rad=in_rad, met_left=met_left, *args, **kwargs)
@@ -351,39 +397,16 @@ class BendSegment(Segment, BendMethods):
     def __call__(self, start=cg.Frame.worldXY(), end=None, *args, **kwargs):
         super().__call__(start=start, end=end, *args, **kwargs)
 
-        if self.radius < self.metal_width:
-            if self.met_left is not None:
-                self.in_rad = self.radius - self.met_left
-            elif self.in_rad is not None:
-                self.met_left = self.radius - self.in_rad
-
-            self.fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad,
-                                        met_left=self.met_left, metal_width=self.metal_width)
+    def bending_fold(self):
+        if self.met_left is not None:
+            self.in_rad = self.radius - self.met_left
+        elif self.in_rad is not None:
+            self.met_left = self.radius - self.in_rad
         else:
-            self.fold = FoldElement(angle=self.angle, radius=self.radius, metal_width=self.metal_width)
-
-        if self.end is not None:
-            self.straight = StraightElement(length_in=[self.fold.inner_parts_trim, self.end.inner_parts_trim],
-                                            length_out=self.length - (
-                                                    self.fold.calc_rightangle_length() + self.end.calc_rightangle_length()),
-                                            metal_width=self.metal_width)
-        else:
-            self.straight = StraightElement(length_in=[self.fold.inner_parts_trim, 0],
-                                            length_out=self.length - (self.fold.calc_rightangle_length()),
-                                            metal_width=self.metal_width)
-
-        self.real_state = self.get_segment()
-
-    def get_segment(self):
-        self.fold = self.translate_segments(self.fold, self.start)
-        self.straight = self.translate_segments(self.straight, self.fold)
-        return [self.fold, self.straight]
-
-    def to_compas(self):
-        return (self.real_state[0].inner,
-                self.real_state[1].inner,
-                self.real_state[0].outer,
-                self.real_state[1].outer)
+            raise ValueError
+        fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad, met_left=self.met_left,
+                               metal_width=self.metal_width)
+        return fold
 
 
 class Bend(Item):
@@ -428,13 +451,41 @@ class Bend(Item):
 
         if self._i != len(self.segments) - 1:
             neigh = self.segments[self._i + 1].fold
-            print(neigh)
         else:
             neigh = None
 
         bend_segment(start=self.start, end=neigh)
-
-        self.start = bend_segment.real_state[1]
+        self.start = bend_segment.straight
         self._i += 1
         self._data.extend(bend_segment.to_compas())
         return bend_segment
+
+    @property
+    def inner(self):
+        self._inner = []
+        for i in self.bend_stage:
+            self._inner.append(i.fold.inner)
+            self._inner.append(i.straight.inner)
+        return self._inner
+
+    @inner.setter
+    def inner(self, r):
+        self._inner = r
+
+    @property
+    def outer(self):
+        self._outer = []
+        for i in self.bend_stage:
+            self._outer.append(i.fold.outer)
+            self._outer.append(i.straight.outer)
+        return self._outer
+
+    @outer.setter
+    def outer(self, r):
+        self._outer = r
+
+    def __str__(self):
+        return f"<{self.bend_stage} fold elements>"
+
+    def __repr__(self):
+        return f"<{self.bend_stage} fold elements>"
