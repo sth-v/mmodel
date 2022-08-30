@@ -213,16 +213,6 @@ class FoldElement(BendMethods):
 class FoldElementFres(FoldElement, Item):
     metal_width = 1
 
-    def __init__(self, met_left=None, in_rad=None, **kwargs):
-        super().__init__(met_left=met_left, in_rad=in_rad, **kwargs)
-        print('before calc',self.met_left, self.in_rad)
-        if met_left is not None:
-            self.in_rad = self.radius - self.met_left
-        if in_rad is not None:
-            self.met_left = self.radius - self.in_rad
-        print('after calc', self.met_left, self.in_rad)
-
-
     @property
     def inner_parts_trim(self):
 
@@ -366,7 +356,6 @@ class BendSegment(Segment, BendMethods):
 
     def __init__(self, length, radius, angle, in_rad=None, met_left=None, *args, **kwargs):
         super().__init__(length=length, radius=radius, angle=angle, in_rad=in_rad, met_left=met_left, *args, **kwargs)
-        print('init', self.met_left, self.in_rad)
         self.init_state = self.real_state
         view.add(cg.Polyline(self.init_state[0].inner.locus()), linewidth=1, linecolor=(0, 0, 1))
         view.add(cg.Polyline(self.init_state[1].inner.locus()), linewidth=1, linecolor=(0, 0, 1))
@@ -377,8 +366,13 @@ class BendSegment(Segment, BendMethods):
         super().__call__(start=start, end=end, *args, **kwargs)
 
         if self.radius < self.metal_width:
+            if self.met_left is not None:
+                self.in_rad = self.radius - self.met_left
+            elif self.in_rad is not None:
+                self.met_left = self.radius - self.in_rad
+            else:
+                raise ValueError
             self.fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad, met_left=self.met_left)
-            print('call', self.met_left, self.in_rad)
         else:
             self.fold = FoldElement(angle=self.angle, radius=self.radius)
 
@@ -441,6 +435,7 @@ class Bend(Item):
 
         if self._i != len(self.segments)-1:
             neigh = self.segments[self._i + 1].fold
+            print(neigh)
         else:
             neigh = None
 
@@ -448,6 +443,5 @@ class Bend(Item):
         bend_segment.compas_view()
         self.start = bend_segment.real_state[1]
         self._i += 1
-        print(self._i)
         return bend_segment
 
