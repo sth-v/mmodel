@@ -7,10 +7,13 @@ from functools import wraps
 import numpy as np
 import requests
 import compas
+import rhino3dm
+
+
 from mm.xforms import XformParametricDecorator, mirror
 import compas.geometry as cg
 from mm.baseitems import Base, DictableItem, Item
-
+from mm.geom import Point
 
 def to_cmp_point(func):
     @wraps(func)
@@ -207,20 +210,24 @@ class Circle(Circular):
         return self.x0, self.y0
 
 
-class Circle3d(Circle, Circular):
+class Cone3d(Circle, Circular):
     z0 = 0.0
-
+    vertex=np.array([0.0,0.0,0.0])
     @property
     def plane(self):
         return self._plane
 
     @property
     def target_pt(self):
-        return self._target_pt
+        try:
+
+            return self._target_pt
+        except:
+            return np.array([0, 0, 0])
 
     @target_pt.setter
     def target_pt(self, v):
-        self._target_pt = v
+        setattr(self, "_target_pt", v)
 
     def plane_from_normal(self, target):
 
@@ -265,21 +272,21 @@ class Circle3d(Circle, Circular):
             cg.Frame(self.origin, np.asarray([1, 0, 0]), np.asarray([0, 1, 0])), self.plane, self.tan_at(t))
 
     def tan_at(self, t):
-        #x, y, z = np.array(self.evaluate(t)) - np.asarray(self.origin)
-        #T=self._plane_xf()
-        xyz=[cg.Point(*self.evaluate(t)), cg.Point(*self.origin)]
+        # x, y, z = np.array(self.evaluate(t)) - np.asarray(self.origin)
+        # T=self._plane_xf()
+        xyz = [cg.Point(*self.evaluate(t)), cg.Point(*self.origin)]
         al, bl = cg.world_to_local_coordinates(self.plane, xyz)
         print(al, bl)
-        rt=np.asarray(bl)-np.asarray(al)
-        lx,ly,lz =rt/ np.linalg.norm(rt)
-        print(lx,ly,lz)
+        rt = np.asarray(bl) - np.asarray(al)
+        lx, ly, lz = rt / np.linalg.norm(rt)
+        print(lx, ly, lz)
 
         return -ly, lx, 0.0
 
     def tan_vec(self, t, ray_k=1):
-        pt, vec = cg.world_to_local_coordinates(self.plane,[self.evaluate(t)])[0], self.tan_at(t)
+        pt, vec = cg.world_to_local_coordinates(self.plane, [self.evaluate(t)])[0], self.tan_at(t)
         ptj = np.array(pt) + (np.asarray(vec) * ray_k)
-        return np.asarray(cg.local_to_world_coordinates(self.plane,[pt, ptj]))
+        return np.asarray(cg.local_to_world_coordinates(self.plane, [pt, ptj]))
 
     @property
     def origin(self):
@@ -329,3 +336,70 @@ class ParametricEquation(Base):
 class Cone(ParametricEquation):
     def __call__(self, *args, **kwargs):
         ...
+
+
+class GeomCircle(Circle):
+    def evaluate(self, t) -> Point:
+        return Point(**dict(zip(("x", "y"), super(GeomCircle, self).evaluate(t))))
+
+    @property
+    def origin(self):
+        return Point(x=self.x0, y=self.y0)
+
+    def __repr__(self):
+        return super(GeomCircle, self).__repr__()
+
+
+class Arc1(Circle, DictableItem):
+    r = 1.0
+    x0 = 0.0
+    y0 = 0.0
+    start_angle = 0.0
+    end_angle = np.pi / 2
+
+    def __call__(self, *args, **kwargs):
+        super(Arc1, self).__call__(*args, **kwargs)
+
+        self.start = self.start_angle
+        self.end = self.end_angle
+
+    def __getitem__(self, item: float):
+        return super(Arc1, self).__getitem__(slice(self.start, self.stop, item))
+
+    def __next__(self):
+        super(Arc1, self).__next__()
+
+
+class Arc(SimpleCircle, DictableItem):
+    r = 1.0
+    x0 = 0.0
+    y0 = 0.0
+    start_angle = 0.0
+    end_angle = np.pi / 2
+
+    def __call__(self, *args, **kwargs):
+        super(Arc, self).__call__(*args, **kwargs)
+
+        self.start = self.evaluate(self.start_angle)
+        self.end = self.evaluate(self.end_angle)
+
+    def to_compas(self):
+        self.cc = cg.NurbsCurve.from_circle(cg.Circle(cg.Plane([self.x0, self.y0, 0.0], [0, 0, 1]), self.r))
+        _, self.ts = self.cc.closest_point(self.start.to_compas(), return_parameter=True)
+        _, self.te = self.cc.closest_point(self.end.to_compas(), return_parameter=True)
+        return self.cc.segmented(self.ts, self.te)
+
+    def evaluate(self, t):
+        x, y = super().evaluate(t)
+        return Point(x=x, y=y)
+
+    def to_rhino(self):
+        rh_arc = rhino3dm.Arc(rhino3dm.Point3d(0.0, 0.0, 0.0), radius=self.r,
+                              angleRadians=self.end_angle - self.start_angle)
+        return rh_arc
+
+    def to_rhino_json(self):
+        return self.to_rhino().ToNurbsCurve().Encode()
+
+    def to_compas_json(self):
+        return self.to_compas().to_jsonstring()
