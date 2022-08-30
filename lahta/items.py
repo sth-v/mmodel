@@ -1,5 +1,4 @@
 from __future__ import print_function
-from typing import Iterable
 import math
 from tools.geoms import OCCNurbsCurvePanels
 import numpy as np
@@ -7,7 +6,6 @@ import numpy as np
 from mm.geom.geom import Arc
 from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
-from more_itertools import pairwise
 from compas_view2.app import App
 from dataclasses import dataclass, astuple, asdict
 import compas.geometry as cg
@@ -75,7 +73,6 @@ class PointObj(Item):
         tr = cg.translate_points([self.point], vector)[0]
         return PointObj(tr).point
 
-view = App()
 #
 #
 #
@@ -353,7 +350,7 @@ class BendSegment(Segment, BendMethods):
     angle: float
     in_rad: float = None
     met_left: float = None
-    metal_width = 1.5
+    metal_width = 1.0
 
     def __init__(self, length, radius, angle, in_rad=None, met_left=None, *args, **kwargs):
         super().__init__(length=length, radius=radius, angle=angle, in_rad=in_rad, met_left=met_left, *args, **kwargs)
@@ -387,17 +384,17 @@ class BendSegment(Segment, BendMethods):
         self.straight = self.translate_segments(self.straight, self.fold)
         return [self.fold, self.straight]
 
-    def compas_view(self):
-        view.add(cg.Polyline(self.real_state[0].inner.locus()), linewidth=1, linecolor=(1, 0, 0))
-        view.add(cg.Polyline(self.real_state[1].inner.locus()), linewidth=1, linecolor=(1, 0, 0))
-        view.add(cg.Polyline(self.real_state[0].outer.locus()), linewidth=1, linecolor=(1, 0, 0))
-        view.add(cg.Polyline(self.real_state[1].outer.locus()), linewidth=1, linecolor=(1, 0, 0))
+    def viewer(self, view):
+        view.add(cg.Polyline(self.fold.inner.locus()), linewidth=2, linecolor=(1, 0, 0))
+        view.add(cg.Polyline(self.fold.outer.locus()), linewidth=2, linecolor=(0, 0, 1))
+        view.add(cg.Polyline(self.straight.inner.locus()), linewidth=2, linecolor=(1, 0, 0))
+        view.add(cg.Polyline(self.straight.outer.locus()), linewidth=2, linecolor=(0, 0, 1))
+        return view
 
 
 
 class Bend(Item):
     _i = 0
-
 
     def __init__(self, segments, start=cg.Frame.worldXY(), *args, **kwargs):
         self.bend_stage = []
@@ -412,7 +409,6 @@ class Bend(Item):
             bend = next(self)
             self.bend_stage.append(bend)
         self._i = 0
-        view.run()
 
     def __iter__(self):
         return self
@@ -433,8 +429,37 @@ class Bend(Item):
             neigh = None
 
         bend_segment(start=self.start, end=neigh)
-        bend_segment.compas_view()
-        self.start = bend_segment.real_state[1]
+        self.start = bend_segment.straight
         self._i += 1
         return bend_segment
+
+    @property
+    def inner(self):
+        self._inner = []
+        for i in self.bend_stage:
+            self._inner.append(i.fold.inner)
+            self._inner.append(i.straight.inner)
+        return self._inner
+
+    @inner.setter
+    def inner(self, r):
+        self._inner=r
+
+    @property
+    def outer(self):
+        self._outer = []
+        for i in self.bend_stage:
+            self._outer.append(i.fold.outer)
+            self._outer.append(i.straight.outer)
+        return self._outer
+
+    @outer.setter
+    def outer(self, r):
+        self._outer=r
+
+    def __str__(self):
+        return f"<{self.bend_stage} fold elements>"
+
+    def __repr__(self):
+        return f"<{self.bend_stage} fold elements>"
 
