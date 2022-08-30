@@ -117,7 +117,6 @@ class BendMethods(Item):
 
 
 class FoldElement(BendMethods):
-    metal_width = 1
     inner_parts_trim = 0
 
     @property
@@ -214,7 +213,7 @@ class FoldElement(BendMethods):
 
 
 class FoldElementFres(FoldElement, Item):
-    metal_width = 1
+    #metal_width = 1
 
     @property
     def inner_parts_trim(self):
@@ -240,7 +239,7 @@ class FoldElementFres(FoldElement, Item):
 
     def inner_parts_l(self):
         ang = np.radians((180 - np.abs(self.angle)) / 2)
-        l_in = (self.in_rad + (1-self.radius)) / math.cos(ang)
+        l_in = (self.metal_width - self.met_left) / math.cos(ang)
         return l_in
 
     def construct_inner(self, curve):
@@ -284,7 +283,7 @@ class FoldElementFres(FoldElement, Item):
 
 
 class StraightElement(BendMethods):
-    metal_width = 1
+    #metal_width = 1
 
     @property
     def inner(self):
@@ -354,15 +353,11 @@ class BendSegment(Segment, BendMethods):
     angle: float
     in_rad: float = None
     met_left: float = None
-    metal_width = 1
+    metal_width = 1.5
 
     def __init__(self, length, radius, angle, in_rad=None, met_left=None, *args, **kwargs):
         super().__init__(length=length, radius=radius, angle=angle, in_rad=in_rad, met_left=met_left, *args, **kwargs)
         self.init_state = self.real_state
-        view.add(cg.Polyline(self.init_state[0].inner.locus()), linewidth=1, linecolor=(0, 0, 1))
-        view.add(cg.Polyline(self.init_state[1].inner.locus()), linewidth=1, linecolor=(0, 0, 1))
-        view.add(cg.Polyline(self.init_state[0].outer.locus()), linewidth=1, linecolor=(0, 0, 1))
-        view.add(cg.Polyline(self.init_state[1].outer.locus()), linewidth=1, linecolor=(0, 0, 1))
 
     def __call__(self, start=cg.Frame.worldXY(), end=None, *args, **kwargs):
         super().__call__(start=start, end=end, *args, **kwargs)
@@ -374,16 +369,16 @@ class BendSegment(Segment, BendMethods):
                 self.met_left = self.radius - self.in_rad
             else:
                 raise ValueError
-            self.fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad, met_left=self.met_left)
+            self.fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad, met_left=self.met_left, metal_width=self.metal_width)
         else:
-            self.fold = FoldElement(angle=self.angle, radius=self.radius)
+            self.fold = FoldElement(angle=self.angle, radius=self.radius, metal_width=self.metal_width)
 
         if self.end is not None:
             self.straight = StraightElement(length_in=[self.fold.inner_parts_trim, self.end.inner_parts_trim],
-                                            length_out=self.length - (self.fold.calc_rightangle_length() + self.end.calc_rightangle_length()))
+                                            length_out=self.length - (self.fold.calc_rightangle_length() + self.end.calc_rightangle_length()), metal_width=self.metal_width)
         else:
             self.straight = StraightElement(length_in=[self.fold.inner_parts_trim, 0],
-                                            length_out=self.length - (self.fold.calc_rightangle_length()))
+                                            length_out=self.length - (self.fold.calc_rightangle_length()), metal_width=self.metal_width)
 
         self.real_state = self.get_segment()
 
@@ -402,7 +397,6 @@ class BendSegment(Segment, BendMethods):
 
 class Bend(Item):
     _i = 0
-    metal_width = 1
 
 
     def __init__(self, segments, start=cg.Frame.worldXY(), *args, **kwargs):
@@ -428,8 +422,6 @@ class Bend(Item):
 
         if isinstance(self.start, StraightElement):
             self.start_stage.append(self.start.get_plane(self.start.inner))
-            view.add(self.start.get_plane(self.start.inner), size=2)
-
         else:
             self.start_stage.append(self.start)
 
@@ -437,7 +429,6 @@ class Bend(Item):
 
         if self._i != len(self.segments)-1:
             neigh = self.segments[self._i + 1].fold
-            print(neigh)
         else:
             neigh = None
 
