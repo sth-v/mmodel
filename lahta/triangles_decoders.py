@@ -2,8 +2,8 @@
 import os
 import sys
 
-sys.path.extend(["/Users/andrewastakhov/mmodel_server", "/Users/andrewastakhov/mmodel_server/mm",
-                 "/Users/andrewastakhov/mmodel_server/lahta"])
+sys.path.extend(["/Users/andrewastakhov/mmodel", "/Users/andrewastakhov/mmodel/mm",
+                 "/Users/andrewastakhov/mmodel/lahta"])
 import mm
 import numpy as np
 
@@ -15,7 +15,7 @@ def b1_decoder(
     return bytes
 
 
-def b1_decoderp(path="/Users/andrewastakhov/mmodel_server/tmp/type_map_b1.json"):
+def b1_decoderp(path="/Users/andrewastakhov/mmodel/tmp/type_map_b1.json"):
     with open(path, "rb") as fp:
         bytes = eval(fp.read())
     return bytes

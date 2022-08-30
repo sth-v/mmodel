@@ -1,5 +1,5 @@
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
-           'DefaultFildItem', 'FieldItem', 'DictableItem', 'JsItem']
+           'DataItem', 'FieldItem', 'DictableItem', 'JsItem']
 
 import inspect
 import itertools
@@ -7,6 +7,8 @@ import json
 from collections import defaultdict
 
 import base64
+from typing import Iterable
+
 import compas
 import compas.geometry
 from collections.abc import Callable
@@ -116,7 +118,21 @@ class HistoryArgItem(ArgsItem):
         return cls(**data)
 
 
-class DefaultFildItem(Item):
+class member_table(dict):
+    def __init__(self):
+        self.member_names = []
+
+    def __setitem__(self, key, value):
+        # if the key is not already defined, add to the
+        # list of keys.
+        if key not in self:
+            self.member_names.append(key)
+
+        # Call superclass
+        dict.__setitem__(self, key, value)
+
+
+class DataItem(Item):
     """
     Check name
 
@@ -124,31 +140,49 @@ class DefaultFildItem(Item):
     classname: B, input name: A
 
     """
+    _exclude = {"exclude", "custom_fields", "default_fields"}
+    dtype: str
 
-    fields = dict(
-        uuid=''
-    )
 
-    def __init__(self, *args, **kwargs):
+    @property
+    def metadata(self):
+        return dict(metadata=dict(self.custom_fields))
 
-        super().__init__(*args, **kwargs)
+    @property
+    def custom_fields(self):
+        _fields = []
 
-    def __call__(self, *args, **kwargs):
+        for k in self.__dict__.keys():
+            if not (k in self.exclude) and (not hasattr(self.__class__, k)):
+                _fields.append((k, getattr(self, k)))
+        return _fields
 
-        self._default_fields = defaultdict(**self.fields)
-        kwargs |= dict(zip(self._default_fields.keys(), args[:len(self._default_fields.keys())]))
+    @property
+    def default_fields(self):
+        _fields = []
+        for k in self.__dict__.keys():
+            if not (k in self.exclude) and hasattr(self.__class__, k):
+                _fields.append((k, getattr(self, k)))
+        _fields.append(("metadata", dict()))
+        return _fields
 
-        super().__call__(**kwargs)
-        for field in self.__class__.fields.keys():
-            if field not in self.__dict__.keys():
-                self.__field_missing__(field)
+    @property
+    def mro_items(self):
+        l = []
+        for base in self.__class__.__bases__:
+            if issubclass(base, DataItem):
+                l.append(base)
+        return l
 
-    @classmethod
-    def __field_missing__(cls, key):
-        if key in cls.fields.keys():
-            raise MModelException(
-                f"Miss required field: {key} in {cls.__name__}!")
+    @property
+    def exclude(self):
+        for base in self.mro_items:
+            self._exclude.update(base._exclude)
+        return self._exclude
 
+    @exclude.setter
+    def exclude(self, v):
+        self._exclude.add(v)
 
 class FieldItem(Item):
     fields = []
@@ -305,4 +339,3 @@ class DictableItem(FieldItem, ItemFormatter):
 
 class JsItem(DictableItem):
     schema_js = dict()
-
