@@ -135,6 +135,33 @@ def eval_object_single_parametr(item_id: str, data: UpdSchema):
     }
 
 
+@dataclass
+class Segment(tuple):
+    angle: float
+    radius: float
+    length: float
+
+    def __new__(cls, angle, radius, length) -> tuple[float, float, float]:
+        return super().__new__(cls, (angle, radius, length))
+
+    def __getitem__(self, item):
+        l = [self.angle, self.radius, self.length]
+        return l[item]
+
+
+@dataclass
+class Bending(Iterable):
+    segments: Iterable[Segment]
+
+    def __init__(self, segments: Iterable[Segment] = ()):
+        super().__init__()
+        self.segments = segments
+
+    def __iter__(self):
+        return iter(self.segments)
+
+
+
 class FuckingShema(BaseModel):
     segments: list[Any]
 
@@ -177,11 +204,27 @@ def construct_bend(uid: str):
     }
 
 
+@dataclass
+class Segm:
+    length: float
+    radius: float
+    angle: float
+    in_rad: Optional[float]=None
+
+
+
+
+@dataclass
+class BendInput:
+    segments: list[Segm]
+
+
 @bend.post("/objects/create")
-def construct_bend(data: list[BendSegment]):
-    print(list(data), data[0].__dict__)
-    test = Bend(list(data))
-    #pkl = pickle.dumps(obj=test)
+def construct_bend(data: BendInput):
+    print(list(data.segments), data.segments[0])
+
+    test = Bend([BendSegment(s.length, s.radius, s.angle, in_rad=s.in_rad) for s in data.segments])
+
     print(test)
     #bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
 
