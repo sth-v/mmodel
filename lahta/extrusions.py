@@ -1,19 +1,25 @@
-from mm.geom.geom import Arc
+
+from operator import itemgetter
 from mm.baseitems import Item
 import compas.geometry as cg
+from compas_gmsh.models import ShapeModel
 from compas_view2.app import App
 from lahta.items import Bend, BendSegment
 import compas_occ.geometry as cc
-import compas_occ.brep as cb
-from compas_view2.objects import Collection
+from compas_cgal.booleans import boolean_union, boolean_difference, boolean_intersection
+from compas_cgal.intersections import intersection_mesh_mesh
+from compas_cgal.meshing import remesh
+from compas.datastructures import Mesh
+from compas_gmsh.models import CSGModel
+
 
 view = App()
 
-four = BendSegment(40, 1.8, 65)
-one = BendSegment(25, 1.8, -70)
-two = BendSegment(45, 1.3, 90)
+four = BendSegment(40, 1.8, 90)
+one = BendSegment(25, 1.8, 90)
+two = BendSegment(45, 1.8, 90)
 ttt = Bend([one, four, two])
-
+elem = ttt.outer
 
 class BendExtrusion(Item):
     extrusion = []
@@ -21,33 +27,60 @@ class BendExtrusion(Item):
     def __call__(self, extr, *args, **kwargs):
         super().__call__(extr=extr, *args, **kwargs)
 
-        for i in extr:
-            surf = cc.OCCNurbsSurface.from_extrusion(i, cg.Vector.Zaxis() * 35)
+        join = extr[0]
+        for i in extr[1:]:
+            join = i.joined(join)
 
-            points = [surf.point_at(0.5, 0.7), surf.point_at(0.7, 0.7), surf.point_at(0.7, 0.2),
-                      surf.point_at(0.5, 0.2), surf.point_at(0.5, 0.7)]
+        surf = cc.OCCNurbsSurface.from_extrusion(join, cg.Vector.Zaxis()*30)
+        surf_mesh = surf.to_mesh()
 
-            loop = cb.BRep.from_polygons([cg.Polygon(points)])
-            brep = cb.BRep.from_mesh(surf.to_mesh(nu=2, nv=2))
+        #view.add(surf.to_mesh())
+        view.add(cg.Polyline(join.locus()), linewidth=2, linecolor=(0, 0, 1))
 
-            C = brep - loop
-            print(C)
+        points = [surf.point_at(0.5, 0.7), surf.point_at(0.7, 0.7), surf.point_at(0.7, 0.2), surf.point_at(0.5, 0.2), surf.point_at(0.5, 0.7)]
+        tr = cg.Translation.from_vector(cg.Vector.Xaxis()*10)
+        point_tr = points[2].transformed(tr)
 
-            mesh = C.to_meshes(u=25, v=25)
-            self.brep = C
+        #view.add(Collection(points))
+        #view.add(point_tr)
 
-            # self.extrusion.append(surf_)
-            view.add(mesh[0])
-            # view.add(Collection(points))
-            # view.add(cg.Polyline(curve.locus()), linewidth=3)
+        surf_face = cg.Box.from_corner_corner_height(points[3], point_tr, 10).faces
+        surf_point = cg.Box.from_corner_corner_height(points[3], point_tr, 10).points
+        polygon = []
+        for i in surf_face:
+            polygon.append(itemgetter(*i)(surf_point))
 
-    # def to_local_plane(self, extr):
+
+        surf_trim = Mesh.from_polygons(polygon)
+        tr = cg.Translation.from_vector(cg.Vector.Xaxis()*(-5))
+        surf_trim = surf_trim.transformed(tr)
+        #view.add(surf_trim)
+        A = surf_mesh.to_vertices_and_faces(triangulated=True)
+        B = surf_trim.to_vertices_and_faces(triangulated=True)
 
 
-test = BendExtrusion([ttt.inner[1]])
+        pointsets = intersection_mesh_mesh(A, B)
+        polylines = []
+        for points in pointsets:
+            points = [cg.Point(*point) for point in points]
+            polyline = cg.Polyline(points)
+            polylines.append(polyline)
 
-# seg_list = ttt.bend_stage
-# for i in seg_list:
-# i.viewer(view)
+        view.add(Mesh.from_vertices_and_faces(*A), facecolor=(1, 0, 0), opacity=0.7)
+        #view.add(Mesh.from_vertices_and_faces(*B), facecolor=(0, 1, 0), opacity=0.7)
+        for polyline in polylines:
+            view.add(
+                polyline,
+                linecolor=(0, 0, 1),
+                linewidth=3,
+                pointcolor=(1, 0, 0),
+                pointsize=10,
+                show_points=True
+            )
+
+brep = BendExtrusion(elem)
+
+#for i in elem:
+    #view.add(cg.Polyline(i.locus()), linewidth=2, linecolor=(0, 0, 1))
 
 view.run()

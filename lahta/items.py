@@ -6,7 +6,6 @@ import numpy as np
 from mm.parametric import Arc
 from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
-from more_itertools import pairwise
 from lahta.setup_view import view
 from dataclasses import dataclass, astuple, asdict
 import compas.geometry as cg
@@ -313,13 +312,6 @@ class StraightElement(BendMethods):
         l_in = OCCNurbsCurve.from_line(cg.Line(start, end))
         return l_in, l_out
 
-    @staticmethod
-    def cap_elem(c_one, c_two):
-        s_one, e_one = c_one.point_at(min(c_one.domain)), c_two.point_at(min(c_two.domain))
-        s_two, e_two = c_two.point_at(max(c_two.domain)), c_one.point_at(max(c_one.domain))
-        l_one = OCCNurbsCurve.from_line(cg.Line(s_one, e_one))
-        l_two = OCCNurbsCurve.from_line(cg.Line(s_two, e_two))
-        return l_one, l_two
 
 
 @dataclass
@@ -379,7 +371,7 @@ class BendSegment(Segment, BendMethods):
                 self.real_state[0].outer,
                 self.real_state[1].outer)
 
-    def viewer(self):
+    def viewer(self, view):
         view.add(cg.Polyline(self.fold.inner.locus()), linewidth=2, linecolor=(1, 0, 0))
         view.add(cg.Polyline(self.fold.outer.locus()), linewidth=2, linecolor=(0, 0, 1))
         view.add(cg.Polyline(self.straight.inner.locus()), linewidth=2, linecolor=(1, 0, 0))
@@ -430,11 +422,8 @@ class Bend(Item):
             bend = next(self)
             self.bend_stage.append(bend)
 
-        for i in self.bend_stage:
-            i.viewer()
-
         self.reload()
-        view.run()
+
 
     def __iter__(self):
         return self
@@ -493,6 +482,14 @@ class Bend(Item):
     @outer.setter
     def outer(self, r):
         self._outer = r
+
+
+    def cap_elem(self):
+        s_one, e_one = self.inner[1].point_at(min(self.inner[1].domain)), self.outer[1].point_at(min(self.outer[1].domain))
+        s_two, e_two = self.inner[1].point_at(max(self.inner[1].domain)), self.outer[1].point_at(max(self.outer[1].domain))
+        l_one = OCCNurbsCurve.from_line(cg.Line(s_one, e_one))
+        l_two = OCCNurbsCurve.from_line(cg.Line(s_two, e_two))
+        return l_one, l_two
 
     def __str__(self):
         return f"<{self.bend_stage} fold elements>"
