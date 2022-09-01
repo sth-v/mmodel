@@ -2,7 +2,7 @@ from __future__ import print_function
 import math
 from tools.geoms import OCCNurbsCurvePanels
 import numpy as np
-
+from functools import wraps
 from mm.parametric import Arc
 from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve, OCCNurbsSurface
@@ -103,6 +103,83 @@ class BendMethods(Item):
         outer_crv = goal_frame.to_world_coordinates(line_segment.outer)
         line_segment(curve=[inner_crv, outer_crv])
         return line_segment
+
+
+class TransformableItem(Item):
+    parent = None
+    zero_frame = cg.Frame.worldXY()
+
+    @property
+    def frame(self):
+        if self.parent is not None:
+            try:
+                self._frame = self.parent.parent_frame
+            except AttributeError:
+                self._frame = self.parent
+        else:
+            self._frame = self.zero_frame
+        return self._frame
+
+    @frame.setter
+    def frame(self, v):
+        self._frame = v
+
+    @property
+    def transform(self):
+        return cg.Transformation.from_frame_to_frame(self.zero_frame, self.frame)
+
+    '''@classmethod
+    def transform_this(cls, f):
+        @wraps(f)
+        def this_wrapper(this, *args, **kwargs):
+            f(this, *args, **kwargs).transform(this.transform)
+            return this
+
+        return this_wrapper'''
+
+
+class GetFrameItem(property):
+
+    @property
+    def frame_point(self):
+        return self._frame_point
+
+    @frame_point.setter
+    def frame_point(self, v):
+        self._frame_point = v
+
+    @property
+    def parent_frame(self):
+        self._parent_frame = self.frame_method()
+        return self._parent_frame
+
+    @parent_frame.setter
+    def parent_frame(self, f):
+        self._parent_frame = f
+
+    def __call__(self, goal, reference=None, ref_point = None):
+        ...
+
+
+class GetFrame2DItem(GetFrameItem):
+    def frame_method(self, goal, reference=None, ref_point = None):
+        if reference is not None:
+            X = reference.tangent_at(ref_point.unitized())
+        else:
+            X = goal.tangent_at(self.frame_point).unitized()
+        ea1 = 0.0, 0.0, np.radians(90)
+        R1 = cg.Rotation.from_euler_angles(ea1, False, 'xyz')
+        Y = X.transformed(R1).unitized()
+        return cg.Frame(self.frame_point, X, Y)
+
+class GetFrame3DItem(GetFrameItem):
+    def frame_method(self, goal, reference=None, ref_point=None):
+        if reference is not None:
+            fr = reference.frame_at(ref_point)
+            return cg.Frame(self.frame_point, fr.xaxis, fr.yaxis)
+        else:
+            return goal.frame_at(self.frame_point)
+
 
 
 class FoldElement(BendMethods):
@@ -313,7 +390,6 @@ class StraightElement(BendMethods):
         return l_in, l_out
 
 
-
 @dataclass
 class Segment(Item, list):
     length: float
@@ -423,7 +499,9 @@ class Bend(Item):
             self.bend_stage.append(bend)
 
         self.reload()
-
+        for i in self.bend_stage:
+            i.viewer(view)
+        view.run()
 
     def __iter__(self):
         return self
@@ -483,10 +561,11 @@ class Bend(Item):
     def outer(self, r):
         self._outer = r
 
-
     def cap_elem(self):
-        s_one, e_one = self.inner[1].point_at(min(self.inner[1].domain)), self.outer[1].point_at(min(self.outer[1].domain))
-        s_two, e_two = self.inner[1].point_at(max(self.inner[1].domain)), self.outer[1].point_at(max(self.outer[1].domain))
+        s_one, e_one = self.inner[1].point_at(min(self.inner[1].domain)), self.outer[1].point_at(
+            min(self.outer[1].domain))
+        s_two, e_two = self.inner[1].point_at(max(self.inner[1].domain)), self.outer[1].point_at(
+            max(self.outer[1].domain))
         l_one = OCCNurbsCurve.from_line(cg.Line(s_one, e_one))
         l_two = OCCNurbsCurve.from_line(cg.Line(s_two, e_two))
         return l_one, l_two
