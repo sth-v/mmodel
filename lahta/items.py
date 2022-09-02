@@ -138,7 +138,7 @@ class TransformableItem(Item):
         return this_wrapper'''
 
 
-class GetFrameItem(property):
+class GetFrameItem(TransformableItem):
 
     @property
     def frame_point(self):
@@ -150,7 +150,7 @@ class GetFrameItem(property):
 
     @property
     def parent_frame(self):
-        self._parent_frame = self.frame_method()
+        self._parent_frame = self.__call__(self.goal, reference=None, ref_point = None)
         return self._parent_frame
 
     @parent_frame.setter
@@ -162,7 +162,7 @@ class GetFrameItem(property):
 
 
 class GetFrame2DItem(GetFrameItem):
-    def frame_method(self, goal, reference=None, ref_point = None):
+    def __call__(self, goal, reference=None, ref_point = None):
         if reference is not None:
             X = reference.tangent_at(ref_point.unitized())
         else:
