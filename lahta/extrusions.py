@@ -13,13 +13,84 @@ from compas.datastructures import Mesh
 from compas_gmsh.models import CSGModel
 
 
-view = App()
+import compas_occ.conversions as oconv
+import compas_occ.brep as cb
+from compas_view2.objects import Collection
+from typing import MutableMapping
+import numpy as np
+from compas import json_dumps
+from setup_view import view
 
 four = BendSegment(40, 1.8, 90)
 one = BendSegment(25, 1.8, 90)
 two = BendSegment(45, 1.8, 90)
 ttt = Bend([one, four, two])
 elem = ttt.outer
+
+class BendExtrusionMap(dict[Bend, list[cg.Transformation, cg.Transformation]]):
+
+    def __init__(self):
+        self._geom = []
+        self.ordered = []
+
+    def __setitem__(self, key:str,  val: list[Bend, cg.Frame, cg.Vector]):
+        if key not in self:
+            len(self.ordered)
+            self.ordered.append(key)
+        fr, trans = val
+
+        self.first = cg.Transformation.from_frame(fr)
+        self.second = cg.Transformation(cg.transformations.matrix_from_translation(list(trans)))
+        dict.__setitem__(self, key, [Bend, self.first, self.second])
+
+    def to_compas(self):
+        for k, v in self.items():
+            f, s = v
+
+            for g in k.to_compas():
+                crv = cc.OCCCurve.from_data(g)
+                crv.transform(f)
+
+                extrusion = cc.surfaces.OCCExtrusionSurface(crv, s.translation_vector)
+                crv2 = cc.OCCNurbsCurve.from_data(g)
+                crv2.transform(f)
+                crv2.transform(g)
+                self._geom.append(dict(curves=(crv.data, crv2.data,), extrusion=extrusion.data))
+        return self._geom
+
+
+class NaivePanel(Item):
+    vertices = np.array([[-16.848399354, -32.463546097, -1.400279116],
+                         [-16.548399354, -31.863546097, -1.400279116],
+                         [-17.148399354, -31.863546097, -1.400279116]])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._bend = BendExtrusionMap()
+
+    @property
+    def transforms(self):
+        for fr in np.stack(
+                [np.roll(self.vertices, 1) - self.vertices,
+                 np.roll(self.vertices, -1) - self.vertices]):
+            ff, fs = cg.Frame(self.vertices[0], fr[1], np.array([0, 0, 1])), fr[1]
+            print(ff)
+            yield [ff, fs]
+
+    @property
+    def bends(self):
+        return self._bend
+
+    @bends.setter
+    def bends(self, val):
+
+        self._bend[val] = next(self.transforms)
+
+    def to_compas(self):
+        for b in self.bends:
+
+            yield json_dumps(b.to_compas())
+
 
 class BendExtrusion(Item):
     extrusion = []
