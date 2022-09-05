@@ -1,3 +1,4 @@
+import itertools
 import json
 import argparse
 import json
@@ -51,18 +52,22 @@ class BucketWatchDog:
         self.prefix = prefix
         self.postfix = postfix
         self.url = url
-
-        self.buffer = self.targets(self.s3.list_objects(Bucket=bucket)["Contents"])
+        print(self.prefix,self.postfix)
+        self.buffer = self.targets(self.s3.list_objects_v2(Bucket=bucket, Prefix=self.prefix)["Contents"])
 
         init_changes = {
             "delete": [],
-            "add": list(map(lambda x: x["Key"], self.buffer)),
+            "add": self.buffer['key'],
             "modify": []
         }
+        bk=self.buffer["key"]
+
         print(
-            f"\n{Timer()} Bucket Watchdog {fg('#F97BB0')+attr('bold')}init{attr('reset')} \n{fg('#F97BB0')+attr('bold')}configs{attr('reset')}\n    {fg('#FFA245')}bucket:{attr('reset')}{self.bucket}\n    {fg('#FFA245')}prefix:{attr('reset')} {self.prefix}\n    {fg('#FFA245')}postfix:{attr('reset')} {self.postfix}\n    {fg('#FFA245')}url:{attr('reset')} {self.url}\n    {fg('#FFA245')}initial changes:{attr('reset')}  {init_changes}")
+            f"\n{Timer()} Bucket Watchdog {fg('#F97BB0') + attr('bold')}init{attr('reset')} "
+            f"\n\n{fg('#F97BB0') + attr('bold')}buffer:{attr('reset')}\n{bk}\n"
+            f"\n{fg('#F97BB0') + attr('bold')}configs{attr('reset')}\n    {fg('#FFA245')}bucket:{attr('reset')}{self.bucket}\n    {fg('#FFA245')}prefix:{attr('reset')} {self.prefix}\n    {fg('#FFA245')}postfix:{attr('reset')} {self.postfix}\n    {fg('#FFA245')}url:{attr('reset')} {self.url}\n    {fg('#FFA245')}initial changes:{attr('reset')}  {init_changes}")
         try:
-            requests.post(self.url, data=json.dumps(init_changes,ensure_ascii=False))
+            requests.post(self.url, data=json.dumps(init_changes, ensure_ascii=False))
         except:
             print("[WARN] Request Failed")
 
@@ -84,21 +89,22 @@ class BucketWatchDog:
         Для реализаций не предполагающих общение через api,
         контент запроса возвращается из методa __call__ в виде словаря.
         """
-        list_obj = self.targets(self.s3.list_objects(Bucket=self.bucket)["Contents"])
-        set1 = set(map(lambda x: x["Key"], list_obj))
-        set2 = set(map(lambda x: x["Key"], self.buffer))
+        list_obj = self.targets(self.s3.list_objects_v2(Bucket=self.bucket, Prefix=self.prefix)["Contents"])
+        set1 = set(list_obj["key"])
+        set2 = set(self.buffer["key"])
         deleted = set2 - set1
         new_details = set1 - (set2 - deleted)
         checklist = set1 - new_details
         modified = set()
-        buffer_dict = dict(map(lambda x: (x["Key"], x["LastModified"]), self.buffer))
-        for i, path in enumerate(list_obj):
-            p = path['Key']
-            if p in checklist:
-                if path["LastModified"] == buffer_dict[p]:
+        buffer_dict = dict(zip( self.buffer["key"],self.buffer["last_modify"]))
+        for k, lm in zip( list_obj["key"],list_obj["last_modify"]):
+
+
+            if k in checklist:
+                if lm == buffer_dict[k]:
                     pass
                 else:
-                    modified.add(p)
+                    modified.add(k)
 
         changes = {
             "delete": list(deleted),
@@ -112,27 +118,49 @@ class BucketWatchDog:
 
         else:
             print(
-                f"\n{Timer()} Bucket Watchdog {fg('#F97BB0')+attr('bold')}changes detection{attr('reset')}\n{fg('#FFA245')}changes:{attr('reset')}  {changes}")
+                f"\n{Timer()} Bucket Watchdog {fg('#F97BB0') + attr('bold')}changes detection{attr('reset')}\n{fg('#FFA245')}changes:{attr('reset')}  {changes}")
             try:
-                requests.post(self.url, data=json.dumps(changes,ensure_ascii=False))
+                requests.post(self.url, data=json.dumps(changes, ensure_ascii=False))
             except:
                 print("[WARN] Request Failed")
             self.buffer = list_obj
         return changes
 
     def targets(self, items):
-        lst = []
-        for path in items:
 
-            split_targ = self.prefix.split("/")
-            splitted = path["Key"].split("/")[:len(split_targ)]
-            if self.postfix is not None:
-                if (split_targ == splitted) and (path["Key"].split(".")[-1] == self.postfix):
+        lst = []
+        lm=[]
+        for req in items:
+            path = req["Key"]
+            lmm = req["LastModified"]
+            path = path.replace(self.prefix, "")
+
+            if not (path == ""):
+                if not(self.postfix==''):
+                    try:
+                        if path.split(".")[1:] == self.postfix.split(".")[1:]:
+                            lst.append(path)
+                            lm.append(lmm)
+                            #print(f"{fg('#F97BB0') + attr('bold')}watch :{attr('reset')}"
+                            #      f"              {self.prefix}:{path}:{self.postfix}")
+
+                        else:
+
+                            #print(f"{fg('#F97BB0') + attr('bold')}passing :{attr('reset')}"
+                            #      f"            {self.prefix}:{path}:{self.postfix}  # non match postfix")
+                            pass
+                    except:
+                        pass
+                else:
                     lst.append(path)
+                    lm.append(lmm)
+                    #print(f"{fg('#F97BB0') + attr('bold')}watch :{attr('reset')}"
+                    #      f"              {self.prefix}:{path}:{self.postfix}")
             else:
-                if split_targ == splitted:
-                    lst.append(path)
-        return lst
+                #print(f"{fg('#F97BB0') + attr('bold')}passing :{attr('reset')}"
+                #      f"            {self.prefix}:{path}:{self.postfix}  # root path")
+                pass
+        return dict(key=lst, last_modify=lm)
 
 
 def watchdog(event='all', delay=5.0, **kwargs):
@@ -151,10 +179,10 @@ if __name__ == "__main__":
     parser.add_argument('-d', dest='delay', type=float, default=5.0)
     parser.add_argument('-e', dest='event', type=str, default="all", help=BucketWatchDog.__call__.__doc__)
     args = parser.parse_args()
-    watchdog(bucket="lahta.contextmachine.online",
+    watchdog(bucket=os.environ["BUCKET"],
              prefix=os.environ["PREFIX"],
              postfix=os.environ["POSTFIX"],
-             url="http://mmodel.contextmachine.online:8181/update",
+             url=f'{os.environ["CALL_URL"]}/{os.environ["PREFIX"].replace("/","-")}?p={os.environ["POSTFIX"].replace(".", "_")}',
              event="all",
              delay=1.0
              )

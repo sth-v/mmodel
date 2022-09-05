@@ -5,7 +5,7 @@ import compas.geometry as cg
 from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
     translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, \
     Translation, Line, Rotation
-from mm.geom.geom import Arc
+from mm.parametric import Arc
 
 js = {}
 

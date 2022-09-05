@@ -4,19 +4,40 @@ __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
 import inspect
 import itertools
 import json
-from collections import defaultdict
 
 import base64
-from typing import Iterable
+from typing import Any
 
 import compas
 import compas.geometry
 from collections.abc import Callable
+
 import numpy as np
+
 
 from vcs.utils import HashVersion
 
-from mm.exceptions import MModelException
+
+class MultiDict(dict):
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+
+    def __setitem__(self, k, v):
+
+        try:
+            l = dict.__getitem__(self, k)
+            l.append(v)
+
+        except:
+            l = [v]
+
+        dict.__setitem__(self, k, l)
+
+    def __getitem__(self, __k):
+        return dict.__getitem__(self, __k)
+
+
+
 
 
 class Base(Callable):
@@ -120,16 +141,37 @@ class HistoryArgItem(ArgsItem):
 
 class member_table(dict):
     def __init__(self):
-        self.member_names = []
+        self.members = []
+        self.methods = []
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value: list[Any]):
         # if the key is not already defined, add to the
         # list of keys.
-        if key not in self:
-            self.member_names.append(key)
 
-        # Call superclass
-        dict.__setitem__(self, key, value)
+        ml = []
+        for m, v in zip(self.members, value):
+            setattr(m, key, v)
+
+            ml.append(getattr(m, key))
+            dict.__setitem__(self, m, {key: ml})
+
+    def __getitem__(self, item):
+        for m in self.members:
+            yield getattr(m, item)
+
+    def reload(self):
+        del self.names_irerator
+        self.names_irerator()
+
+    def __setattr__(self, key, value):
+        self[next(self.names_irerator)[self]].__setattr__(key, value)
+        print(key, value)
+
+    def __getattr__(self, k):
+        return self[next(self.names_irerator)[self]].__getattr__(k)
+
+
+
 
 
 class DataItem(Item):
@@ -142,7 +184,6 @@ class DataItem(Item):
     """
     _exclude = {"exclude", "custom_fields", "default_fields"}
     dtype: str
-
 
     @property
     def metadata(self):
@@ -183,6 +224,7 @@ class DataItem(Item):
     @exclude.setter
     def exclude(self, v):
         self._exclude.add(v)
+
 
 class FieldItem(Item):
     fields = []
@@ -272,12 +314,12 @@ class DictableItem(FieldItem, ItemFormatter):
                     iter(v)
 
                     if not isinstance(v, str):
-                        #print(f'hash iter {v}')
+                        # print(f'hash iter {v}')
                         st.join([hex(int(n)) for n in np.asarray(np.ndarray(v) * 100, _dtype=int)])
                     else:
                         continue
                 except:
-                    #print(f'hash not iter {v}')
+                    # print(f'hash not iter {v}')
                     if isinstance(v, int) or isinstance(v, float):
                         st += hex(int(v * 100))
                     else:

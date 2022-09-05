@@ -1,5 +1,5 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-
+import json
 import os
 from functools import wraps
 
@@ -23,6 +23,7 @@ class S3Session(WatchSession):
             service_name='s3',
             endpoint_url=self.storage
         )
+        self.s3.__init__()
 
 
 class WatchTargets:
@@ -108,3 +109,45 @@ class BucketTargetSession(BucketSession, WatchTargets):
     @property
     def state(self):
         return self.targets(self.s3.list_objects(Bucket=self.bucket)["Contents"])
+
+import pandas as pd
+class S3Client(WatchSession):
+    storage = "https://storage.yandexcloud.net/"
+    service_name = 's3'
+    region_name: str = "ru-central1"
+    aws_access_key_id: str = None,
+    aws_secret_access_key: str = None
+
+    def __init__(self, bucket: str = None, prefix="", auth_type="credentials.json", **kwargs):
+        self.prefix=prefix
+        if auth_type == "credentials":
+            pass
+        elif auth_type == "credentials.json":
+            with open("credentials.json", "rb") as fp:
+                self.__dict__ |= json.load(fp)
+        else:
+            pass
+
+        super().__init__(bucket)
+        self.__dict__ |= kwargs
+        self.client = self.session.client(
+            service_name=self.service_name,
+            region_name=self.region_name,
+            endpoint_url=self.storage,
+            aws_secret_access_key=self.aws_secret_access_key,
+            aws_access_key_id=self.aws_access_key_id
+        )
+
+    def __getattr__(self, item):
+        try:
+            return getattr(self, item)
+        except:
+
+            return getattr(self.client, item)
+
+    def __setattr__(self, key, value):
+        super().__setattr__(key, value)
+
+    def table(self, **kwargs):
+        return pd.DataFrame(self.client.list_objects_v2(Bucket=self.bucket, **kwargs)["Contents"])
+

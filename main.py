@@ -4,6 +4,8 @@ import sys
 
 from compas.geometry import Line, Point
 
+from lahta.extrusions import NaivePanel
+
 print('Python %s on %s' % (sys.version, sys.platform))
 
 sys.path.extend(
@@ -217,6 +219,9 @@ class Segm:
 @dataclass
 class BendInput:
     segments: list[Segm]
+@dataclass
+class BendMulti:
+    bends: list[BendInput]
 
 
 @bend.post("/objects/create")
@@ -239,6 +244,20 @@ def construct_bend(data: BendInput):
     }
 
 
+@bend.post("/objects/create2")
+def construct_bend(data: BendMulti):
+    print(list( data.bends),  data.bends[0])
+    test=NaivePanel()
+    for bm in data.bends:
+        test.bends = Bend([BendSegment(s.length, s.radius, s.angle, in_rad=s.in_rad) for s in bm.segments])
+
+    print(test.bends)
+    #bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
+
+    def stream():
+        yield from test.to_compas()
+
+    return StreamingResponse(stream())
 @bend.patch("/objects/patch/{uid}")
 def construct_bend(uid: str, data: UpdSchema):
     print(data)

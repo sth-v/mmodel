@@ -1,16 +1,14 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 from numpy import ndarray
 
-from mm.parametric import Circle3d
+from mm.parametric import Arc, Cone3d
 import compas.geometry as cg
 import bezier
 
 from mm.xforms import mirror
 import numpy as np
 
-from mm.geom.geom import Arc
-
-
+from mm.baseitems import Item, DictableItem
 class ArcForArc(Arc):
     evalute_param = np.pi / 2
     origin = [0, 0, 0]
@@ -73,10 +71,15 @@ rb = 1.3  # @param {type:"slider", min:0, max:10, step:0.1}
 
 """Script"""
 
+class Cone(Cone3d):
+    z0 = 1.0
+    target = np.ndarray([0.0, 0.0, 0.0])
+    def __call__(self, *args, **kwargs):
+
 
 def pipeline():
     # @title
-    ca = Circle3d(r=ra)
+    ca = Cone3d(r=ra)
 
     ca.x0, ca.y0, ca.z0 = a
     ca.target_pt = b

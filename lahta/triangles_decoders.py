@@ -15,7 +15,7 @@ def b1_decoder(
     return bytes
 
 
-def b1_decoderp(path="/Users/andrewastakhov/mmodel/tmp/type_map_b1.json"):
+def b2_decoderp(path="/Users/andrewastakhov/mmodel/tmp/triangles_coordinates"):
     with open(path, "rb") as fp:
         bytes = eval(fp.read())
     return bytes
@@ -23,16 +23,19 @@ def b1_decoderp(path="/Users/andrewastakhov/mmodel/tmp/type_map_b1.json"):
 
 from mm.baseitems import DictableItem, FieldItem
 
-dat = b1_decoder()
+dat = b2_decoderp()
 
-fad = b1_decoderp()
+fad = b2_decoderp()
 ndat = np.asarray(list(dat.values()))
 flndat = ndat.flatten()
 a, = flndat.shape
 ids = np.arange(a).reshape(ndat.shape)
+
+
 def cullnls():
     for k, v in fad.items():
         fad[k] = list(map(lambda x: x[1], v))
+
 
 class Point(DictableItem):
     def __init_(self, **kwargs):

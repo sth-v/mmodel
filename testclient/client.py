@@ -5,8 +5,8 @@ from mm.baseitems import Item
 from typing import TypeVar
 import pickle, json
 import compas
-from lahta.items import BendConstructorFres
-
+from lahta.items import Bend
+import uvicorn
 IT = TypeVar("IT", bound=Item)
 app = FastAPI(debug=True)
 
@@ -66,7 +66,7 @@ class ItemApiGenerator(AbstractTestApi, Item):
         return StreamingResponse(self.response(response_headers, prot=prot))
 
 
-class BendConstructorBind(Item, BendConstructorFres):
+class BendConstructorBind(Item, Bend):
     prefix = None
 
     def __init__(self, **kwargs):
@@ -101,3 +101,5 @@ bc = BendConstructorBind()
 @app.get(bc.prefix + "/{name}")
 def bind_bc(name: str, prot: str = "jsn"):
     return bc(name)
+
+uv

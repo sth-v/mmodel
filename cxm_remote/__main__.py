@@ -15,7 +15,7 @@
 import json
 import os
 
-with open("/home/sthv/cxm_s3/env.json") as env_file:
+with open("/home/sthv/cxm_remote/env.json") as env_file:
     os.environ |= json.load(env_file)
 import typing
 
