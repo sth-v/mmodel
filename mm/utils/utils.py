@@ -27,10 +27,11 @@ class ReplaceMapping:
 
 class DotView(Item, ReplaceMapping):
 
-    def __init__(self, dct, **kwargs):
+    def __init__(self, dct={}, **kwargs):
         super().__init__(**kwargs)
-        self.dct = dct
-        DotView.do_traverse(self, dct)
+        kwargs |= dct
+        self.dct = kwargs
+        DotView.do_traverse(self, kwargs)
 
     @classmethod
     def do_traverse(cls, obj, dct):
