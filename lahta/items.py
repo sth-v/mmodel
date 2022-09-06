@@ -104,6 +104,43 @@ class BendMethods(Item):
         line_segment(curve=[inner_crv, outer_crv])
         return line_segment
 
+class ParentFrame2D:
+
+    def __init__(self, function):
+        self.function = function
+        self.name = function.__name__
+
+    def __get__(self, obj, type=None) -> object:
+        args = self.function(obj)
+
+        obj.__dict__[self.name] = self.parent_frame(*args)
+        return obj.__dict__[self.name]
+
+    def __set__(self, obj, value):
+        pass
+
+    def parent_frame(self, *args):
+        if len(args) > 2:
+            X = args[2].tangent_at(args[3]).unitized()
+        else:
+            X = args[0].tangent_at(args[1]).unitized()
+        ea1 = 0.0, 0.0, np.radians(90)
+        R1 = cg.Rotation.from_euler_angles(ea1, False, 'xyz')
+        Y = X.transformed(R1).unitized()
+        parent = cg.Frame(args[0].point_at(args[1]), X, Y)
+        return parent
+
+
+class ParentFrame3D(ParentFrame2D):
+    def parent_frame(self, *args):
+        if len(args) > 2:
+            fr = args[2].frame_at(args[3])
+            parent = cg.Frame(args[0].point_at(args[1]), fr.xaxis, fr.yaxis)
+            return parent
+        else:
+            parent = args[0].frame_at(args[0].point_at(args[1]))
+            return parent
+
 
 class TransformableItem(Item):
     parent = None
@@ -125,72 +162,29 @@ class TransformableItem(Item):
         self._frame = v
 
     @property
-    def transform(self):
+    def transform_matrix(self):
         return cg.Transformation.from_frame_to_frame(self.zero_frame, self.frame)
 
-    '''@classmethod
-    def transform_this(cls, f):
-        @wraps(f)
-        def this_wrapper(this, *args, **kwargs):
-            f(this, *args, **kwargs).transform(this.transform)
-            return this
-
-        return this_wrapper'''
-
-
-class GetFrameItem(TransformableItem):
-
-    @property
-    def frame_point(self):
-        return self._frame_point
-
-    @frame_point.setter
-    def frame_point(self, v):
-        self._frame_point = v
-
-    @property
-    def parent_frame(self):
-        self._parent_frame = self.__call__(self.goal, reference=None, ref_point = None)
-        return self._parent_frame
-
-    @parent_frame.setter
-    def parent_frame(self, f):
-        self._parent_frame = f
-
-    def __call__(self, goal, reference=None, ref_point = None):
-        ...
-
-
-class GetFrame2DItem(GetFrameItem):
-    def __call__(self, goal, reference=None, ref_point = None):
-        if reference is not None:
-            X = reference.tangent_at(ref_point.unitized())
-        else:
-            X = goal.tangent_at(self.frame_point).unitized()
-        ea1 = 0.0, 0.0, np.radians(90)
-        R1 = cg.Rotation.from_euler_angles(ea1, False, 'xyz')
-        Y = X.transformed(R1).unitized()
-        return cg.Frame(self.frame_point, X, Y)
-
-class GetFrame3DItem(GetFrameItem):
-    def frame_method(self, goal, reference=None, ref_point=None):
-        if reference is not None:
-            fr = reference.frame_at(ref_point)
-            return cg.Frame(self.frame_point, fr.xaxis, fr.yaxis)
-        else:
-            return goal.frame_at(self.frame_point)
 
 
 
-class FoldElement(BendMethods):
+class FoldElement(TransformableItem):
     inner_parts_trim = 0
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, v):
+        print(f'{self.uid} parent update')
+        self._parent = v
+        #self.inner = self.inner.transformed(self.transform_matrix)
+        #self.outer = self.outer.transformed(self.transform_matrix)
 
     @property
     def inner(self):
-
-        if hasattr(self, "curve"):
-            self._inner = self.curve[0]
-            return self._inner
+        if hasattr(self, "parent"):
+            return self._inner.transformed(self.transform_matrix)
         elif hasattr(self, "radius") and hasattr(self, "angle"):
             self._inner = self.construct_folds()[0]
             return self._inner
@@ -204,9 +198,8 @@ class FoldElement(BendMethods):
     @property
     def outer(self):
 
-        if hasattr(self, "curve"):
-            self._outer = self.curve[1]
-            return self._outer
+        if hasattr(self, "parent"):
+            return self._outer.transformed(self.transform_matrix)
         elif hasattr(self, "radius") and hasattr(self, "angle"):
             self._outer = self.construct_folds()[1]
             return self._outer
@@ -216,6 +209,13 @@ class FoldElement(BendMethods):
     @outer.setter
     def outer(self, v):
         self._outer = v
+
+
+    @ParentFrame2D
+    def parent_frame(self):
+        return self.inner, max(self.inner.domain)
+
+
 
     def circle_center(self):
         circ_s = Arc(r=self.radius)
@@ -291,6 +291,10 @@ class FoldElementFres(FoldElement, Item):
     def inner_parts_trim(self, v):
         self._inner_parts_trim = v
 
+    @ParentFrame2D
+    def parent_frame(self):
+        return self.outer, max(self.outer.domain), self.inner, max(self.inner.domain)
+
     def circle_center(self):
         circ_s = Arc(r=self.in_rad)
         circ_l = Arc(r=self.radius)
@@ -346,13 +350,20 @@ class FoldElementFres(FoldElement, Item):
         return self.radius / a
 
 
-class StraightElement(BendMethods):
-    # metal_width = 1
+class StraightElement(TransformableItem):
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, v):
+        print(f'{self.uid} parent update')
+        self._parent = v
 
     @property
     def inner(self):
-        if hasattr(self, "curve"):
-            self._inner = self.curve[0]
+        if hasattr(self, "parent"):
             return self._inner
         elif hasattr(self, "length_out") and hasattr(self, "length_in"):
             self._inner = self.build_line()[0]
@@ -366,9 +377,8 @@ class StraightElement(BendMethods):
 
     @property
     def outer(self):
-        if hasattr(self, "curve"):
-            self._outer = self.curve[1]
-            return self._outer
+        if hasattr(self, "parent"):
+            return self._outer.transformed(self.transform_matrix)
         elif hasattr(self, "length_out") and hasattr(self, "length_in"):
             self._outer = self.build_line()[1]
             return self._outer
@@ -378,6 +388,10 @@ class StraightElement(BendMethods):
     @outer.setter
     def outer(self, v):
         self._outer = v
+
+    @ParentFrame2D
+    def parent_frame(self):
+        return self.inner, max(self.inner.domain)
 
     def build_line(self):
         start = cg.Point(-self.length_in[0], -self.metal_width, 0)
@@ -403,7 +417,7 @@ class Segment(Item, list):
 
 
 @dataclass
-class BendSegment(Segment, BendMethods):
+class BendSegment(Segment, TransformableItem):
     length: float
     radius: float
     angle: float
@@ -437,8 +451,9 @@ class BendSegment(Segment, BendMethods):
         return straight
 
     def get_segment(self):
-        self.fold = self.translate_segments(self.fold, self.start)
-        self.straight = self.translate_segments(self.straight, self.fold)
+        self.fold.parent = self.start
+        self.straight.parent = self.fold
+
         return [self.fold, self.straight]
 
     def to_compas(self):
