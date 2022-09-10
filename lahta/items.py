@@ -110,7 +110,7 @@ class ParentFrame3D(ParentFrame2D):
             parent = cg.Frame(args[0].point_at(args[1]), fr.xaxis, fr.yaxis)
             return parent
         else:
-            parent = args[0].frame_at(args[0].point_at(args[1]))
+            parent = args[0].frame_at(args[1])
             return parent
 
 
@@ -140,11 +140,10 @@ class TransformableItem(Item):
     def transform_this(cls, f):
         @wraps(f)
         def this_wrapper(this, *args, **kwargs):
-            print('this', this)
             args = f(this, *args, **kwargs)
-            if len(args) == 1:
-                args = this.transform_matrix(this.transform)
-
+            if len(args)>1:
+                for i in args:
+                    i.transform(this.transform_matrix)
             return this
 
         return this_wrapper
@@ -165,7 +164,6 @@ class FoldElement(TransformableItem):
 
     @inner.setter
     def inner(self, v):
-        print(f'{type(v)}inner upd')
         self._inner = v.transformed(self.transform_matrix)
 
     @property
@@ -177,7 +175,6 @@ class FoldElement(TransformableItem):
 
     @outer.setter
     def outer(self, v):
-        print(f'{type(v)} outer upd')
         self._outer = v.transformed(self.transform_matrix)
 
 
@@ -231,6 +228,10 @@ class FoldElement(TransformableItem):
 
     def __call__(self, parent=cg.Frame.worldXY(), *args, **kwargs):
         super().__call__(parent=parent, *args, **kwargs)
+        #if hasattr(self, 'inner'):
+            #self.inner = self.inner.transformed(self.transform_matrix)
+            #self.outer = self.outer.transformed(self.transform_matrix)
+        #else:
         self.inner = self.calc_folds()[0]
         self.outer = self.calc_folds()[1]
 
@@ -326,13 +327,15 @@ class StraightElement(TransformableItem):
     @property
     def inner(self):
         if hasattr(self, "length_out") and hasattr(self, "length_in"):
+            #print('getter is called')
             return self._inner
         else:
             raise Exception
 
     @inner.setter
     def inner(self, v):
-        print(f'{type(v)} inner upd')
+        #print(f'{type(v)} inner upd')
+        #print('v', v)
         self._inner = v.transformed(self.transform_matrix)
 
     @property
@@ -344,7 +347,8 @@ class StraightElement(TransformableItem):
 
     @outer.setter
     def outer(self, v):
-        print(f'{type(v)} outer upd')
+        #print(f'{type(v)} outer upd')
+        #print('v', v)
         self._outer = v.transformed(self.transform_matrix)
 
     @ParentFrame2D
@@ -353,6 +357,11 @@ class StraightElement(TransformableItem):
 
     def __call__(self, parent=cg.Frame.worldXY(), *args, **kwargs):
         super().__call__(parent=parent, *args, **kwargs)
+        #if hasattr(self, 'inner'):
+            #print('call inner is called')
+            #self.inner = self.inner.transformed(self.transform_matrix)
+            #self.outer = self.outer.transformed(self.transform_matrix)
+        #else:
         start = cg.Point(-self.length_in[0], -self.metal_width, 0)
         end = cg.Point(self.length_out - self.length_in[0], -self.metal_width, 0)
         self.outer = OCCNurbsCurve.from_line(cg.Line(start, end))
@@ -390,7 +399,7 @@ class BendSegment(Segment, TransformableItem):
         super().__call__(parent=parent, end=end, *args, **kwargs)
         if hasattr(self, 'fold'):
             self.fold(parent=self.parent, **kwargs)
-            self.straight(parent=self.fold, **kwargs)
+            self.straight = self.bending_straight(parent=self.fold, **kwargs)
         else:
             self.fold = self.bending_fold()
             self.straight = self.bending_straight(self.fold)
@@ -497,6 +506,8 @@ class Bend(Item):
         else:
             neigh = None
 
+
+
         bend_segment(parent=self.parent, end=neigh)
         self.start_stage.append(bend_segment.parent)
 
@@ -529,17 +540,4 @@ class Bend(Item):
     def outer(self, r):
         self._outer = r
 
-    def cap_elem(self):
-        s_one, e_one = self.inner[1].point_at(min(self.inner[1].domain)), self.outer[1].point_at(
-            min(self.outer[1].domain))
-        s_two, e_two = self.inner[1].point_at(max(self.inner[1].domain)), self.outer[1].point_at(
-            max(self.outer[1].domain))
-        l_one = OCCNurbsCurve.from_line(cg.Line(s_one, e_one))
-        l_two = OCCNurbsCurve.from_line(cg.Line(s_two, e_two))
-        return l_one, l_two
 
-    def __str__(self):
-        return f"<{self.bend_stage} fold elements>"
-
-    def __repr__(self):
-        return f"<{self.bend_stage} fold elements>"
