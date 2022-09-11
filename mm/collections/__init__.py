@@ -1,10 +1,15 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Iterator
 from functools import wraps
 from typing import Any
 import inspect
-from mm.baseitems import Item, ArgsItem
+
+import numpy as np
+
+from mm.baseitems import BaseItem, Item, ArgsItem
 
 
 def t(glb):
@@ -267,3 +272,44 @@ class AbstractItemCollection(_AttrHandlerCollection):
     {'ikw': {'x': 8, 'y': 3}, 'iar': (), '_uid': '0x11fc27e50', 'x': 8, 'y': 3, 'version': '0x4d0x5b0x600x600x62'}
     """
     target = ArgsItem
+
+
+class NamedNumericCollection(BaseItem):
+    def __init__(self, arg, *args, **kwargs):
+        self._i = -1
+        print(arg, args)
+        try:
+            iter(arg)
+
+            arg_ = arg
+        except:
+            arg_ = (arg,)
+
+        if len(args) == 0:
+
+            args_ = arg_
+
+
+        else:
+
+            args_ = arg_ + args
+        super().__init__(*args_, **kwargs)
+
+    def __setitem__(self, i, v):
+        setattr(self, self.__default_keys__[i], v)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self._i += 1
+        if self._i < len(self.__array__()):
+            return self.__array__()[self._i]
+        else:
+            raise StopIteration
+
+    def __array__(self, *args, **kwargs) -> np.ndarray:
+        return np.asarray(list(self.default_fields.values))
+
+    def __getitem__(self, i):
+        return self.__array__()[i]

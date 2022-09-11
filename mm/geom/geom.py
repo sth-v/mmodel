@@ -1,4 +1,3 @@
-
 import copy
 from abc import ABC
 from collections import namedtuple
@@ -8,7 +7,6 @@ import compas.data
 import compas.geometry as cg
 import numpy as np
 from mm.baseitems import DictableItem, Item
-
 
 mesh_js_schema = {
     "metadata": dict(),
@@ -28,9 +26,8 @@ pts_js_schema = {
                                          "type": "Float32Array",
                                          "array": None}
                             }
-                            }
              }
-
+}
 
 
 class Point(DictableItem):
@@ -43,7 +40,7 @@ class Point(DictableItem):
         return cg.Point(self.x, self.y, self.z)
 
     def __array__(self):
-        return np.ndarray([self.x ,self.y])
+        return np.ndarray([self.x, self.y])
 
 
 class Face(DictableItem):
@@ -62,22 +59,6 @@ class Face(DictableItem):
             (np.asarray(self.vertices, dtype=np.float32).tolist())
 
 
-class GeometryMeta(type):
-    target_framework = compas
-    mapping_framework = dict(
-
-    )
 
 
-class GeometryItem(Item, compas.data.Data, ABC):
-    """
-    geometry item
-    """
 
-    def __init__(self, *args, **kwargs):
-        super(compas.data.Data, self).__init__()
-        super(GeometryItem, self).__init__(*args, **kwargs)
-        # super(GeometryItem, self).__init__(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs):
-        super(GeometryItem, self).__call__(*args, **kwargs)

@@ -33,7 +33,6 @@ class ReplaceMapping:
 from typing import Mapping, MappingView
 
 
-
 class DotView(Item, ReplaceMapping):
     """
     >>> class R2(ReplaceMapping):
@@ -53,6 +52,7 @@ class DotView(Item, ReplaceMapping):
     >>> d.AAAA
     6
     """
+
     def __init__(self, dct=None, **kwargs):
         super().__init__(**kwargs)
         if dct is None:
@@ -60,8 +60,6 @@ class DotView(Item, ReplaceMapping):
         kwargs |= dct
 
         self.do_traverse(self, kwargs)
-
-
 
     @classmethod
     def do_traverse(cls, obj, dct):
@@ -77,3 +75,32 @@ class DotView(Item, ReplaceMapping):
                 obj.__call__(**{cls.replace(k): v})
 
 
+
+
+
+
+class TraverseDict(dict):
+    def __init__(self, obj, dict_attr="__dict__"):
+
+        super().__init__()
+        self.dict_attr = dict_attr
+        self.do_traverse(self, obj)
+
+    def __getitem__(self, item):
+        ...
+    def do_traverse(self, obj, dct):
+        for k, v in getattr(obj, self.dict_attr).items():
+
+            if isinstance(v, dict):
+
+                new_dct = dict()
+
+
+                new_dct
+                obj.__call__(**{cls.replace(k): new_item})
+
+                cls.do_traverse(new_item, v)
+            else:
+                return {k: v}
+
+                obj.__call__(**{cls.replace(k): v})

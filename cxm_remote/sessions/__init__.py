@@ -10,7 +10,7 @@ os.environ["STORAGE"] = "https://storage.yandexcloud.net/"
 
 class WatchSession:
     session = boto3.session.Session()
-    storage = os.environ["STORAGE"]
+    storage = "https://storage.yandexcloud.net/"
 
     def __init__(self, bucket=None):
         self.bucket = bucket
@@ -23,7 +23,7 @@ class S3Session(WatchSession):
             service_name='s3',
             endpoint_url=self.storage
         )
-        self.s3.__init__()
+        #self.s3.__init__()
 
 
 class WatchTargets:

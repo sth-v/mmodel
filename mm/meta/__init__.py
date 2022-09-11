@@ -2,177 +2,265 @@
 
 # some version control
 from __future__ import annotations
+from abc import ABCMeta
+
+from typing import Any
+
+function_type = type(lambda: None)
+from cxm_remote.sessions import S3Client
+
+from mm.descriptors import HookDescriptor
+
+from mm.baseitems import Item
+
+
+class DefaultFied:
+    def __set_name__(self, owner, name):
+        self.name = name
+        self.default = owner.__default_fields__[self.name]
+        self.private_name = "_" + self.name
+        if self.name in owner.__annotations__.keys():
+            self.hint = eval(owner.__annotations__[self.name])
+        else:
+            self.hint = Any
+
+    def __get__(self, obj, objtype=None):
+
+        return obj.default_fields[self.name]
+
+    def __set__(self, obj, value):
+        if self.validate(value):
+
+            obj.default_fields[self.name] = value
+
+        else:
+            try:
+                obj.default_fields[self.name] = self.hint(value)
+            except:
+                raise ValueError
+
+    def validate(self, value):
+        if self.hint is Any:
+            return True
+        else:
+            if isinstance(value, self.hint):
+                return True
+            else:
+                return False
+
+
+
+
+class Dct(dict):
+    exclude = ["default_fields", "encoder"]
+    metadata = ["uid"]
+
+    def __get__(self, obj, objtype=None):
+        dct = dict()
+
+        dct |= obj.default_fields
+        dct_ = dict()
+
+        self.trav(obj.default_fields, dct_, obj=obj)
+
+        dct_['metadata'] = dict()
+        for k in self.metadata:
+            dct_['metadata'][k] = getattr(obj, k)
+        self.trav(obj.__dict__, dct_['metadata'], obj=obj)
+        return dct_
+
+    def trav(self, dct, dct_, obj):
+        for k, v in dct.items():
+            if k in self.exclude:
+                continue
+            else:
+                if hasattr(v, "dct"):
+                    newdict = dict()
+                    dct_[k] = newdict
+
+                    self.trav(v.dct, newdict, obj=obj)
+
+
+                else:
+                    dct_[k] = v
+
 
 import copy
-import inspect
-import time
-from collections import defaultdict
-from typing import Iterator
-import vcs.utils
 
 
-from mm.collections import _AttrHandlerCollection
-from mm.exceptions import MModelException
+class MetaItem(ABCMeta):
+    types = dict()
+    tables = dict()
 
-from mm.baseitems import Item, DictableItem
+    def __new__(mcs, name, base, attrs, default_descriptor=DefaultFied, dict_descriptor=Dct, **kws):
 
+        print(attrs, "\n", kws)
+        attrs["__default_fields__"] = dict()
+        annotates = attrs["__annotations__"] if "__annotations__" in attrs.keys() else dict()
+        attrs["__annotations__"] = annotates
+        default_keys = list(annotates.keys())
+        [attrs["__default_fields__"].update({k: None}) for k in default_keys]
 
-class MetaItem(type):
-    """
-    [0] Шаблон Создания структурированных коллекций
-    [1] Шаблон универсальных сереализаций
-        класс -> схема
-        генерация кода для классов оберток для rh/gh
-    [2] Генерация целевых классов для других фреймворков
-    [3] Интеграция в вычислительный граф
-    [3] Пиклирование/сохранение
-    """
+        for k, v in attrs.items():
+            seg = not isinstance(v, function_type), not isinstance(v, property), not (k[:2] == "__"), not (
+                    k[:1] == "_" and not k[:2] == "__")
+            if all(seg):
+                print(k)
+                attrs["__default_fields__"][k] = v
+                default_keys.append(k)
+        for k in default_keys:
+            attrs[k] = default_descriptor()
+        attrs["__default_keys__"] = default_keys
+        kws |= attrs
+        c = super().__new__(mcs, name, base, kws)
+        c._table = dict()
+        mcs.tables[name] = c._table
 
-    __dict__ = defaultdict()
-    schema = defaultdict()
-    classes = dict()
-    default_bases = (Item,)
+        post_call = copy.deepcopy(c.__call__)
+        post_init = copy.deepcopy(c.__init__)
 
-    subclasses = []
+        def init(slf, *args, **kwargs):
+            slf.dtype = slf.__class__.__name__
 
-    def __new__(mcs, classname, bases, dct, **kwds):
-        mcs.__dict__ |= dct
-        mcs.__dict__ |= kwds
+            slf.default_fields = copy.deepcopy(slf.__class__.__default_fields__)
+            post_init(slf, *args, **kwargs)
 
-        cls = super(MetaItem, mcs).__new__(name=classname, bases=bases + mcs.default_bases, dict=dct, **kwds)
+        def call(slf, *args, **kwargs):
+            print(args)
+            argkeys = list(default_keys)[
+                      :len(default_keys) if len(default_keys) < len(args) else len(args)]
+            kwargs |= dict(zip(argkeys, args))
 
-        cls._uid = hex(id(cls))
-        mcs.classes[classname] = cls
-        return cls
+            return post_call(slf, **kwargs)
 
-    def __class_getitem__(mcs, item):
-        return mcs.classes[item.__name__]
-
-    def __call__(cls, *args, **kwargs):
-        cls.item_base = cls.default_bases[0]
-        cls.__dict__ |= kwargs
-        cls.version = vcs.utils.HashVersion()
-
-    @property
-    def uid(cls):
-        return cls._uid
-
-    @uid.setter
-    def uid(cls, val):
-        cls._uid = val
-
-    def __str__(self):
-        return f"definition {self.__name__} version: {self.version} mro: {self.mro()}"
-
-    def __set_name__(self, owner, name):
-        print(f"Setting new name {name} for {owner}")
-        self.schema[name] = None
-
-    def __init_subclass__(mcs, **kwargs):
-        print(f"Sub definition {mcs}, {kwargs}")
-        mcs.subclasses.append(mcs)
-
-    def __contains__(self, item):
-        if item in self.subclasses:
-            return "subclasses", item
-        elif item in self.classes:
-            return "classes", item
-        else:
-            return None
+        c.__call__ = call
+        c.__init__ = init
+        c.dtype = name
+        c.dct = dict_descriptor()
+        mcs.types[name] = c
+        c.mcs = mcs
+        return c
 
 
-class MetaLoggingItem(MetaItem):
-    log = ""
-    logpath = "/Users/andrewastakhov/mmodel/meta/definelog"
+class RemoteType(type):
 
-    def __new__(mcs, classname, bases, dct, **kws):
-        cls = super(MetaLoggingItem, mcs).__new__(classname=classname, bases=bases, dct=dct, **kws)
-        return cls
+    @classmethod
+    def __prepare__(metacls, name, bases, prefix=None, client=S3Client, default_descriptor=HookDescriptor, **kws):
+        dct = super(RemoteType, metacls).__prepare__(name, bases)
+        print(dct)
 
-    def __init_subclass__(mcs, **kwargs):
-        tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec, tm_wday, tm_yday, tm_isdst = time.gmtime(time.time())
+        _client = client(**kws)
+        kws["prefix"] = prefix
 
-        mcs.log += f'[{tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec,}] ("definition", {kwargs})\n'
-        with open(mcs.logpath, "a") as fp:
-            fp.write(mcs.log)
-        del mcs.log
-        mcs.log = ""
-        print(f"Sub definition {mcs}, {kwargs}")
-
-
-class MetaCollection(MetaLoggingItem):
-    collection_classes = []
-    target = Item
-    default_collection_base = _AttrHandlerCollection
-
-    def __new__(mcs, item, dct, **kws):
-        dct |= dict(target=item)
-        cls = super(MetaCollection, mcs).__new__(classname=item.__name__ + "Collection",
-                                                 bases=(mcs.default_collection_base, Iterator), dct=dict, **kws)
-
-        mcs.collection_classes.append(cls)
-        return cls
-
-
-
-class FieldsMeta(type):
-    root = DictableItem
-    interfaces: dict = {}
-    classname_prefix = "Mmodel"
-
-    def __new__(mcs, classname, bases, attrs, interface=False, **kws):
-
-        main_parent = bases[0]
-        if interface:
-            o = super().__new__(mcs, classname, bases, attrs, **kws)
-            mcs.interfaces[classname] = o
-            return o
-        else:
-            attrs['aliases'] = []
-            attrs['main_parent'] = main_parent
-            attrs['mro'] = lambda x: list(inspect.getmro(x.main_parent))
-            if 'required_fields' in attrs.keys():
-                arf = copy.deepcopy(attrs['required_fields'])
-
-                attrs['required_fields'].update(main_parent.required_fields)
-
-            else:
-                arf = set()
-                attrs['required_fields'] = main_parent.required_fields
-            newarf = attrs['required_fields']
-
-            if 'interfaces' in attrs.keys():
-                call_plugins = []
-                for i in attrs['interfaces']:
-
-                    if (i in mcs.interfaces.keys()) and (not None):
-
-                        call_plugins.append(mcs.interfaces[i])
-
-                    else:
-
-                        raise MModelException(
-                            f'\nDeclared interface "{i}" is not defined!\n{mcs.interfaces.keys()}\n')
-
-                    def call_with_fields(self, *args, **kwargs):
-                        self.args, self.kw = args, kwargs
-                        for plugin in self.call_plugins:
-                            print(f'call {plugin.__name__} interface')
-                            # print(self.args)
-                            # print(self.kw, " ->")
-                            plugin.interface_call(self)
-                            # print("-> ", self.kw)
-                        kws_ = self.kw
-                        # print(kws_)
-                        super(main_parent, self).__call__(*args, **kws_)
-
-                    attrs['call_plugins'] = call_plugins
-                    attrs['__call__'] = call_with_fields
-
+        table = _client.table(Prefix=prefix)
+        kws["__client__"] = _client
+        kws.update(dct)
+        print(table.Key)
+        for k in table.Key:
+            ky = k.replace(prefix, '')
+            if not ky == '':
+                kws[ky] = default_descriptor()
             else:
                 pass
+        return kws
 
-            # print(
-            #   f'{main_parent.__name__} required_fields ({main_parent.required_fields}) -> {classname} required_fields ({arf}) ->  {classname} required_fields ({newarf})')
+    def __new__(mcs, classname, bases, dct, **kwds):
 
-            return super().__new__(mcs, classname, bases, attrs, **kws)
+        print(classname, bases, dct)
+        return type(classname, (Item,) + bases, dct)
+
+
+from json import JSONEncoder
+
+
+class ItemEncoder(JSONEncoder):
+
+    def __init__(self, *, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, sort_keys=False,
+                 indent=None, separators=None, default=None):
+        """Constructor for JSONEncoder, with sensible defaults.
+
+        If skipkeys is false, then it is a TypeError to attempt
+        encoding of keys that are not str, int, float or None.  If
+        skipkeys is True, such items are simply skipped.
+
+        If ensure_ascii is true, the output is guaranteed to be str
+        objects with all incoming non-ASCII characters escaped.  If
+        ensure_ascii is false, the output can contain non-ASCII characters.
+
+        If check_circular is true, then lists, dicts, and custom encoded
+        objects will be checked for circular references during encoding to
+        prevent an infinite recursion (which would cause an RecursionError).
+        Otherwise, no such check takes place.
+
+        If allow_nan is true, then NaN, Infinity, and -Infinity will be
+        encoded as such.  This behavior is not JSON specification compliant,
+        but is consistent with most JavaScript based encoders and decoders.
+        Otherwise, it will be a ValueError to encode such floats.
+
+        If sort_keys is true, then the output of dictionaries will be
+        sorted by key; this is useful for regression tests to ensure
+        that JSON serializations can be compared on a day-to-day basis.
+
+        If indent is a non-negative integer, then JSON array
+        elements and object members will be pretty-printed with that
+        indent level.  An indent level of 0 will only insert newlines.
+        None is the most compact representation.
+
+        If specified, separators should be an (item_separator, key_separator)
+        tuple.  The default is (', ', ': ') if *indent* is ``None`` and
+        (',', ': ') otherwise.  To get the most compact JSON representation,
+        you should specify (',', ':') to eliminate whitespace.
+
+        If specified, default is a function that gets called for objects
+        that can't otherwise be serialized.  It should return a JSON encodable
+        version of the object or raise a ``TypeError``.
+
+        """
+
+        super().__init__(skipkeys=skipkeys, ensure_ascii=ensure_ascii, check_circular=check_circular,
+                         allow_nan=allow_nan, sort_keys=sort_keys, indent=indent, separators=separators,
+                         default=default)
+
+    def default(self, o):
+        """Implement this method in a subclass such that it returns
+        a serializable object for ``o``, or calls the base implementation
+        (to raise a ``TypeError``).
+
+        For example, to support arbitrary iterators, you could
+        implement default like this::
+
+            def default(self, o):
+                try:
+                    iterable = iter(o)
+                except TypeError:
+                    pass
+                else:
+                    return list(iterable)
+                # Let the base class default method raise the TypeError
+                return JSONEncoder.default(self, o)
+
+        """
+        if hasattr(o, "dct"):
+            return o.dct
+        else:
+            return JSONEncoder.default(self, o)
+
+
+class BufferDescriptor(dict):
+    exclude = ["default_fields", "encoder"]
+    metadata = ["uid", "dtype"]
+
+    def __get__(self, obj, objtype=None):
+        dct = dict()
+
+        dct |= obj.__class__.table[obj.uid]
+        dct['metadata'] = dict()
+        for k in self.metadata:
+            dct['metadata'][k] = getattr(obj, k)
+
+        return dct
+
+    def __set__(self, instance, value):
+        instance.__class__.table[instance.uid] = value
+
+

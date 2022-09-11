@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
            'DataItem', 'FieldItem', 'DictableItem', 'JsItem']
 
@@ -13,7 +15,10 @@ import compas.geometry
 from collections.abc import Callable
 
 import numpy as np
+import pandas as pd
 
+from connectors.gzjson import gzip_encoder
+from mm.meta import ItemEncoder, MetaItem
 
 from vcs.utils import HashVersion
 
@@ -35,9 +40,6 @@ class MultiDict(dict):
 
     def __getitem__(self, __k):
         return dict.__getitem__(self, __k)
-
-
-
 
 
 class Base(Callable):
@@ -169,9 +171,6 @@ class member_table(dict):
 
     def __getattr__(self, k):
         return self[next(self.names_irerator)[self]].__getattr__(k)
-
-
-
 
 
 class DataItem(Item):
@@ -381,3 +380,50 @@ class DictableItem(FieldItem, ItemFormatter):
 
 class JsItem(DictableItem):
     schema_js = dict()
+
+
+# New Style Classes
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class _Item(metaclass=MetaItem, encoder=ItemEncoder):
+    __default_keys__ = dict()
+
+    def __init__(self, *args, **kwargs):
+        self.version = 0
+
+        super().__init__()
+        self.encoder = self.__class__.encoder
+        self.__call__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        self.version += 1
+        return self
+
+    @property
+    def series(self):
+        data = dict()
+        data |= self.default_fields
+        data |= self.dct["metadata"]
+        return pd.Series(data)
+
+    @property
+    def uid(self):
+        return hex(id(self))
+
+    def dumps(self, use_gzip=True, **kwargs):
+        if use_gzip:
+            return gzip_encoder(json.dumps(self, cls=self.encoder, **kwargs))
+        else:
+            return json.dumps(self, cls=self.encoder, indent=3, **kwargs)
+
+
+class BaseItem(_Item, metaclass=MetaItem):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        return super().__call__(*args, **kwargs)
