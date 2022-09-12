@@ -403,3 +403,4 @@ class Arc(SimpleCircle, DictableItem):
 
     def to_compas_json(self):
         return self.to_compas().to_jsonstring()
+
