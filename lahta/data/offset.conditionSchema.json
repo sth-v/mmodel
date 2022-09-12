@@ -1,0 +1,50 @@
+{
+  "title": "offset.condition",
+  "description": "Auto generated JSON schema based on the 'offset.condition' file",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "array": {
+      "type": "array",
+      "items": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "color": {
+                "type": "array",
+                "items": {}
+              },
+              "dtype": {
+                "type": "string"
+              },
+              "comment": {
+                "type": "string"
+              }
+            }
+          },
+          "offset": {
+            "type": "number"
+          },
+          "maptype": {
+            "type": "string"
+          },
+          "geometry": {
+            "type": "array",
+            "items": {}
+          }
+        }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "subtype": "string",
+      "items": {
+        "type": "array",
+        "items": {}
+      }
+    }
+  }
+}

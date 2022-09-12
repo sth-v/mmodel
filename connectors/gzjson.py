@@ -3,15 +3,24 @@ import gzip
 import json
 import os
 
-from cxm_s3.sessions import S3Session
+from cxm_remote.sessions import S3Session
 import argparse
 
 sess = S3Session(bucket="lahta.contextmachine.online")
 
 
-def three_gzip_reader():
+def gzip_encoder(data):
+
+    return gzip.compress(data.encode(), compresslevel=9)
+
+
+def gzip_decoder(data):
+    return gzip.decompress(data).decode()
+
+def three_gzip_light_reader():
     with gzip.open(sess.s3.get_object(Bucket=sess.bucket, Key="tmp/panel_f1")["Body"], compresslevel=9) as gzstreem:
         data = json.load(gzstreem)
+    return data
 
 
 def togzipone(name):

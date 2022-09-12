@@ -353,6 +353,11 @@ class StraightElement(TransformableItem):
 
     def __call__(self, parent=cg.Frame.worldXY(), *args, **kwargs):
         super().__call__(parent=parent, *args, **kwargs)
+        #if hasattr(self, 'inner'):
+            #print('call inner is called')
+            #self.inner = self.inner.transformed(self.transform_matrix)
+            #self.outer = self.outer.transformed(self.transform_matrix)
+        #else:
         start = cg.Point(-self.length_in[0], -self.metal_width, 0)
         end = cg.Point(self.length_out - self.length_in[0], -self.metal_width, 0)
         self.outer = OCCNurbsCurve.from_line(cg.Line(start, end))
