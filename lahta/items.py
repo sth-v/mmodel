@@ -10,7 +10,7 @@ from lahta.setup_view import view
 from dataclasses import dataclass, astuple, asdict
 import compas.geometry as cg
 
-np.set_printoptions(suppress=True)
+#np.set_printoptions(suppress=True)
 import json
 
 js = {'poly': []}
@@ -105,13 +105,12 @@ class ParentFrame2D:
 
 class ParentFrame3D(ParentFrame2D):
     def parent_frame(self, *args):
-        if len(args) > 2:
-            fr = args[2].frame_at(args[3])
-            parent = cg.Frame(args[0].point_at(args[1]), fr.xaxis, fr.yaxis)
-            return parent
-        else:
-            parent = args[0].frame_at(args[1])
-            return parent
+
+        y = cg.Vector.from_start_end(args[0].p1, args[0].p2).unitized()
+        x = cg.Vector.cross(y, args[1])
+        z = cg.Vector(*args[1]).inverted()
+        parent = cg.Frame(args[0].p1, xaxis=x, yaxis=z)
+        return parent
 
 
 class TransformableItem(Item):
@@ -140,10 +139,11 @@ class TransformableItem(Item):
     def transform_this(cls, f):
         @wraps(f)
         def this_wrapper(this, *args, **kwargs):
+            print('this', this)
             args = f(this, *args, **kwargs)
-            if len(args)>1:
-                for i in args:
-                    i.transform(this.transform_matrix)
+            if len(args) == 1:
+                args = this.transform_matrix(this.transform)
+
             return this
 
         return this_wrapper
@@ -164,6 +164,7 @@ class FoldElement(TransformableItem):
 
     @inner.setter
     def inner(self, v):
+        print(f'{type(v)}inner upd')
         self._inner = v.transformed(self.transform_matrix)
 
     @property
@@ -175,6 +176,7 @@ class FoldElement(TransformableItem):
 
     @outer.setter
     def outer(self, v):
+        print(f'{type(v)} outer upd')
         self._outer = v.transformed(self.transform_matrix)
 
 
@@ -228,10 +230,6 @@ class FoldElement(TransformableItem):
 
     def __call__(self, parent=cg.Frame.worldXY(), *args, **kwargs):
         super().__call__(parent=parent, *args, **kwargs)
-        #if hasattr(self, 'inner'):
-            #self.inner = self.inner.transformed(self.transform_matrix)
-            #self.outer = self.outer.transformed(self.transform_matrix)
-        #else:
         self.inner = self.calc_folds()[0]
         self.outer = self.calc_folds()[1]
 
@@ -327,15 +325,13 @@ class StraightElement(TransformableItem):
     @property
     def inner(self):
         if hasattr(self, "length_out") and hasattr(self, "length_in"):
-            #print('getter is called')
             return self._inner
         else:
             raise Exception
 
     @inner.setter
     def inner(self, v):
-        #print(f'{type(v)} inner upd')
-        #print('v', v)
+        print(f'{type(v)} inner upd')
         self._inner = v.transformed(self.transform_matrix)
 
     @property
@@ -347,8 +343,7 @@ class StraightElement(TransformableItem):
 
     @outer.setter
     def outer(self, v):
-        #print(f'{type(v)} outer upd')
-        #print('v', v)
+        print(f'{type(v)} outer upd')
         self._outer = v.transformed(self.transform_matrix)
 
     @ParentFrame2D
@@ -399,7 +394,13 @@ class BendSegment(Segment, TransformableItem):
         super().__call__(parent=parent, end=end, *args, **kwargs)
         if hasattr(self, 'fold'):
             self.fold(parent=self.parent, **kwargs)
-            self.straight = self.bending_straight(parent=self.fold, **kwargs)
+            if self.end is not None:
+                self.straight(parent=self.fold, length_in=[self.fold.inner_parts_trim, self.end.inner_parts_trim],
+                                       length_out=self.length - (self.fold.calc_rightangle_length() + self.end.calc_rightangle_length()), **kwargs)
+            else:
+                self.straight(length_in=[self.fold.inner_parts_trim, 0],
+                                       length_out=self.length - (self.fold.calc_rightangle_length()),
+                                       metal_width=self.metal_width, parent=self.fold)
         else:
             self.fold = self.bending_fold()
             self.straight = self.bending_straight(self.fold)
@@ -464,7 +465,6 @@ class BendSegmentFres(BendSegment):
 
 
 class Bend(Item):
-
     def __init__(self, segments: list[BendSegment], parent=cg.Frame.worldXY(), *args, **kwargs):
         self._i = 0
         self.bend_stage = []
@@ -506,8 +506,6 @@ class Bend(Item):
         else:
             neigh = None
 
-
-
         bend_segment(parent=self.parent, end=neigh)
         self.start_stage.append(bend_segment.parent)
 
@@ -515,6 +513,17 @@ class Bend(Item):
         self._i += 1
         #self._data.extend(bend_segment.to_compas())
         return bend_segment
+
+    @property
+    def tri_offset(self):
+        fold = self.bend_stage[0].fold
+        a = math.tan(np.radians(fold.angle))
+        self._tri_offset=(fold.radius + fold.metal_width) / a
+        return self._tri_offset
+
+    @tri_offset.setter
+    def tri_offset(self,v):
+        self._tri_offset = v
 
     @property
     def inner(self):
@@ -541,3 +550,71 @@ class Bend(Item):
         self._outer = r
 
 
+
+    def cap_elem(self):
+        s_one, e_one = self.inner[1].point_at(min(self.inner[1].domain)), self.outer[1].point_at(
+            min(self.outer[1].domain))
+        s_two, e_two = self.inner[1].point_at(max(self.inner[1].domain)), self.outer[1].point_at(
+            max(self.outer[1].domain))
+        l_one = OCCNurbsCurve.from_line(cg.Line(s_one, e_one))
+        l_two = OCCNurbsCurve.from_line(cg.Line(s_two, e_two))
+        return l_one, l_two
+
+    def __str__(self):
+        return f"<{self.bend_stage} fold elements>"
+
+    def __repr__(self):
+        return f"<{self.bend_stage} fold elements>"
+
+
+class Panel(Item):
+    def __call__(self, panel, bends,  *args, **kwargs):
+        super().__call__(panel=panel, bends=bends, *args, **kwargs)
+        self.offset_panel = cg.Polygon(cg.offset_polygon(self.panel, self.bends[0].tri_offset))
+        self.normal = self.offset_panel.normal
+        self.panel_lines = self.offset_panel.lines
+
+    @property
+    def parent_frames(self):
+        self._parent_frames = []
+        for i in self.panel_lines:
+            y = cg.Vector.from_start_end(i.start, i.end).unitized()
+            x = cg.Vector.cross(y, self.normal)
+            z = cg.Vector(*self.normal).inverted()
+            parent = cg.Frame(i.start, xaxis=x, yaxis=z)
+            self._parent_frames.append(parent)
+        return self._parent_frames
+
+    @parent_frames.setter
+    def parent_frames(self,v):
+        self._parent_frames = v
+
+    @property
+    def inner(self):
+        self._inner = []
+        for num, bend in enumerate(self.bends):
+            bend_list = []
+            for i in bend.inner:
+                tr = cg.Transformation.from_frame_to_frame(cg.Frame.worldXY(), self.parent_frames[num])
+                bend_list.append(i.transformed(tr))
+            self._inner.append(bend_list)
+        return self._inner
+
+    @inner.setter
+    def inner(self, r):
+        self._inner = r
+
+    @property
+    def outer(self):
+        self._outer = []
+        for num, bend in enumerate(self.bends):
+            bend_list = []
+            for i in bend.outer:
+                tr = cg.Transformation.from_frame_to_frame(cg.Frame.worldXY(), self.parent_frames[num])
+                bend_list.append(i.transformed(tr))
+            self._outer.append(bend_list)
+        return self._outer
+
+    @outer.setter
+    def outer(self, r):
+        self._outer = r
