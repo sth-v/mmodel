@@ -1,40 +1,39 @@
-
 from operator import itemgetter
 from mm.baseitems import Item
 import compas.geometry as cg
-from compas_gmsh.models import ShapeModel
-from compas_view2.app import App
+
+from lahta.setup_view import view
 from lahta.items import Bend, BendSegment, TransformableItem, ParentFrame3D
 import compas_occ.geometry as cc
 import numpy as np
 from compas import json_dumps
-#from setup_view import view
 
-#four = BendSegment(40, 1.8, 90)
-#one = BendSegment(25, 1.8, 90)
-#two = BendSegment(45, 1.8, 90)
-#ttt = Bend([one, four, two])
-#elem = ttt.outer
 
-view=App()
+# from setup_view import view
+
+# four = BendSegment(40, 1.8, 90)
+# one = BendSegment(25, 1.8, 90)
+# two = BendSegment(45, 1.8, 90)
+# ttt = Bend([one, four, two])
+# elem = ttt.outer
+
+
 class Panel(TransformableItem):
-    sides = [cc.OCCNurbsCurve.from_line(cg.Line([31.459455, -3.246879, 23.642172],[-10.688287, 30.550345, 18.114868])),
-             cc.OCCNurbsCurve.from_line(cg.Line([-10.688287, 30.550345, 18.114868],[-16.909711, -22.469931, 8.145925])),
+    sides = [cc.OCCNurbsCurve.from_line(cg.Line([31.459455, -3.246879, 23.642172], [-10.688287, 30.550345, 18.114868])),
+             cc.OCCNurbsCurve.from_line(
+                 cg.Line([-10.688287, 30.550345, 18.114868], [-16.909711, -22.469931, 8.145925])),
              cc.OCCNurbsCurve.from_line(cg.Line([-16.909711, -22.469931, 8.145925], [31.459455, -3.246879, 23.642172]))]
-    polyg = cg.normal_polygon(cg.Polygon([[31.459455, -3.246879, 23.642172],[-10.688287, 30.550345, 18.114868],[-16.909711, -22.469931, 8.145925]]))
+    polyg = cg.normal_polygon(cg.Polygon(
+        [[31.459455, -3.246879, 23.642172], [-10.688287, 30.550345, 18.114868], [-16.909711, -22.469931, 8.145925]]))
     polyg_vec = cg.Vector(*polyg).inverted()
 
-
-
-
-    #@ParentFrame3D
+    # @ParentFrame3D
     @property
     def parent_frame(self):
-        y = cg.Vector.from_start_end([31.459455, -3.246879, 23.642172],[-10.688287, 30.550345, 18.114868]).unitized()
+        y = cg.Vector.from_start_end([31.459455, -3.246879, 23.642172], [-10.688287, 30.550345, 18.114868]).unitized()
         x = cg.Vector.cross(y, self.polyg)
         self._parent_frame = cg.Frame([-10.688287, 30.550345, 18.114868], xaxis=x, yaxis=self.polyg_vec)
         return self._parent_frame
-
 
     def __call__(self, bend, *args, **kwargs):
         super().__call__(bend=bend, *args, **kwargs)
@@ -51,21 +50,13 @@ class Panel(TransformableItem):
         view.run()
 
 
-
-
-
-
-
-
-
-
 class BendExtrusionMap(dict[Bend, list[cg.Transformation, cg.Transformation]]):
 
     def __init__(self):
         self._geom = []
         self.ordered = []
 
-    def __setitem__(self, key:str,  val: list[Bend, cg.Frame, cg.Vector]):
+    def __setitem__(self, key: str, val: list[Bend, cg.Frame, cg.Vector]):
         if key not in self:
             len(self.ordered)
             self.ordered.append(key)
@@ -120,7 +111,4 @@ class NaivePanel(Item):
 
     def to_compas(self):
         for b in self.bends:
-
             yield json_dumps(b.to_compas())
-
-
