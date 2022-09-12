@@ -390,7 +390,7 @@ class BendSegment(Segment, TransformableItem):
         super().__call__(parent=parent, end=end, *args, **kwargs)
         if hasattr(self, 'fold'):
             self.fold(parent=self.parent, **kwargs)
-            self.straight(parent=self.fold, **kwargs)
+            self.straight = self.bending_straight(self.fold, **kwargs)
         else:
             self.fold = self.bending_fold()
             self.straight = self.bending_straight(self.fold)
