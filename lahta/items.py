@@ -233,10 +233,10 @@ class FoldElement(TransformableItem):
         self.inner = self.calc_folds()[0]
         self.outer = self.calc_folds()[1]
 
-    def straight_segment_len(self):
-        full_len = self.circle_center()[1].circumference
-        unfold = full_len * self.circle_param()
-        return unfold
+    @property
+    def straight_len(self):
+        self._straight_len = (2 * math.pi * self.radius) * (np.radians(self.angle) / (2*math.pi))
+        return self._straight_len
 
     # расстояние от точки касания до точки пересечения касательных
     def calc_extra_length(self):
@@ -538,6 +538,14 @@ class Bend(Item):
         self._inner = r
 
     @property
+    def lengths(self):
+        self._lengths = []
+        for i in self.bend_stage:
+            self._lengths.append(i.fold.straight_len)
+            self._lengths.append(i.straight.length_out)
+        return self._lengths
+
+    @property
     def outer(self):
         self._outer = []
         for i in self.bend_stage:
@@ -565,6 +573,7 @@ class Bend(Item):
 
     def __repr__(self):
         return f"<{self.bend_stage} fold elements>"
+
 
 
 class Panel(Item):
@@ -618,3 +627,47 @@ class Panel(Item):
     @outer.setter
     def outer(self, r):
         self._outer = r
+
+
+class PanelUnroll(Panel):
+    def __call__(self, panel, bends,  *args, **kwargs):
+        super().__call__(panel=panel, bends=bends, *args, **kwargs)
+
+    @property
+    def parent_frames(self):
+        self._parent_frames = []
+        for i in self.panel_lines:
+            y = cg.Vector.from_start_end(i.start, i.end).unitized()
+            x = cg.Vector.cross(y, self.normal)
+            parent = cg.Frame(i.start, xaxis=x, yaxis=y)
+            self._parent_frames.append(parent)
+        return self._parent_frames
+
+    @parent_frames.setter
+    def parent_frames(self, v):
+        self._parent_frames = v
+
+    @property
+    def unroll(self):
+        self._unroll = []
+        for num, bend in enumerate(self.bends):
+            bend_list = []
+            start = self.parent_frames[num].point
+
+            for i in bend.lengths:
+                start_ps = start
+                tr_x = cg.Translation.from_vector(self.parent_frames[num].xaxis * i)
+                end_ps = start_ps.transformed(tr_x)
+                tr_y = cg.Translation.from_vector(cg.Vector.from_start_end(self.panel_lines[num].start, self.panel_lines[num].end))
+                start_pe = start_ps.transformed(tr_y)
+                end_pe = end_ps.transformed(tr_y)
+                bend_list.append(cg.Polygon([start_ps, end_ps, end_pe, start_pe]))
+
+                start = end_ps
+            self._unroll.append(bend_list)
+        return self._unroll
+
+    @unroll.setter
+    def unroll(self, r):
+        self._unroll = r
+
