@@ -10,7 +10,7 @@ from lahta.setup_view import view
 from dataclasses import dataclass, astuple, asdict
 import compas.geometry as cg
 
-np.set_printoptions(suppress=True)
+#np.set_printoptions(suppress=True)
 import json
 
 js = {'poly': []}
