@@ -313,3 +313,18 @@ class NamedNumericCollection(BaseItem):
 
     def __getitem__(self, i):
         return self.__array__()[i]
+
+
+
+class CollectionDescriptor:
+    grid: InitGrid
+
+    def __init__(self, function):
+        super().__init__()
+        self.function = function
+        self.name = function.__name__
+
+    def __get__(self, obj, type=None) -> object:
+        for i in self.grid.cellgrid:
+            for j in i:
+                self.function(obj, j)
