@@ -15,16 +15,16 @@ sys.path.extend(
      '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel', '/Users/andrewastakhov/mmodel/lahta'])
 
 import json
-from typing import Iterable, Optional, Any
+from typing import Iterable, Optional, Any, Union
 import pickle
 import mm.parametric as prm
 from dataclasses import dataclass
 import importlib
-from cxm_s3.sessions import S3Session
+from cxm_remote.sessions import S3Session
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse, FileResponse
 import uvicorn
-from lahta.items import OCCNurbsCurve, BendSegment, Bend
+from lahta.items import OCCNurbsCurve, BendSegment, Bend, BendSegmentFres, Panel
 from pydantic import BaseModel
 
 with open("/tmp/mmodel_server_remote/mm/parametric/localconfig.json", "rb") as fp:
@@ -163,7 +163,6 @@ class Bending(Iterable):
         return iter(self.segments)
 
 
-
 class FuckingShema(BaseModel):
     segments: list[Any]
 
@@ -179,7 +178,8 @@ def construct_bend():
 @bend.get("/objects")
 def construct_bend(uid: str):
     bend_sess.s3.list_objects(Bucket=bend_sess.bucket, Prefix="cxm/playground/bend/pkl/")
-    obj = pickle.loads(bend_sess.s3.get_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{uid}")["Body"].read())
+    obj = pickle.loads(
+        bend_sess.s3.get_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{uid}")["Body"].read())
     return {
         "data": obj.to_compas(),
         "metadata": {
@@ -206,68 +206,162 @@ def construct_bend(uid: str):
     }
 
 
-@dataclass
-class Segm:
+bend_db = dict()
+
+
+class SimpleSegment(BaseModel):
     length: float
     radius: float
     angle: float
-    in_rad: Optional[float]=None
+    dtype: str = "BendSegment"
 
 
+class MillingSegment(SimpleSegment):
+    length: float
+    radius: float
+    angle: float
+    in_rad: float = 0.5
+    dtype: str = "BendSegmentFres"
 
 
-@dataclass
-class BendInput:
-    segments: list[Segm]
-@dataclass
-class BendMulti:
+class BendingSegment(SimpleSegment):
+    length: float
+    radius: float
+    angle: float
+    dtype: str
+    in_rad: Optional[float] = None
+
+    @property
+    def cxm(self):
+        cls = globals()[self.dtype]
+        return cls(**self.dict())
+
+
+class BendInput(BaseModel):
+    segments: list[BendingSegment]
+
+
+class Insert(BaseModel):
+    index: int
+    item: Any
+
+
+class BendInsert(Insert):
+    index: int
+    item: list[Union[SimpleSegment, MillingSegment, BendingSegment]]
+
+
+class BendDelete(Insert):
+    index: int
+
+
+class BendPatch(BaseModel):
+    uid: Optional[str] = None
+    extend: Optional[BendInput] = None
+    insert: Optional[BendInsert] = None
+    delete: Optional[list[int]] = None
+
+    kwargs: Optional[dict[str, Any]]
+
+
+class BendMulti(BaseModel):
     bends: list[BendInput]
+class PanelApi(BaseModel):
+    bends: list[BendInput]
+    panel:list[list[float]]
+    dtype: str="Panel"
 
 
-@bend.post("/objects/create")
-def construct_bend(data: BendInput):
-    print(list(data.segments), data.segments[0])
+    @property
+    def cxm(self):
+        cls = globals()[self.dtype]
+        bends=[]
+        for k in self.bends:
+            bends.append(Bend([s.cxm for s in k.segments]))
+        return cls(self.panel, bends)
 
-    test = Bend([BendSegment(s.length, s.radius, s.angle, in_rad=s.in_rad) for s in data.segments])
 
-    print(test)
-    #bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
+@bend.get("/objects")
+def construct_bend():
+    def stream():
+        for k, v in bend_db.items():
+            yield {
+                "data": v.to_compas(),
+
+                "metadata": {
+                    "uid": v.uid,
+                    "version": v.version,
+                    "dtype": "Bend"
+                }
+            }
+
+    return StreamingResponse(stream())
+
+    # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
+
+
+@bend.get("/objects/{uid}")
+def construct_bend4(uid: str):
+    test = bend_db[uid]
+    # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
 
     return {
         "data": test.to_compas(),
+
         "metadata": {
             "uid": test.uid,
             "version": test.version,
             "dtype": "Bend"
-
         }
     }
 
 
-@bend.post("/objects/create2")
-def construct_bend(data: BendMulti):
-    print(list( data.bends),  data.bends[0])
-    test=NaivePanel()
-    for bm in data.bends:
-        test.bends = Bend([BendSegment(s.length, s.radius, s.angle, in_rad=s.in_rad) for s in bm.segments])
+@bend.post("/objects/create")
+def construct_bend2(data: BendInput):
+    print(list(data.segments), data.segments[0])
 
+    test = Bend([s.cxm for s in data.segments])
+    bend_db[test.uid] = test
+    print(test)
+    # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
+
+    return {
+        "data": test.to_compas(),
+
+        "metadata": {
+            "uid": test.uid,
+            "version": test.version,
+            "dtype": "Bend"
+        }
+    }
+
+
+@bend.post("/objects/create_multi")
+def construct_bends(data: BendMulti):
+    print(list(data.bends), data.bends[0])
+    test = NaivePanel()
+    for bm in data.bends:
+        bnd = Bend([BendSegment(s.length, s.radius, s.angle, in_rad=s.in_rad) for s in bm.segments])
+        bend_db[bnd.uid] = bnd
+        test.bends = bnd
     print(test.bends)
-    #bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
+
+    # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
 
     def stream():
         yield from test.to_compas()
 
     return StreamingResponse(stream())
+
+
 @bend.patch("/objects/patch/{uid}")
-def construct_bend(uid: str, data: UpdSchema):
+def update_bend(uid: str, data: BendPatch):
     print(data)
 
-    cls_ = pickle.loads(
-        bend_sess.s3.get_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/pkl/{uid}")["Body"].read())
-    obj = cls_(**data.__dict__)
-    #pkl = pickle.dumps(obj=obj)
+    obj = segments = bend_db[uid]
+    # pkl = pickle.dumps(obj=obj)
 
-    #bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/pkl/{uid}", Body=pkl)
+    # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/pkl/{uid}", Body=pkl)
 
     return {
         "data": obj.to_compas(),
@@ -276,6 +370,26 @@ def construct_bend(uid: str, data: UpdSchema):
             "version": obj.version,
             "dtype": "Bend"
 
+        }
+    }
+
+
+@bend.post("/panel/create")
+def construct_panel(data: PanelApi):
+    print(list(data.panel), data.bends[0])
+
+    test = data.cxm
+    bend_db[test.uid] = test
+    print(test)
+    # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
+
+    return {
+        "data": test.to_compas(),
+
+        "metadata": {
+            "uid": test.uid,
+            "version": test.version,
+            "dtype": "Panel"
         }
     }
 

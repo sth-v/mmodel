@@ -75,7 +75,7 @@ class Cone(Cone3d):
     z0 = 1.0
     target = np.ndarray([0.0, 0.0, 0.0])
     def __call__(self, *args, **kwargs):
-
+        ...
 
 def pipeline():
     # @title
