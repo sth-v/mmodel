@@ -24,7 +24,7 @@ from cxm_remote.sessions import S3Session
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse, FileResponse
 import uvicorn
-from lahta.items import OCCNurbsCurve, BendSegment, Bend, BendSegmentFres
+from lahta.items import OCCNurbsCurve, BendSegment, Bend, BendSegmentFres, Panel
 from pydantic import BaseModel
 
 with open("/tmp/mmodel_server_remote/mm/parametric/localconfig.json", "rb") as fp:
@@ -266,6 +266,19 @@ class BendPatch(BaseModel):
 
 class BendMulti(BaseModel):
     bends: list[BendInput]
+class PanelApi(BaseModel):
+    bends: list[BendInput]
+    panel:list[list[float]]
+    dtype: str="Panel"
+
+
+    @property
+    def cxm(self):
+        cls = globals()[self.dtype]
+        bends=[]
+        for k in self.bends:
+            bends.append(Bend([s.cxm for s in k.segments]))
+        return cls(self.panel, bends)
 
 
 @bend.get("/objects")
@@ -357,6 +370,26 @@ def update_bend(uid: str, data: BendPatch):
             "version": obj.version,
             "dtype": "Bend"
 
+        }
+    }
+
+
+@bend.post("/panel/create")
+def construct_panel(data: PanelApi):
+    print(list(data.panel), data.bends[0])
+
+    test = data.cxm
+    bend_db[test.uid] = test
+    print(test)
+    # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
+
+    return {
+        "data": test.to_compas(),
+
+        "metadata": {
+            "uid": test.uid,
+            "version": test.version,
+            "dtype": "Panel"
         }
     }
 
