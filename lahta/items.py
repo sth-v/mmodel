@@ -474,8 +474,8 @@ class Bend(Item):
     @property
     def tri_offset(self):
         fold = self.bend_stage[0].fold
-        a = math.tan(np.radians(fold.angle))
-        self._tri_offset = (fold.radius + fold.metal_width) / a
+        a = math.tan(np.radians(fold.angle/2))
+        self._tri_offset = (fold.radius + fold.metal_width) * a
         return self._tri_offset
 
     @tri_offset.setter

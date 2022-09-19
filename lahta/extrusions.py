@@ -4,6 +4,9 @@ from lahta.setup_view import view
 from lahta.items import Bend, BendSegment, TransformableItem, ParentFrame3D, ParentFrameUnroll
 import compas_occ.geometry as cc
 import numpy as np
+import json
+from compas_view2.app import App
+view = App()
 
 class Extrusion(TransformableItem):
     def __call__(self, *args, **kwargs):
@@ -22,6 +25,23 @@ class Extrusion(TransformableItem):
 
         return elems
 
+    def viewer(self, v, elems):
+        v.add(elems.extrusion_inner.to_mesh())
+        v.add(elems.extrusion_outer.to_mesh())
+        return v
+
+    def to_json(self, elems):
+        with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='r') as j:
+            my_data = json.load(j)
+            i = elems.extrusion_inner.to_mesh(nu=15, nv=15).to_data()
+            o = elems.extrusion_outer.to_mesh(nu=15, nv=15).to_data()
+            my_data['triangle'].append(i)
+            my_data['triangle'].append(o)
+
+        with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='w') as jp:
+            json.dump(my_data, jp)
+
+
 
 
 
@@ -34,8 +54,12 @@ class BendPanel(Extrusion):
     def unroll_parent(self):
         return self.extrusion_line, self.normal
 
-    def __call__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         self._i = 0
+        self.bend_extr = []
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
 
         self.profile, self.extrusion_line, self.normal = args
         self.vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
@@ -46,6 +70,8 @@ class BendPanel(Extrusion):
             bend = next(self)
             self.bend_extr.append(bend)
 
+        self.reload()
+
     def __len__(self):
         return len(self.profile.obj_transform)
 
@@ -53,7 +79,11 @@ class BendPanel(Extrusion):
         extrusion = self.profile.obj_transform[self._i]
         extrude_profile = self.occ_extrusion(extrusion)
         self._i += 1
+        self.to_json(extrusion)
         return extrude_profile
+
+    def reload(self):
+        self._i = 0
 
 
 
