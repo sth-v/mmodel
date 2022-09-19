@@ -1,114 +1,89 @@
-from operator import itemgetter
-from mm.baseitems import Item
 import compas.geometry as cg
-
+import math
 from lahta.setup_view import view
-from lahta.items import Bend, BendSegment, TransformableItem, ParentFrame3D
+from lahta.items import Bend, BendSegment, TransformableItem, ParentFrame3D, ParentFrameUnroll
 import compas_occ.geometry as cc
 import numpy as np
-from compas import json_dumps
+
+class Extrusion(TransformableItem):
+    def __call__(self, *args, **kwargs):
+        super().__call__( *args, **kwargs)
 
 
-# from setup_view import view
+    def occ_extrusion(self, elems):
+        try:
+            inner_extr = cc.OCCNurbsSurface.from_extrusion(elems.inner, self.vector)
+            outer_extr = cc.OCCNurbsSurface.from_extrusion(elems.outer, self.vector)
+            setattr(elems, 'extrusion_inner', inner_extr)
+            setattr(elems, 'extrusion_outer', outer_extr)
+        except:
+            unroll = cc.OCCNurbsSurface.from_extrusion(elems, self.vector)
+            setattr(elems, 'unroll', unroll)
 
-# four = BendSegment(40, 1.8, 90)
-# one = BendSegment(25, 1.8, 90)
-# two = BendSegment(45, 1.8, 90)
-# ttt = Bend([one, four, two])
-# elem = ttt.outer
+        return elems
+
+
+
+
+class BendPanel(Extrusion):
+    @ParentFrame3D
+    def parent(self):
+        return self.extrusion_line, self.normal
+
+    @ParentFrameUnroll
+    def unroll_parent(self):
+        return self.extrusion_line, self.normal
+
+    def __call__(self, *args, **kwargs):
+        self._i = 0
+
+        self.profile, self.extrusion_line, self.normal = args
+        self.vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
+        self.profile(parent_obj=self.parent)
+
+        super().__call__(profile=self.profile, vector=self.vector, *args, **kwargs)
+        while self._i < self.__len__():
+            bend = next(self)
+            self.bend_extr.append(bend)
+
+    def __len__(self):
+        return len(self.profile.obj_transform)
+
+    def __next__(self):
+        extrusion = self.profile.obj_transform[self._i]
+        extrude_profile = self.occ_extrusion(extrusion)
+        self._i += 1
+        return extrude_profile
+
+
+
+
 
 
 class Panel(TransformableItem):
-    sides = [cc.OCCNurbsCurve.from_line(cg.Line([31.459455, -3.246879, 23.642172], [-10.688287, 30.550345, 18.114868])),
-             cc.OCCNurbsCurve.from_line(
-                 cg.Line([-10.688287, 30.550345, 18.114868], [-16.909711, -22.469931, 8.145925])),
-             cc.OCCNurbsCurve.from_line(cg.Line([-16.909711, -22.469931, 8.145925], [31.459455, -3.246879, 23.642172]))]
-    polyg = cg.normal_polygon(cg.Polygon(
-        [[31.459455, -3.246879, 23.642172], [-10.688287, 30.550345, 18.114868], [-16.909711, -22.469931, 8.145925]]))
-    polyg_vec = cg.Vector(*polyg).inverted()
-
-    # @ParentFrame3D
-    @property
-    def parent_frame(self):
-        y = cg.Vector.from_start_end([31.459455, -3.246879, 23.642172], [-10.688287, 30.550345, 18.114868]).unitized()
-        x = cg.Vector.cross(y, self.polyg)
-        self._parent_frame = cg.Frame([-10.688287, 30.550345, 18.114868], xaxis=x, yaxis=self.polyg_vec)
-        return self._parent_frame
-
-    def __call__(self, bend, *args, **kwargs):
-        super().__call__(bend=bend, *args, **kwargs)
-
-        for i in self.bend.bend_stage:
-            i.fold(parent=self.parent_frame)
-            i.straight(parent=self.parent_frame)
-            i.viewer(view)
-
-        for i in self.sides:
-            view.add(cg.Polyline(i.locus()), linewidth=2, linecolor=(1, 0, 0))
-
-        view.add(self.parent_frame, size=2)
-        view.run()
-
-
-class BendExtrusionMap(dict[Bend, list[cg.Transformation, cg.Transformation]]):
-
-    def __init__(self):
-        self._geom = []
-        self.ordered = []
-
-    def __setitem__(self, key: str, val: list[Bend, cg.Frame, cg.Vector]):
-        if key not in self:
-            len(self.ordered)
-            self.ordered.append(key)
-        fr, trans = val
-
-        self.first = cg.Transformation.from_frame(fr)
-        self.second = cg.Transformation(cg.transformations.matrix_from_translation(list(trans)))
-        dict.__setitem__(self, key, [Bend, self.first, self.second])
-
-    def to_compas(self):
-        for k, v in self.items():
-            f, s = v
-
-            for g in k.to_compas():
-                crv = cc.OCCCurve.from_data(g)
-                crv.transform(f)
-
-                extrusion = cc.surfaces.OCCExtrusionSurface(crv, s.translation_vector)
-                crv2 = cc.OCCNurbsCurve.from_data(g)
-                crv2.transform(f)
-                crv2.transform(g)
-                self._geom.append(dict(curves=(crv.data, crv2.data,), extrusion=extrusion.data))
-        return self._geom
-
-
-class NaivePanel(Item):
-    vertices = np.array([[-16.848399354, -32.463546097, -1.400279116],
-                         [-16.548399354, -31.863546097, -1.400279116],
-                         [-17.148399354, -31.863546097, -1.400279116]])
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._bend = BendExtrusionMap()
 
     @property
-    def transforms(self):
-        for fr in np.stack(
-                [np.roll(self.vertices, 1) - self.vertices,
-                 np.roll(self.vertices, -1) - self.vertices]):
-            ff, fs = cg.Frame(self.vertices[0], fr[1], np.array([0, 0, 1])), fr[1]
-            print(ff)
-            yield [ff, fs]
+    def tri_offset(self):
+        self._tri_offset = self.bend_types[0].tri_offset
+        return self._tri_offset
 
     @property
-    def bends(self):
-        return self._bend
+    def coor_offset(self):
+        offset = cg.offset_polygon(self.coor_axis, self.tri_offset)
+        self._coor_offset = cg.Polygon(offset)
+        return self._coor_offset
 
-    @bends.setter
-    def bends(self, val):
+    @property
+    def normal(self):
+        self._normal = [self.coor_offset.normal, self.coor_offset.normal, self.coor_offset.normal]
+        return self._normal
 
-        self._bend[val] = next(self.transforms)
 
-    def to_compas(self):
-        for b in self.bends:
-            yield json_dumps(b.to_compas())
+    def __call__(self, coor_axis, bend_types, *args, **kwargs):
+        super().__call__(coor_axis=coor_axis, bend_types=bend_types, *args, **kwargs)
+
+        self.bend_types = bend_types
+        self.bends = list(map(BendPanel, self.bend_types, self.coor_offset.lines, self.normal))
+
+
+
