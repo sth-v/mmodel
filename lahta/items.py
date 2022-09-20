@@ -6,10 +6,10 @@ from functools import wraps
 from mm.parametric import Arc
 from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve
+import compas_occ.geometry as cc
 from lahta.setup_view import view
 from dataclasses import dataclass, astuple
 import compas.geometry as cg
-
 
 js = {'poly': []}
 
@@ -103,10 +103,18 @@ class ParentFrame2D:
 
 class ParentFrame3D(ParentFrame2D):
     def parent_frame(self, *args):
-        y = cg.Vector.from_start_end(args[0].p1, args[0].p2).unitized()
+        y = cg.Vector.from_start_end(args[0].start, args[0].end).unitized()
         x = cg.Vector.cross(y, args[1])
         z = cg.Vector(*args[1]).inverted()
-        parent = cg.Frame(args[0].p1, xaxis=x, yaxis=z)
+        parent = cg.Frame(args[0].start, xaxis=x, yaxis=z)
+        return parent
+
+
+class ParentFrameUnroll(ParentFrame2D):
+    def parent_frame(self, *args):
+        y = cg.Vector.from_start_end(args[0].start, args[0].end).unitized()
+        x = cg.Vector.cross(y, args[1])
+        parent = cg.Frame(args[0].start, xaxis=x, yaxis=y)
         return parent
 
 
@@ -114,23 +122,11 @@ class TransformableItem(Item):
     zero_frame = cg.Frame.worldXY()
 
     @property
-    def frame(self):
-        if hasattr(self, 'parent'):
-            try:
-                self._frame = self.parent.parent_frame
-            except AttributeError:
-                self._frame = self.parent
-        else:
-            self._frame = self.zero_frame
-        return self._frame
-
-    @frame.setter
-    def frame(self, v):
-        self._frame = v
-
-    @property
     def transform_matrix(self):
-        return cg.Transformation.from_frame_to_frame(self.zero_frame, self.frame)
+        try:
+            return cg.Transformation.from_frame_to_frame(self.zero_frame, self.parent.parent_frame)
+        except:
+            return cg.Transformation.from_frame_to_frame(self.zero_frame, self.parent)
 
     @classmethod
     def obj_transform(cls, f):
@@ -212,6 +208,7 @@ class FoldElement(TransformableItem):
     def straight_len(self):
         self._straight_len = (2 * math.pi * self.radius) * (np.radians(self.angle) / (2 * math.pi))
         return self._straight_len
+
 
     # расстояние от точки касания до точки пересечения касательных
     def calc_extra_length(self):
@@ -361,16 +358,11 @@ class BendSegment(Segment, TransformableItem):
         return fold
 
     def bending_straight(self, fold):
-        if self.end is not None:
-            straight = StraightElement(length_in=[fold.inner_parts_trim, self.end.inner_parts_trim],
-                                       length_out=self.length - (
-                                                   fold.calc_rightangle_length() + self.end.calc_rightangle_length()),
-                                       metal_width=self.metal_width, parent=self.fold)
-        else:
-            straight = StraightElement(length_in=[fold.inner_parts_trim, 0],
-                                       length_out=self.length - (fold.calc_rightangle_length()),
-                                       metal_width=self.metal_width, parent=self.fold)
+        straight = StraightElement(metal_width=self.metal_width, parent=fold, length_in=[self.fold.inner_parts_trim, 0],
+                                   length_out=self.length - (self.fold.calc_rightangle_length()))
         return straight
+
+
 
     @TransformableItem.obj_transform
     def transform_data(self, transformation):
@@ -378,8 +370,6 @@ class BendSegment(Segment, TransformableItem):
         self.fold.outer = self.fold.outer.transformed(transformation)
         self.straight.inner = self.straight.inner.transformed(transformation)
         self.straight.outer = self.straight.outer.transformed(transformation)
-
-
 
     def to_compas(self):
         return (self.fold.inner,
@@ -440,9 +430,6 @@ class Bend(Item):
                 self.bend_stage.append(bend)
 
             self.reload()
-            for i in self.bend_stage:
-                i.viewer(view)
-            view.run()
 
     def __iter__(self):
         return self
@@ -480,14 +467,15 @@ class Bend(Item):
         for i in self.bend_stage:
             i(parent_obj=self.parent_obj)
             i.transform_data()
-            self._obj_transform.append(i)
+            self._obj_transform.append(i.fold)
+            self._obj_transform.append(i.straight)
         return self._obj_transform
 
     @property
     def tri_offset(self):
         fold = self.bend_stage[0].fold
-        a = math.tan(np.radians(fold.angle))
-        self._tri_offset = (fold.radius + fold.metal_width) / a
+        a = math.tan(np.radians(fold.angle/2))
+        self._tri_offset = (fold.radius + fold.metal_width) * a
         return self._tri_offset
 
     @tri_offset.setter
@@ -526,11 +514,6 @@ class Bend(Item):
             self._lengths.append(i.straight.length_out)
         return self._lengths
 
-    def __str__(self):
-        return f"<{self.bend_stage} fold elements>"
-
-    def __repr__(self):
-        return f"<{self.bend_stage} fold elements>"
 
 
 class Panel(Item):
