@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
-           'DataItem', 'FieldItem', 'DictableItem', 'JsItem']
+__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'MultiDict', 'BaseItem']
 
+import copy
 import inspect
 import itertools
 import json
 
 import base64
-from typing import Any
 
 import compas
+
 import compas.geometry
 from collections.abc import Callable
 
@@ -54,7 +54,38 @@ class Base(Callable):
         super().__call__()
 
         self.__dict__.update(kwargs)
-        self._dtype = self.__class__.__name__
+        self.dtype = self.__class__.__name__
+
+
+class ItemFormatter:
+    dtype = "ItemFormatter"
+    format_spec = {"dtype"}
+
+    def __format__(self, format_spec: set = None):
+
+        s = ''
+
+        if format_spec is None:
+            format_spec = self.__class__.format_spec
+
+        elif format_spec is not None:
+            format_spec.update(self.__class__.format_spec)
+        else:
+            pass
+        for k in format_spec:
+            s += f"{k}={getattr(self, k)} ,"
+
+        return "{}({})".format(self.__class__.__name__, s[:-1])
+
+    def __str__(self):
+        """
+        Item Format str
+        """
+
+        return self.__format__()
+
+    def __repr__(self):
+        return f"<{self.__format__()} at {hex(id(self))}>"
 
 
 class Versioned(Base):
@@ -68,8 +99,15 @@ class Versioned(Base):
         return hex(self.version) == hex(other.version)
 
     def __call__(self, *args, **kwargs):
+        old_hash = copy.deepcopy(self.__hash__())
         super().__call__(*args, **kwargs)
-        self._version()
+        if old_hash == self.__hash__():
+            pass
+        else:
+            self._version()
+
+    def __hash__(self):
+        ...
 
 
 import uuid
@@ -88,15 +126,8 @@ class Identifiable(Versioned):
     def uuid(self):
         return self._uuid
 
-    @uuid.setter
-    def uuid(self, v):
-        self._uuid = v
 
-    def __hash__(self):
-        ...
-
-
-class Item(Identifiable):
+class Item(Identifiable, ItemFormatter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -139,38 +170,6 @@ class HistoryArgItem(ArgsItem):
             data = eval(base64.b64decode(fp.read()))
             print(data)
         return cls(**data)
-
-
-class member_table(dict):
-    def __init__(self):
-        self.members = []
-        self.methods = []
-
-    def __setitem__(self, key, value: list[Any]):
-        # if the key is not already defined, add to the
-        # list of keys.
-
-        ml = []
-        for m, v in zip(self.members, value):
-            setattr(m, key, v)
-
-            ml.append(getattr(m, key))
-            dict.__setitem__(self, m, {key: ml})
-
-    def __getitem__(self, item):
-        for m in self.members:
-            yield getattr(m, item)
-
-    def reload(self):
-        del self.names_irerator
-        self.names_irerator()
-
-    def __setattr__(self, key, value):
-        self[next(self.names_irerator)[self]].__setattr__(key, value)
-        print(key, value)
-
-    def __getattr__(self, k):
-        return self[next(self.names_irerator)[self]].__getattr__(k)
 
 
 class DataItem(Item):
@@ -254,37 +253,6 @@ class FieldItem(Item):
                 else:
 
                     self.custom_fields.append(k)
-
-
-class ItemFormatter:
-    _dtype = "ItemFormatter"
-    format_spec = {"_dtype"}
-
-    def __format__(self, format_spec: set = None):
-
-        s = ''
-
-        if format_spec is None:
-            format_spec = self.__class__.format_spec
-
-        elif format_spec is not None:
-            format_spec.update(self.__class__.format_spec)
-        else:
-            pass
-        for k in format_spec:
-            s += f"{k}={getattr(self, k)} ,"
-
-        return "{}({})".format(self.__class__.__name__, s[:-1])
-
-    def __str__(self):
-        """
-        Item Format str
-        """
-
-        return self.__format__()
-
-    def __repr__(self):
-        return f"<{self.__format__()} at {hex(id(self))}>"
 
 
 class DictableItem(FieldItem, ItemFormatter):

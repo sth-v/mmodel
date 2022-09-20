@@ -3,6 +3,7 @@ import gzip
 import json
 import os
 
+
 from cxm_remote.sessions import S3Session
 import argparse
 

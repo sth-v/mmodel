@@ -265,3 +265,35 @@ class RemoteType(type):
 
 
 from json import JSONEncoder
+
+
+class member_table(dict):
+    def __init__(self):
+        self.members = []
+        self.methods = []
+
+    def __setitem__(self, key, value: list[Any]):
+        # if the key is not already defined, add to the
+        # list of keys.
+
+        ml = []
+        for m, v in zip(self.members, value):
+            setattr(m, key, v)
+
+            ml.append(getattr(m, key))
+            dict.__setitem__(self, m, {key: ml})
+
+    def __getitem__(self, item):
+        for m in self.members:
+            yield getattr(m, item)
+
+    def reload(self):
+        del self.names_irerator
+        self.names_irerator()
+
+    def __setattr__(self, key, value):
+        self[next(self.names_irerator)[self]].__setattr__(key, value)
+        print(key, value)
+
+    def __getattr__(self, k):
+        return self[next(self.names_irerator)[self]].__getattr__(k)

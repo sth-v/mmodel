@@ -1,10 +1,13 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 from __future__ import annotations
 
-from collections import defaultdict
+import copy
+import itertools
+from abc import ABC, abstractmethod
+
 from collections.abc import Iterator
-from functools import wraps
-from typing import Any
+from functools import partial, wraps
+from typing import Any, Callable, Generator, Iterable
 import inspect
 
 import numpy as np
@@ -152,7 +155,7 @@ class BaseCollection(Item, Iterator):
         return f"<{self.dtype}({self.state} in {self.seq}) at {self.uid}>"
 
 
-class ItemCollection(Iterator):
+class _ItemCollection(Iterator):
     def __next__(self):
         pass
 
@@ -315,16 +318,222 @@ class NamedNumericCollection(BaseItem):
         return self.__array__()[i]
 
 
+class AbstractPropertyCollection:
+    shape: tuple[int]
 
-class CollectionDescriptor:
-    grid: InitGrid
-
-    def __init__(self, function):
+    def __init__(self, func):
         super().__init__()
-        self.function = function
-        self.name = function.__name__
+        self.func = func
 
-    def __get__(self, obj, type=None) -> object:
-        for i in self.grid.cellgrid:
-            for j in i:
-                self.function(obj, j)
+    def __get__(self, obj, owner) -> object:
+        return np.asarray(self.vectorize(obj, owner)).reshape(obj.shape).tolist()
+
+    @abstractmethod
+    def vectorize(self, obj, owner) -> Iterable:
+        ...
+
+
+class AbstractPropertyGenerator(AbstractPropertyCollection):
+
+    def __get__(self, obj, owner) -> Generator:
+        return self.vectorize(obj, owner)
+
+    @abstractmethod
+    def vectorize(self, obj, owner) -> Generator:
+        ...
+
+
+class AbstractMethodCollection(AbstractPropertyCollection):
+
+    def __get__(self, obj, owner) -> Callable:
+        @wraps(self.func)
+        def wrap(*args, **kwargs):
+            return np.asarray(list(map(lambda x, y: x(y, **kwargs), self.vectorize(obj, owner), args))).reshape(
+                obj.shape).tolist()
+
+        return wrap
+
+    @abstractmethod
+    def vectorize(self, obj, owner) -> Generator[partial]:
+        ...
+
+
+class GridPropertyCollection(AbstractMethodCollection):
+
+    def vectorize(self, obj, owner) -> Generator[partial]:
+        a, b, = obj.shape
+        lst = []
+        for i in range(a):
+            for j in range(b):
+                obj[i, j].ij=(i, j)
+
+                lst.append(self.func(obj[i, j], owner))
+        return lst
+
+
+class GridPropertyGenerator(AbstractPropertyGenerator):
+
+    def vectorize(self, obj, owner) -> Generator:
+        a, b, = obj.shape
+
+        for i in range(a):
+            for j in range(b):
+                obj[i, j].ij=(i, j)
+
+                yield self.func(obj[i, j], owner)
+
+
+class GridCollectionMethod(AbstractPropertyGenerator):
+    shape: tuple[int, int]
+
+    def vectorize(self, obj, owner) -> Generator:
+        a, b, = obj.shape
+        for i in range(a):
+            for j in range(b):
+                obj[i, j].ij = i, j
+                yield partial(self.func, obj.iterable[i, j], owner)
+
+
+def array_traversal(fun, ij, itr):
+    # print(itr)
+
+    for i in range(len(itr)):
+        ijj = copy.deepcopy(ij)
+        ijj.append(i)
+        try:
+            yield list(array_traversal(fun, ijj, itr[i]))
+
+
+
+        except:
+            itr[i].ij=ijj
+
+            yield fun.fget(itr[i])
+
+
+
+def partial_traversal(fun, ij, itr):
+    # print(itr)
+
+    for i in range(len(itr)):
+        ijj = copy.deepcopy(ij)
+        ijj.append(i)
+        try:
+            yield list(array_traversal(fun, ijj, itr[i]))
+
+
+
+        finally:
+            itr[i].ij=ijj
+
+            yield partial(fun, itr[i])
+
+
+
+class CollectionProperty(AbstractPropertyGenerator):
+    root = [0]
+
+    def vectorize(self, obj, owner) -> Any:
+        return list(array_traversal(self.func, self.root, obj.iterable))
+
+
+class CollectionMethod(AbstractMethodCollection):
+    root = [0]
+
+    def vectorize(self, obj, owner) -> Any:
+        return itertools.chain(*partial_traversal(self.func, self.root, obj.iterable))
+
+
+from typing import TypeVar
+
+IT = TypeVar("IT", bound=Item)
+
+
+class ItemCollectionProto(Iterable[IT]):
+    source = IT
+
+    def __init__(self, iterable: Iterable[IT] | Any | None = (), **kwargs):
+        self.source_methods()
+        self.source_method_descriptors()
+        self.source_data_descriptors()
+        super().__init__(**kwargs)
+
+        self._iterable = np.asarray(iterable)
+
+    def __list__(self):
+        return self.iterable.tolist()
+
+    def __len__(self):
+        return len(self.iterable)
+
+    def __iter__(self):
+        return self
+
+    def __generate_descriptors__(self):
+        print(self.source_methods())
+        print(self.source_method_descriptors())
+        print(self.source_data_descriptors())
+
+    @classmethod
+    def source_data_descriptors(cls):
+        d = []
+        for name, m in inspect.getmembers(
+                cls.source,
+                lambda x: inspect.isdatadescriptor(x) | inspect.isgetsetdescriptor(x)):
+            if name[0] != "_":
+                setattr(cls, name, CollectionProperty(m))
+                d.append(cls.__dict__[name])
+        return d
+
+    @classmethod
+    def source_method_descriptors(cls):
+        d = []
+        for name, m in inspect.getmembers(
+                cls.source,
+                lambda x: inspect.ismemberdescriptor(x)):
+            if name[0] != "_":
+                setattr(cls, name, CollectionMethod(m))
+                d.append(cls.__dict__[name])
+
+        return d
+
+    @classmethod
+    def source_methods(cls):
+        d = []
+        for name, m in inspect.getmembers(cls.source,
+                                          lambda x: inspect.ismethod(x)):
+            print(name, m)
+            if name != "_":
+                setattr(cls, name, CollectionMethod(m))
+                d.append(cls.__dict__[name])
+        return d
+
+    def __getitem__(self, item) -> Iterable[IT] | IT:
+        return self.iterable.__getitem__(item)
+
+    def __setitem__(self, item, v) -> Iterable[IT] | IT:
+        self.iterable.__setitem__(item, v)
+
+
+
+
+    def append(self, v):
+        lst = self.__list__()
+        lst.append(v)
+
+        self.iterable = lst
+
+    @property
+    def shape(self):
+        return self.iterable.shape
+
+    def __array__(self):
+        return self.iterable
+
+    @property
+    def iterable(self):
+        return self._iterable
+
+    @iterable.setter
+    def iterable(self, v: np.ndarray | list | Iterable):
+        self._iterable = np.asarray(v)
