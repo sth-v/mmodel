@@ -347,11 +347,14 @@ class BendSegment(Segment, TransformableItem):
                 self.straight(length_in=[self.fold.inner_parts_trim, 0],
                               length_out=self.length - (self.fold.calc_rightangle_length()),
                               metal_width=self.metal_width, parent=self.fold)
+
+            self.parent_frame = self.straight.parent_frame
+
         else:
             self.fold = self.bending_fold()
             self.straight = self.bending_straight(self.fold)
 
-        self.parent_frame = self.straight.parent_frame
+            self.parent_frame = self.straight.parent_frame
 
     def bending_fold(self):
         fold = FoldElement(angle=self.angle, radius=self.radius, metal_width=self.metal_width, parent=self.parent)
@@ -359,7 +362,7 @@ class BendSegment(Segment, TransformableItem):
 
     def bending_straight(self, fold):
         straight = StraightElement(metal_width=self.metal_width, parent=fold, length_in=[self.fold.inner_parts_trim, 0],
-                                   length_out=self.length - (self.fold.calc_rightangle_length()))
+                                   length_out=self.length - (self.fold.calc_rightangle_length()), length = self.length)
         return straight
 
 
@@ -475,7 +478,10 @@ class Bend(Item):
     def tri_offset(self):
         fold = self.bend_stage[0].fold
         a = math.tan(np.radians(fold.angle/2))
-        self._tri_offset = (fold.radius + fold.metal_width) * a
+        if isinstance(fold, FoldElementFres):
+            self._tri_offset = (fold.in_rad + fold.metal_width) / a
+        else:
+            self._tri_offset = (fold.radius + fold.metal_width) / a
         return self._tri_offset
 
     @tri_offset.setter
