@@ -70,20 +70,24 @@ class BendPanelExtrusion(Extrusion):
     def vector(self):
         vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
         self._vector = vector.unitized() * (vector.length + self.neigh_one + self.neigh_two)
+        print(vector.length, "extr")
         return self._vector
 
 
     def __init__(self, *args, **kwargs):
-        self._i = 0
-        self.bend_extr = []
         super().__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
+        self._i = 0
+        self.bend_extr = []
 
         self.profile, self.extrusion_line, self.normal, self.tri_offset, self.angles = args
         self.profile(parent_obj=self.extrusion_parent)
 
         super().__call__(profile=self.profile, vector=self.vector, *args, **kwargs)
+
+        self.point = self.extrusion_parent.point
+
         while self._i < self.__len__():
             bend = next(self)
             self.bend_extr.append(bend)
@@ -108,42 +112,26 @@ class BendPanelExtrusion(Extrusion):
 
 
 
-class BendPanelUnroll(Extrusion):
-    @ParentFrame3D
-    def unroll_parent(self):
-        return self.extrusion_line, self.normal
-
+class BendPanelUnroll(BendPanelExtrusion):
     @property
     def vector(self):
         vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
-        self._vector = vector.unitized() * vector.length
+        self._vector = vector.unitized() * (vector.length - self.neigh_one - self.neigh_two)
+        print(vector.length, "unroll")
         return self._vector
-
     def translation_vector(self, dist):
-        vec = self.unroll_parent.xaxis * dist
+        vec = self.extrusion_parent.xaxis * dist
         transl = cg.Translation.from_vector(vec)
         return self.point.transformed(transl)
 
     def __init__(self, *args, **kwargs):
-        self._i = 0
-        self.bend_extr = []
         super().__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
+        super().__call__(*args, **kwargs)
 
-        self.profile, self.extrusion_line, self.normal, self.tri_offset, self.angles = args
-        self.profile(parent_obj=self.unroll_parent)
 
-        super().__call__(profile=self.profile, vector=self.vector, *args, **kwargs)
 
-        self.point = self.unroll_parent.point
-
-        while self._i < self.__len__():
-            bend = next(self)
-            if bend is not None:
-                self.bend_extr.append(bend)
-
-        self.reload()
 
     def __len__(self):
         return len(self.profile.obj_transform)
@@ -151,9 +139,17 @@ class BendPanelUnroll(Extrusion):
     def __next__(self):
         extrusion = self.profile.obj_transform[self._i]
         if isinstance(extrusion, StraightElement):
-            transl_point = self.translation_vector(extrusion.length_out)
+            n_o = self.profile.obj_transform[self._i-1].straight_len / 2
+            try:
+                n_t = self.profile.obj_transform[self._i + 1].straight_len / 2
+                transl_point = self.translation_vector(extrusion.length - n_o - n_t)
+            except IndexError:
+                transl_point = self.translation_vector(extrusion.length - n_o)
+
             line = cc.OCCNurbsCurve.from_line(cg.Line(self.point, transl_point))
-            extrude_profile = self.occ_extrusion(extrusion, line=line)
+            transl = cg.Translation.from_vector(self.vector.unitized() * (self.neigh_one))
+
+            extrude_profile = self.occ_extrusion(extrusion, line=line.transformed(transl))
 
             self.point = transl_point
             self._i += 1
@@ -173,7 +169,7 @@ class BendPanelUnroll(Extrusion):
 
     def reload(self):
         self._i = 0
-        self.point = self.unroll_parent.point
+        self.point = self.extrusion_parent.point
 
 
 class Panel(TransformableItem):

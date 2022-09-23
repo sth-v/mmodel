@@ -362,7 +362,7 @@ class BendSegment(Segment, TransformableItem):
 
     def bending_straight(self, fold):
         straight = StraightElement(metal_width=self.metal_width, parent=fold, length_in=[self.fold.inner_parts_trim, 0],
-                                   length_out=self.length - (self.fold.calc_rightangle_length()))
+                                   length_out=self.length - (self.fold.calc_rightangle_length()), length = self.length)
         return straight
 
 
