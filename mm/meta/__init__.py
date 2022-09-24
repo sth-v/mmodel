@@ -2,9 +2,12 @@
 
 # some version control
 from __future__ import annotations
-from abc import ABCMeta
 
-from typing import Any
+import inspect
+import itertools
+from abc import ABCMeta
+from functools import partial
+from typing import Any, Callable, Optional
 
 function_type = type(lambda: None)
 from cxm_remote.sessions import S3Client
@@ -12,6 +15,41 @@ from cxm_remote.sessions import S3Client
 from mm.descriptors import HookDescriptor
 
 from json import JSONEncoder
+
+
+class CallBind(Callable):
+    def __init__(self, func):
+        self.__func__ = func
+
+    def __set_name__(self, owner, name="__call__"):
+        owner.__call__ = self
+        self.name = name
+        self.owner = owner
+
+    def __call__(self, instance, owner, *args, **kwargs):
+
+        args = list(args)
+        for name in owner.__defaults__.names:
+            if len(args) == 0:
+                break
+            else:
+                owner.__defaults__[name] = args.pop()
+
+        kwargs |= owner.__defaults__.dct
+        return self.__func__(instance, **kwargs)
+
+    def __get__(self, instance, owner):
+
+        return partial(self.__call__, instance, owner)
+
+
+class ItemCall(CallBind):
+    def __init__(self):
+        def func(instance, **kwargs):
+            instance.__dict__ |= kwargs
+            return instance
+
+        super().__init__(func)
 
 
 class DefaultFied:
@@ -50,8 +88,6 @@ class DefaultFied:
                 return False
 
 
-
-
 class Dct(dict):
     exclude = ["default_fields", "encoder"]
     metadata = ["uid"]
@@ -86,7 +122,90 @@ class Dct(dict):
                     dct_[k] = v
 
 
-import copy
+class CallBinder:
+
+    def __get__(self, instance, owner):
+        def callwrapper(*args, **kwargs):
+            d = dict(zip(owner.__default__.names[:len(args)], args))
+            d |= kwargs
+            return owner.__call(instance, **d)
+
+        return callwrapper
+
+
+class DF:
+    def __init__(self, k, v=None):
+        self.name = k
+        self.default_name = k
+        self.default_value = v
+        self.value = v
+
+
+class DFc(dict):
+    def __init__(self):
+        self._i = -1
+        self._default_names = []
+
+    def append(self, field: DF):
+        if field.default_name not in self.names:
+            self._default_names.append(field.default_name)
+        dict.__setitem__(self, field.default_name, field.default_value)
+
+    def __setitem__(self, k: str, v: Optional[Any] = None):
+        if k not in self.names:
+            self._default_names.append(k)
+
+        dict.__setitem__(self, k, v)
+
+    def __getitem__(self, name):
+        return dict.__getitem__(self, name)
+
+    @property
+    def names(self):
+        return self._default_names
+
+    @property
+    def values(self):
+        return list(dict(self).values())
+
+    @property
+    def fields(self):
+        return list(itertools.starmap(DF, zip(self.names, self.values)))
+
+    @property
+    def items(self):
+        return list(zip(self.names, self.values))
+
+    @property
+    def dct(self):
+        return dict(zip(self.names, self.values))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        self._i += 1
+        if self._i < len(self.names):
+            return self.fields[self._i]
+        else:
+            raise StopIteration
+
+
+class DFDescriptor:
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+
+        if isinstance(owner.__defaults__[self.name], property):
+            return owner.__defaults__[self.name]
+        elif instance is None:
+            return owner.__defaults__[self.name]
+        else:
+            return instance.__dict__[self.name]
+
+    def __set__(self, instance, value):
+        instance.__dict__[self.name] = value
 
 
 class MetaItem(ABCMeta):
@@ -94,55 +213,36 @@ class MetaItem(ABCMeta):
     tables = dict()
 
     def __new__(mcs, name, base, attrs, default_descriptor=DefaultFied, dict_descriptor=Dct, **kws):
-
         print(attrs, "\n", kws)
-        attrs["__default_fields__"] = dict()
-        annotates = attrs["__annotations__"] if "__annotations__" in attrs.keys() else dict()
-        attrs["__annotations__"] = annotates
-        default_keys = list(annotates.keys())
-        [attrs["__default_fields__"].update({k: None}) for k in default_keys]
-
-        for k, v in attrs.items():
-            seg = not isinstance(v, function_type), not isinstance(v, property), not (k[:2] == "__"), not (
-                    k[:1] == "_" and not k[:2] == "__")
-            if all(seg):
-                print(k)
-                attrs["__default_fields__"][k] = v
-                default_keys.append(k)
-        for k in default_keys:
-            attrs[k] = default_descriptor()
-        attrs["__default_keys__"] = default_keys
+        attrs |= dict(dtype=name)
+        try:
+            attrs["__call__"] = CallBind(attrs["__call__"])
+        except:
+            attrs["__call__"] = ItemCall()
+        kws['mcs'] = mcs
         kws |= attrs
         c = super().__new__(mcs, name, base, kws)
-        c._table = dict()
-        mcs.tables[name] = c._table
 
-        post_call = copy.deepcopy(c.__call__)
-        post_init = copy.deepcopy(c.__init__)
+        c.__defaults__ = DFc()
 
-        def init(slf, *args, **kwargs):
-            slf.dtype = slf.__class__.__name__
+        for k, v in attrs.items():
+            if (not inspect.ismethod(v)) and (not (k[0] == "_")):
+                try:
 
-            slf.default_fields = copy.deepcopy(slf.__class__.__default_fields__)
-            post_init(slf, *args, **kwargs)
+                    c.__defaults__.append(DF(k, c.__annotations__[k]()))
+                except:
+                    c.__defaults__.append(DF(k, v))
+                d = DFDescriptor()
+                d.__set_name__(c, k)
+                setattr(c, k, d)
 
-        def call(slf, *args, **kwargs):
-            print(args)
-            argkeys = list(default_keys)[
-                      :len(default_keys) if len(default_keys) < len(args) else len(args)]
-            kwargs |= dict(zip(argkeys, args))
+            else:
+                continue
+        print(c.__dict__)
+        print(c.__defaults__)
 
-            return post_call(slf, **kwargs)
-
-        c.__call__ = call
-        c.__init__ = init
-        c.dtype = name
-        c.dct = dict_descriptor()
         mcs.types[name] = c
-        c.mcs = mcs
         return c
-
-
 
 
 class ItemEncoder(JSONEncoder):

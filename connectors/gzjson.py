@@ -32,6 +32,7 @@ def togzipone(name):
     print(f"exit")
 
 
+
 if __name__ == "__main__":
     print("input fnames: ")
     names = input().split(" ")

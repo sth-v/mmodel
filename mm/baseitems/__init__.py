@@ -2,24 +2,22 @@ from __future__ import annotations
 
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'MultiDict', 'BaseItem']
 
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
+import base64
 import copy
 import inspect
 import itertools
 import json
-
-import base64
-
-import compas
-
-import compas.geometry
 from collections.abc import Callable
 
+import compas
+import compas.geometry
 import numpy as np
 import pandas as pd
 
 from connectors.gzjson import gzip_encoder
 from mm.meta import ItemEncoder, MetaItem
-
 from vcs.utils import HashVersion
 
 
@@ -358,9 +356,9 @@ class _Item(metaclass=MetaItem, encoder=ItemEncoder):
     __default_keys__ = dict()
 
     def __init__(self, *args, **kwargs):
-        self.version = 0
 
         super().__init__()
+        self.version = 0
         self.encoder = self.__class__.encoder
         self.__call__(*args, **kwargs)
 

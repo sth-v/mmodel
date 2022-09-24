@@ -2,17 +2,17 @@
 from __future__ import annotations
 
 import copy
+import inspect
 import itertools
-from abc import ABC, abstractmethod
-
+from abc import abstractmethod
 from collections.abc import Iterator
 from functools import partial, wraps
 from typing import Any, Callable, Generator, Iterable
-import inspect
 
 import numpy as np
 
-from mm.baseitems import BaseItem, Item, ArgsItem
+from mm.baseitems import ArgsItem, BaseItem, Item
+from mm.utils import args_flatten
 
 
 def t(glb):
@@ -277,26 +277,10 @@ class AbstractItemCollection(_AttrHandlerCollection):
     target = ArgsItem
 
 
-class NamedNumericCollection(BaseItem):
+class Vector(BaseItem):
     def __init__(self, arg, *args, **kwargs):
+        super().__init__(*tuple(args_flatten(arg, *args).tolist()), **kwargs)
         self._i = -1
-        print(arg, args)
-        try:
-            iter(arg)
-
-            arg_ = arg
-        except:
-            arg_ = (arg,)
-
-        if len(args) == 0:
-
-            args_ = arg_
-
-
-        else:
-
-            args_ = arg_ + args
-        super().__init__(*args_, **kwargs)
 
     def __setitem__(self, i, v):
         setattr(self, self.__default_keys__[i], v)
@@ -312,7 +296,7 @@ class NamedNumericCollection(BaseItem):
             raise StopIteration
 
     def __array__(self, *args, **kwargs) -> np.ndarray:
-        return np.asarray(list(self.default_fields.values))
+        return np.asarray(list(self.__defaults__.values))
 
     def __getitem__(self, i):
         return self.__array__()[i]
@@ -330,6 +314,20 @@ class AbstractPropertyCollection:
 
     @abstractmethod
     def vectorize(self, obj, owner) -> Iterable:
+        ...
+
+
+class AbstractDataCollection(AbstractPropertyCollection):
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    @abstractmethod
+    def __set__(self, instance, value):
+        ...
+
+    @abstractmethod
+    def vectorize(self, obj, owner) -> Generator:
         ...
 
 
@@ -358,40 +356,230 @@ class AbstractMethodCollection(AbstractPropertyCollection):
         ...
 
 
-class GridPropertyCollection(AbstractMethodCollection):
+class PPath:
+    _path = [0]
 
-    def vectorize(self, obj, owner) -> Generator[partial]:
-        a, b, = obj.shape
-        lst = []
-        for i in range(a):
-            for j in range(b):
-                obj[i, j].ij=(i, j)
-
-                lst.append(self.func(obj[i, j], owner))
-        return lst
-
-
-class GridPropertyGenerator(AbstractPropertyGenerator):
-
-    def vectorize(self, obj, owner) -> Generator:
-        a, b, = obj.shape
-
-        for i in range(a):
-            for j in range(b):
-                obj[i, j].ij=(i, j)
-
-                yield self.func(obj[i, j], owner)
+    @property
+    def path(self):
+        """
+        Path's origin.
+        For example: [0], if your path like: 𝒐 ⏐ 𝒊  𝒋  𝒌
+                                             0 ⏐ 0  0  0
+                                             0 ⏐ 0  0  1
+                                             0 ⏐ 0  1  0
+                                             0 ⏐ 0  1  1
+                                    origin ↗
 
 
-class GridCollectionMethod(AbstractPropertyGenerator):
-    shape: tuple[int, int]
 
-    def vectorize(self, obj, owner) -> Generator:
-        a, b, = obj.shape
-        for i in range(a):
-            for j in range(b):
-                obj[i, j].ij = i, j
-                yield partial(self.func, obj.iterable[i, j], owner)
+
+                                                    ︎
+
+
+        """
+        return self._path
+
+    @path.setter
+    def path(self, v):
+        self._path = v
+
+
+class Traverse:
+
+    def __init__(self, func):
+        super().__init__()
+        self.func = func
+        self._traverse_graph = []
+
+    @property
+    def traverse_graph(self):
+        return self._traverse_graph
+
+    def __call__(self, itr: np.ndarray | list | Iterable | Any, path=None):
+        """
+        Call traversal recursion from iterable
+        :param itr:
+        :type itr:
+        :param path:
+        :type path:
+        :return:
+        :rtype:
+        """
+        # почему-то ему не нравится Mutable аргумент в kwargs
+        if path is None:
+            path = [0]
+        # Поэтому мы имеем такую конструкцию.
+
+        try:
+            for i in range(len(itr)):
+                next_path = copy.deepcopy(path)
+                next_path.append(i)
+
+                yield list(self.__call__(itr[i], path=next_path))
+
+        except:
+            self._traverse_graph.append((path, itr))
+            yield self.func(itr)
+
+
+class TraversalMethod(Traverse):
+    """
+    Example:
+    >>> from mm.geom import Point
+    >>> @TraversalMethod
+    ... def aaa(pts):
+    ...     pts.x=pts.x*10
+    ...     return np.asarray(pts)
+    >>> list(aaa([[Point(1,2,3), Point(1,2,3)],
+    ...           [Point(10,2,3),Point(1,2,3)]]))
+    [[[array([130,   2,   1])], [array([10,  2,  1])]], [[array([320,   2,  10])], [array([70,  2,  1])]]]
+    """
+
+    def __init__(self, func):
+        self.name = func.__name__
+        super().__init__(func)
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, v):
+        self._name = v
+
+
+class TraversalAttribute(Traverse):
+    def __init__(self):
+        self._name = None
+        self.default = None
+        super().__init__(lambda obj: getattr(obj, self.name, self.default))
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, v):
+        self._name = v
+
+
+class TraversalGetter(TraversalAttribute):
+    def __init__(self, default=None, **kwargs):
+        super().__init__()
+        self.default = default
+        self.__dict__ |= kwargs
+
+    def __set_name__(self, owner, name):
+        self.name = name
+        self.owner = owner
+
+    def __get__(self, instance, owner):
+        return list(self.__call__(instance,
+                                  path=(instance.path_origin
+                                        if hasattr(instance, 'path_origin')
+                                        else [0]
+                                        )
+                                  )
+                    )
+
+
+class TraversalSetter(TraversalMethod):
+    """
+    TraversalSetter
+
+    """
+
+    def __init__(self):
+        super().__init__(lambda obj_and_value: setattr(obj_and_value[0], self.name, obj_and_value[1]))
+
+    def __get__(self, instance, owner):
+        raise NotImplementedError(
+            "TraversalSetter не предназначен для прямого наследования и использования в качестве дескриптора. "
+            "Метод __get__ заморожен для чистоты реализации разных рекурсий в сеттере и геттере. "
+            "Для свободной реализации подклассов пользуйтесь: TraversalGetSetter, TraversalDescriptor"
+        )
+
+    def __set__(self, instance, value):
+        path = (instance.path_origin
+                if hasattr(instance, 'path_origin')
+                else [0])
+        try:
+            if not isinstance(value, str) & len(value) == len(instance):
+                self.__call__(list(zip(instance, value)), path=path)
+            elif len(value) == len(instance):
+                raise
+            else:
+                raise RuntimeError(f"Length instance ({len(instance)}), and value ({len(value)}) is difference. "
+                                   f"And val is sequence.")
+
+        finally:
+            list(self.__call__(list(itertools.zip_longest(instance, [value], fillvalue=value)), path=path))
+
+
+class TraversalGetSetter(TraversalSetter, TraversalGetter):
+    """
+    >>> from mm.geom import Point
+    >>> class PointCollection(list[list[Point]]):
+    ...     uid = TraversalGetSetter()
+    ...     x = TraversalGetSetter()
+    ...     y = TraversalGetSetter()
+    ...     z = TraversalGetSetter()
+
+    >>> pc=PointCollection([
+    ...     [Point(0,1,3),Point(0,1,3),Point(0,1,3),Point(0,1,3),],
+    ...     [Point(0,1,3),Point(0,1,3),Point(0,1,3),Point(0,1,3),]])
+
+    >>> pc.x
+    array([[3, 3, 3, 3],
+           [3, 3, 3, 3]])
+    >>> pc.y
+    array([[1, 1, 1, 1],
+           [1, 1, 1, 1]])
+
+    >>> ccp=PointCollection([
+    ... [Point(0,1,3),Point(0,1,3)],
+    ... [Point(0,1,3),Point(0,1,3)],
+    ... [Point(0,1,3),Point(0,1,3)],
+    ... [Point(0,1,3),Point(0,1,3)]])
+    >>> ccp.x
+    array([[3, 3],
+           [3, 3],
+           [3, 3],
+           [3, 3]])
+
+
+
+    """
+
+    def __set_name__(self, owner, name):
+        super().__set_name__(owner, name)
+
+    def __get__(self, instance, owner):
+        r = TraversalGetter.__get__(self, instance, owner)
+        return np.array(r).reshape(np.array(r).shape[:-1])
+
+    def __set__(self, instance, value):
+        return TraversalSetter.__set__(self, instance, value)
+
+
+def method_traversal(itr, fun, path=[0]):
+    # print(itr)
+
+    try:
+        for i in range(len(itr)):
+            ijj = copy.deepcopy(path)
+            ijj.append(i)
+
+            yield list(method_traversal(itr[i], fun, path=ijj))
+
+
+
+    except:
+        if not hasattr(itr, 'path'):
+            itr.path = []
+        itr.path.append(path)
+
+        yield fun(itr)
 
 
 def array_traversal(fun, ij, itr):
@@ -406,10 +594,9 @@ def array_traversal(fun, ij, itr):
 
 
         except:
-            itr[i].ij=ijj
+            itr[i].ij = ijj
 
             yield fun.fget(itr[i])
-
 
 
 def partial_traversal(fun, ij, itr):
@@ -424,24 +611,37 @@ def partial_traversal(fun, ij, itr):
 
 
         finally:
-            itr[i].ij=ijj
+            itr[i].ij = ijj
 
             yield partial(fun, itr[i])
 
 
+def attr_traversal(itr, name, path=[0]):
+    return method_traversal(itr, lambda x: getattr(x, name, None), path=path)
 
-class CollectionProperty(AbstractPropertyGenerator):
+
+class DataCollection(AbstractPropertyGenerator):
     root = [0]
 
     def vectorize(self, obj, owner) -> Any:
-        return list(array_traversal(self.func, self.root, obj.iterable))
+        return list(array_traversal(self.func, self.root, obj.collection))
 
 
-class CollectionMethod(AbstractMethodCollection):
+class PropertyCollection(AbstractPropertyGenerator):
     root = [0]
 
     def vectorize(self, obj, owner) -> Any:
-        return itertools.chain(*partial_traversal(self.func, self.root, obj.iterable))
+        return list(array_traversal(self.func, self.root, obj.collection))
+
+
+class MethodCollection(AbstractMethodCollection):
+    root = [0]
+
+    def vectorize(self, obj, owner) -> Any:
+        return partial_traversal(self.func, self.root, obj.collection)
+
+    def __call__(self, *args, **kwargs):
+        ...
 
 
 from typing import TypeVar
@@ -449,7 +649,7 @@ from typing import TypeVar
 IT = TypeVar("IT", bound=Item)
 
 
-class ItemCollectionProto(Iterable[IT]):
+class _CD:
     source = IT
 
     def __init__(self, iterable: Iterable[IT] | Any | None = (), **kwargs):
@@ -459,15 +659,6 @@ class ItemCollectionProto(Iterable[IT]):
         super().__init__(**kwargs)
 
         self._iterable = np.asarray(iterable)
-
-    def __list__(self):
-        return self.iterable.tolist()
-
-    def __len__(self):
-        return len(self.iterable)
-
-    def __iter__(self):
-        return self
 
     def __generate_descriptors__(self):
         print(self.source_methods())
@@ -481,7 +672,7 @@ class ItemCollectionProto(Iterable[IT]):
                 cls.source,
                 lambda x: inspect.isdatadescriptor(x) | inspect.isgetsetdescriptor(x)):
             if name[0] != "_":
-                setattr(cls, name, CollectionProperty(m))
+                setattr(cls, name, PropertyCollection(m))
                 d.append(cls.__dict__[name])
         return d
 
@@ -492,7 +683,7 @@ class ItemCollectionProto(Iterable[IT]):
                 cls.source,
                 lambda x: inspect.ismemberdescriptor(x)):
             if name[0] != "_":
-                setattr(cls, name, CollectionMethod(m))
+                setattr(cls, name, MethodCollection(m))
                 d.append(cls.__dict__[name])
 
         return d
@@ -504,36 +695,6 @@ class ItemCollectionProto(Iterable[IT]):
                                           lambda x: inspect.ismethod(x)):
             print(name, m)
             if name != "_":
-                setattr(cls, name, CollectionMethod(m))
+                setattr(cls, name, MethodCollection(m))
                 d.append(cls.__dict__[name])
         return d
-
-    def __getitem__(self, item) -> Iterable[IT] | IT:
-        return self.iterable.__getitem__(item)
-
-    def __setitem__(self, item, v) -> Iterable[IT] | IT:
-        self.iterable.__setitem__(item, v)
-
-
-
-
-    def append(self, v):
-        lst = self.__list__()
-        lst.append(v)
-
-        self.iterable = lst
-
-    @property
-    def shape(self):
-        return self.iterable.shape
-
-    def __array__(self):
-        return self.iterable
-
-    @property
-    def iterable(self):
-        return self._iterable
-
-    @iterable.setter
-    def iterable(self, v: np.ndarray | list | Iterable):
-        self._iterable = np.asarray(v)

@@ -1,7 +1,4 @@
-#  Copyright (c)  CONTEXTMACHINE 2022.
-#  AEC, computational geometry, digital engineering and Optimizing construction processes.
-#
-#  Author: Andrew Astakhov <sthv@contextmachine.space>
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe" Astakhov <sthv@contextmachine.space>
 #
 #  Computational Geometry, Digital Engineering and Optimizing your construction processes
 #  This program is free software; you can redistribute it and/or modify it
@@ -48,3 +45,6 @@ class Timer(object):
 
     def __call__(self):
         return self.date_tag, self.hours, self.minutes, self.seconds
+
+
+DeprecationWarning("говно")
