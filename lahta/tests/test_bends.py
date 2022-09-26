@@ -1,5 +1,6 @@
 import unittest
 from lahta.items import Bend, BendSegment, BendSegmentFres
+from lahta.extrusions import Panel
 
 
 class TestBend(unittest.TestCase):
@@ -23,6 +24,15 @@ class TestPanels(unittest.TestCase):
                  [[-46.144883, -274.077702, 511.184542],
                  [-3.54622, 290.882442, 708.682366],
                  [-611.357509, 8.40237, 736.439278]]]
+
+class TestExtrusion(unittest.TestCase):
+    ooo = BendSegmentFres(36, 0.8, 90, in_rad=0.3)
+    ttt = BendSegment(18, 1.0, 90)
+    thh = BendSegment(7, 1.0, 90)
+    one = Bend([ooo, ttt, thh])
+    test = Panel(coor_axis=[[258.627489, 545.484455, 490.055883],
+                            [36.862172, -12.028006, 490.055883],
+                            [705.257292, 44.962907, 490.055883]], bend_types=[one, one, one])
 
 
 if __name__ == "__main__":
