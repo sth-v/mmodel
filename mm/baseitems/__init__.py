@@ -5,7 +5,6 @@ __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'MultiDict', 'BaseItem']
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import base64
-import copy
 import inspect
 import itertools
 import json
@@ -88,24 +87,20 @@ class ItemFormatter:
 
 class Versioned(Base):
     def __init__(self, *args, **kwargs):
+        self._version = HashVersion()
         super().__init__(*args, **kwargs)
 
-    def _version(self):
-        self.version = HashVersion().__hex__()
+    @property
+    def version(self):
+        return self._version.__hex__()
 
     def __eq__(self, other):
         return hex(self.version) == hex(other.version)
 
     def __call__(self, *args, **kwargs):
-        old_hash = copy.deepcopy(self.__hash__())
         super().__call__(*args, **kwargs)
-        if old_hash == self.__hash__():
-            pass
-        else:
-            self._version()
 
-    def __hash__(self):
-        ...
+        self._version = HashVersion()
 
 
 import uuid

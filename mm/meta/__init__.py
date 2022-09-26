@@ -26,7 +26,7 @@ class CallBind(Callable):
         self.name = name
         self.owner = owner
 
-    def __call__(self, instance, owner, *args, **kwargs):
+    def __call__(self, instance, owner=None, *args, **kwargs):
 
         args = list(args)
         for name in owner.__defaults__.names:

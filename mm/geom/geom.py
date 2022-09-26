@@ -1,9 +1,11 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
+import compas.geometry as cg
 import numpy as np
 
+from mm.baseitems import DictableItem, Item
 from ..collections import Vector
-from ..meta import Dct, MetaItem
+from ..meta import MetaItem
 
 mesh_js_schema = {
     "metadata": dict(),
@@ -26,27 +28,41 @@ pts_js_schema = {
              }
 }
 
-from mm.baseitems import Item
+
+class Point(DictableItem):
+    x = 0.0
+    y = 0.0
+    z = 0.0
+    exclude = ["version", "uid", "__array__"]
+
+    def to_compas(self):
+        return cg.Point(self.x, self.y, self.z)
+
+    def __array__(self, *args):
+        return np.asarray([self.x, self.y, self.z])
 
 
-class Point(Item, metaclass=MetaItem):
+class PointT(Item, metaclass=MetaItem):
     x, y, z = 1, 1, 1
 
     def __array__(self):
         return np.array([self.x, self.y, self.z])
 
+    def to_compas(self):
+        return cg.Point(self.x, self.y, self.z)
 
-class Triangle(Vector, metaclass=MetaItem, dict_descriptor=Dct):
-    a: Pt
-    b: Pt
-    c: Pt
+
+class Triangle(Item, metaclass=MetaItem):
+    a: Point
+    b: Point
+    c: Point
 
     def __array__(self, *args):
         return np.asarray([self.a, self.b, self.c])
 
 
 class Quad(Vector):
-    a: Pt
-    b: Pt
-    c: Pt
-    d: Pt
+    a: Point
+    b: Point
+    c: Point
+    d: Point
