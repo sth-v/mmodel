@@ -323,4 +323,38 @@ class TypingPanel(Panel):
 
 
 class RhinoFriendlyPanel(TypingPanel):
+
+    """
+    >>> from lahta.items import *
+    >>> panel = RhinoFriendlyPanel(coor_axis=[[258.627489, 545.484455, 490.055883],
+    ...                         [36.862172, -12.028006, 490.055883],
+    ...                         [705.257292, 44.962907, 490.055883]],
+    ...              bend_types=[
+    ...                  Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3),
+    ...                       BendSegment(18, 1.0, 90),
+    ...                       BendSegment(7, 1.0, 90)]),
+    ...                  Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3)]),
+    ...                  Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3)])
+    ...              ]
+    ...              )
+    >>> ext1=panel.bends_extrusion[0]
+    >>> model=rhino3dm.File3dm()
+    >>> [model.Objects.Add(ext) for ext in ext1.extrusion_rh]
+    [UUID('08874b17-c8d0-4236-8c55-de433175eecc'),
+     UUID('37e220fe-8f20-4b50-8d5d-15af571240f3'),
+     UUID('29c41150-f50d-44e8-875e-68551084ce3d'),
+     UUID('04bfec2a-60af-4a32-ba82-5c0014f116b2')]
+    >>> [model.Objects.Add(ext) for ext in panel.bends_extrusion[1].extrusion_rh]
+    [UUID('ea7c4044-6e79-4f25-b3d8-1875091fac16'),
+     UUID('ada9f62c-6fcc-440e-9b31-bde88e6e4958'),
+     UUID('affa554a-90fe-4594-bde5-71374ced1fc9'),
+     UUID('0318af09-8a5f-4f5e-b5a6-c966c575fa2c')]
+    >>> [model.Objects.Add(ext) for ext in panel.bends_extrusion[2].extrusion_rh]
+    [UUID('b4df8ce7-2321-4780-96d3-437ce2231e3b'),
+     UUID('780a9855-0a8a-472e-85ff-636a544147ba'),
+     UUID('7addc705-4b07-4951-bc26-fa6fe63a73e9'),
+     UUID('1faf1e87-d446-4b03-9389-68373e540095')]
+    >>> model.Write("example.3dm")
+    True
+    """
     extrusion_type = StrongBendExtrusion
