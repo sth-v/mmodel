@@ -1,15 +1,16 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-
 import json
 import math
 
 import compas.geometry as cg
 import compas_occ.geometry as cc
 import numpy as np
+import rhino3dm
 from more_itertools import pairwise
 
-from lahta.items import ParentFrame3D, ParentFrame3D_end, StraightElement, TransformableItem
+from lahta.items import Bend, ParentFrame3D, ParentFrame3D_end, StraightElement, TransformableItem
 from lahta.setup_view import view
+from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
 
 
 class Extrusion(TransformableItem):
@@ -84,6 +85,7 @@ class BendPanelExtrusion(Extrusion):
         self.bend_extr = []
 
         self.profile, self.extrusion_line, self.normal, self.tri_offset, self.angles = args
+        self.profile, self.extrusion_line, self.normal, self.tri_offset, self.angles = args
 
         self.profile(parent_obj=self.extrusion_parent_end)
         self.curve_one = [self.profile.inner, self.profile.outer]
@@ -121,6 +123,79 @@ class BendPanelExtrusion(Extrusion):
 
     def reload(self):
         self._i = 0
+
+
+class StrongBendExtrusion(BendPanelExtrusion):
+    def __call__(self, profile: Bend, line: cg.Line, normal: cg.Vector, *args, **kwargs):
+        super(StrongBendExtrusion, self).__call__(profile, line, normal, *args, **kwargs)
+
+    @property
+    def extrude_transform_rh(self):
+        return rhino3dm.Transform.Translation(*np.array(self.vector))
+
+    @property
+    def inner_rh(self) -> rhino3dm.PolyCurve:
+        return list_curves_to_polycurves(rhino_crv_from_compas(self.profile.inner))
+
+    @property
+    def outer_rh(self) -> rhino3dm.PolyCurve:
+        return list_curves_to_polycurves(rhino_crv_from_compas(self.profile.outer))
+
+    @property
+    def extruded_inner_rh(self) -> rhino3dm.PolyCurve:
+        i = self.inner_rh.Duplicate()
+        i.Transform(self.extrude_transform_rh)
+        return i
+
+    @property
+    def extruded_outer_rh(self) -> rhino3dm.PolyCurve:
+        o = self.outer_rh.Duplicate()
+        o.Transform(self.extrude_transform_rh)
+        return o
+
+    @property
+    def extruded_cap_start_rh(self) -> rhino3dm.Line:
+        return rhino3dm.NurbsCurve.CreateFromLine(
+            rhino3dm.Line(self.extruded_inner_rh.PointAtStart, self.extruded_outer_rh.PointAtStart))
+
+    @property
+    def extruded_cap_end_rh(self) -> rhino3dm.Line:
+        return rhino3dm.NurbsCurve.CreateFromLine(
+            rhino3dm.Line(self.extruded_inner_rh.PointAtEnd, self.extruded_outer_rh.PointAtEnd))
+
+    @property
+    def cap_start_rh(self) -> rhino3dm.Line:
+        return rhino3dm.NurbsCurve.CreateFromLine(rhino3dm.Line(self.inner_rh.PointAtStart, self.outer_rh.PointAtStart))
+
+    @property
+    def cap_end_rh(self) -> rhino3dm.Line:
+        return rhino3dm.NurbsCurve.CreateFromLine(rhino3dm.Line(self.inner_rh.PointAtEnd, self.outer_rh.PointAtEnd))
+
+    @property
+    def extrusion_inner_rh(self):
+        return rhino3dm.NurbsSurface.CreateRuledSurface(self.inner_rh, self.extruded_inner_rh)
+
+    @property
+    def extrusion_outer_rh(self):
+        return rhino3dm.NurbsSurface.CreateRuledSurface(self.outer_rh, self.extruded_outer_rh)
+
+    @property
+    def extrusion_cap_start_rh(self):
+        return rhino3dm.NurbsSurface.CreateRuledSurface(self.cap_start_rh, self.extruded_cap_start_rh)
+
+    @property
+    def extrusion_cap_end_rh(self):
+        return rhino3dm.NurbsSurface.CreateRuledSurface(self.cap_end_rh, self.extruded_cap_end_rh)
+
+    @property
+    def extrusion_rh(self):
+        # polycurve_a = list_curves_to_polycurves([self.outer_rh, self.cap_start_rh, self.inner_rh, self.cap_end_rh])
+        # polycurve_b = polycurve_a.Duplicate()
+        # polycurve_b.Transform(self.extrude_transform_rh)
+        # rhino3dm.NurbsSurface.CreateRuledSurface(polycurve_a, polycurve_b)
+
+        return [self.extrusion_cap_start_rh, self.extrusion_outer_rh, self.extrusion_cap_end_rh,
+                self.extrusion_inner_rh]
 
 
 class BendPanelUnroll(BendPanelExtrusion):
@@ -227,3 +302,25 @@ class Panel(TransformableItem):
                 np.repeat(self.tri_offset, 3), self.angles))
         self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal,
                                      np.repeat(self.tri_offset, 3), self.angles))
+
+
+class TypingPanel(Panel):
+    unroll_type = BendPanelUnroll
+    extrusion_type = BendPanelExtrusion
+
+    def __call__(self, coor_axis, bend_types, *args, **kwargs):
+        # Мне пришлось полностью переопределить __call__ для этой реализации,
+        # только потому что классы было не достать.
+        # Вся идея в том, чтобы объявить классы Unroll и Extrusion в качестве переменных.
+        super(TransformableItem, self).__call__(coor_axis=coor_axis, bend_types=bend_types, *args, **kwargs)
+
+        self.bend_types = bend_types
+        self.bends_extrusion = list(
+            map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal,
+                np.repeat(self.tri_offset, 3), self.angles))
+        self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal,
+                                     np.repeat(self.tri_offset, 3), self.angles))
+
+
+class RhinoFriendlyPanel(TypingPanel):
+    extrusion_type = StrongBendExtrusion
