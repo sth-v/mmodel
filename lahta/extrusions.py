@@ -1,11 +1,12 @@
 import compas.geometry as cg
 import math
-from lahta.setup_view import view
-from lahta.items import Bend, BendSegment, TransformableItem, ParentFrame3D, StraightElement
+
+from lahta.items import Bend, BendSegment, TransformableItem, ParentFrame3D, StraightElement, ParentFrame3D_end
 import compas_occ.geometry as cc
 import numpy as np
 import json
 from more_itertools import pairwise
+import rhino3dm
 from compas_view2.app import App
 view = App()
 
@@ -23,7 +24,7 @@ class Extrusion(TransformableItem):
             setattr(elems, 'extrusion_inner', inner_extr)
             setattr(elems, 'extrusion_outer', outer_extr)
         elif line is not None:
-            unroll = cc.OCCNurbsSurface.from_extrusion(line, self.vector).boundary()
+            unroll = cc.OCCNurbsSurface.from_extrusion(line, self.vector)
             setattr(elems, 'unroll', unroll)
 
         return elems
@@ -47,11 +48,14 @@ class Extrusion(TransformableItem):
 
 
 
-
 class BendPanelExtrusion(Extrusion):
     param = 0.1
     @ParentFrame3D
     def extrusion_parent(self):
+        return self.extrusion_line, self.normal
+
+    @ParentFrame3D_end
+    def extrusion_parent_end(self):
         return self.extrusion_line, self.normal
 
     @property
@@ -70,7 +74,6 @@ class BendPanelExtrusion(Extrusion):
     def vector(self):
         vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
         self._vector = vector.unitized() * (vector.length + self.neigh_one + self.neigh_two)
-        print(vector.length, "extr")
         return self._vector
 
 
@@ -82,7 +85,18 @@ class BendPanelExtrusion(Extrusion):
         self.bend_extr = []
 
         self.profile, self.extrusion_line, self.normal, self.tri_offset, self.angles = args
+
+        self.profile(parent_obj=self.extrusion_parent_end)
+        self.curve_one = [self.profile.inner, self.profile.outer]
+        for i,v in zip(self.profile.inner, self.profile.outer):
+            view.add(cg.Polyline(i.locus()), linewidth=2, linecolor=(1, 0, 0))
+            view.add(cg.Polyline(v.locus()), linewidth=2, linecolor=(0, 1, 0))
         self.profile(parent_obj=self.extrusion_parent)
+        self.curve_two=[self.profile.inner, self.profile.outer]
+        for i,v in zip(self.profile.inner, self.profile.outer):
+            view.add(cg.Polyline(i.locus()), linewidth=2, linecolor=(1, 0, 0))
+            view.add(cg.Polyline(v.locus()), linewidth=2, linecolor=(0, 1, 0))
+
 
         super().__call__(profile=self.profile, vector=self.vector, *args, **kwargs)
 
@@ -91,6 +105,8 @@ class BendPanelExtrusion(Extrusion):
         while self._i < self.__len__():
             bend = next(self)
             self.bend_extr.append(bend)
+
+
 
         self.reload()
 
@@ -117,7 +133,6 @@ class BendPanelUnroll(BendPanelExtrusion):
     def vector(self):
         vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
         self._vector = vector.unitized() * (vector.length - self.neigh_one - self.neigh_two)
-        print(vector.length, "unroll")
         return self._vector
     def translation_vector(self, dist):
         vec = self.extrusion_parent.xaxis * dist
@@ -129,8 +144,6 @@ class BendPanelUnroll(BendPanelExtrusion):
 
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
-
-
 
 
     def __len__(self):
@@ -154,13 +167,13 @@ class BendPanelUnroll(BendPanelExtrusion):
             self.point = transl_point
             self._i += 1
 
-            with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='r') as j:
-                my_data = json.load(j)
-                i = [v.to_polyline(n=2).to_data() for v in extrude_profile.unroll]
-                my_data['triangle'].append(i)
+            #with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='r') as j:
+             #   my_data = json.load(j)
+              #  i = [v.to_polyline(n=2).to_data() for v in extrude_profile.unroll]
+               # my_data['triangle'].append(i)
 
-            with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='w') as jp:
-                json.dump(my_data, jp)
+            #with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='w') as jp:
+               # json.dump(my_data, jp)
 
             return extrude_profile
 

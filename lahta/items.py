@@ -109,6 +109,14 @@ class ParentFrame3D(ParentFrame2D):
         parent = cg.Frame(args[0].start, xaxis=x, yaxis=z)
         return parent
 
+class ParentFrame3D_end(ParentFrame2D):
+    def parent_frame(self, *args):
+        y = cg.Vector.from_start_end(args[0].start, args[0].end).unitized()
+        x = cg.Vector.cross(y, args[1])
+        z = cg.Vector(*args[1]).inverted()
+        parent = cg.Frame(args[0].end, xaxis=x, yaxis=z)
+        return parent
+
 
 class ParentFrameUnroll(ParentFrame2D):
     def parent_frame(self, *args):
@@ -492,8 +500,7 @@ class Bend(Item):
     def inner(self):
         self._inner = []
         for i in self.obj_transform:
-            self._inner.append(i.fold.inner)
-            self._inner.append(i.straight.inner)
+            self._inner.append(i.inner)
         return self._inner
 
     @inner.setter
@@ -504,8 +511,7 @@ class Bend(Item):
     def outer(self):
         self._outer = []
         for i in self.obj_transform:
-            self._outer.append(i.fold.outer)
-            self._outer.append(i.straight.outer)
+            self._outer.append(i.outer)
         return self._outer
 
     @outer.setter
