@@ -42,7 +42,7 @@ class Point(DictableItem):
         return np.asarray([self.x, self.y, self.z])
 
 
-class PointT(Item, metaclass=MetaItem):
+class PointT(metaclass=MetaItem):
     x, y, z = 1, 1, 1
 
     def __array__(self):

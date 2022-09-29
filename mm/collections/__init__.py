@@ -296,7 +296,7 @@ class Vector(BaseItem):
             raise StopIteration
 
     def __array__(self, *args, **kwargs) -> np.ndarray:
-        return np.asarray(list(self.__defaults__.values))
+        return np.asarray(list(self.__defaultdict__.values))
 
     def __getitem__(self, i):
         return self.__array__()[i]
@@ -474,13 +474,14 @@ class TraversalGetter(TraversalAttribute):
         self.owner = owner
 
     def __get__(self, instance, owner):
-        return list(self.__call__(instance,
-                                  path=(instance.path_origin
-                                        if hasattr(instance, 'path_origin')
-                                        else [0]
-                                        )
-                                  )
-                    )
+        result = list(self.__call__(instance,
+                                    path=(instance.path_origin
+                                          if hasattr(instance, 'path_origin')
+                                          else [0]
+                                          )
+                                    )
+                      )
+        return np.array(result).reshape(np.array(result).shape[:-1])
 
 
 class TraversalSetter(TraversalMethod):
@@ -518,7 +519,7 @@ class TraversalSetter(TraversalMethod):
 
 class TraversalGetSetter(TraversalSetter, TraversalGetter):
     """
-    >>> from mm.geom import Point
+    >>> from mm.geom import PointT
     >>> class PointCollection(list[list[Point]]):
     ...     uid = TraversalGetSetter()
     ...     x = TraversalGetSetter()
@@ -555,8 +556,7 @@ class TraversalGetSetter(TraversalSetter, TraversalGetter):
         super().__set_name__(owner, name)
 
     def __get__(self, instance, owner):
-        r = TraversalGetter.__get__(self, instance, owner)
-        return np.array(r).reshape(np.array(r).shape[:-1])
+        return TraversalGetter.__get__(self, instance, owner)
 
     def __set__(self, instance, value):
         return TraversalSetter.__set__(self, instance, value)
