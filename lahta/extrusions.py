@@ -1,19 +1,20 @@
-import compas.geometry as cg
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
+import json
 import math
 
-from lahta.items import Bend, BendSegment, TransformableItem, ParentFrame3D, StraightElement, ParentFrame3D_end
+import compas.geometry as cg
 import compas_occ.geometry as cc
 import numpy as np
-import json
 from more_itertools import pairwise
-import rhino3dm
-from compas_view2.app import App
-view = App()
+
+from lahta.items import ParentFrame3D, ParentFrame3D_end, StraightElement, TransformableItem
+from lahta.setup_view import view
+
 
 class Extrusion(TransformableItem):
     def __call__(self, *args, **kwargs):
-        super().__call__( *args, **kwargs)
-
+        super().__call__(*args, **kwargs)
 
     def occ_extrusion(self, elems, transf=None, line=None):
         if transf is not None:
@@ -46,10 +47,9 @@ class Extrusion(TransformableItem):
             json.dump(my_data, jp)
 
 
-
-
 class BendPanelExtrusion(Extrusion):
     param = 0.1
+
     @ParentFrame3D
     def extrusion_parent(self):
         return self.extrusion_line, self.normal
@@ -60,14 +60,14 @@ class BendPanelExtrusion(Extrusion):
 
     @property
     def neigh_one(self):
-        dist = self.param / (2 * math.cos((math.pi - (2*self.angles[0]))/2))
-        self._neigh_one = (self.tri_offset-1) / math.tan(self.angles[0]) - dist
+        dist = self.param / (2 * math.cos((math.pi - (2 * self.angles[0])) / 2))
+        self._neigh_one = (self.tri_offset - 1) / math.tan(self.angles[0]) - dist
         return self._neigh_one
 
     @property
     def neigh_two(self):
-        dist = self.param / (2 * math.cos((math.pi - (2*self.angles[1])) / 2))
-        self._neigh_two = (self.tri_offset-1) / math.tan(self.angles[1]) - dist
+        dist = self.param / (2 * math.cos((math.pi - (2 * self.angles[1])) / 2))
+        self._neigh_two = (self.tri_offset - 1) / math.tan(self.angles[1]) - dist
         return self._neigh_two
 
     @property
@@ -75,7 +75,6 @@ class BendPanelExtrusion(Extrusion):
         vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
         self._vector = vector.unitized() * (vector.length + self.neigh_one + self.neigh_two)
         return self._vector
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -88,15 +87,14 @@ class BendPanelExtrusion(Extrusion):
 
         self.profile(parent_obj=self.extrusion_parent_end)
         self.curve_one = [self.profile.inner, self.profile.outer]
-        for i,v in zip(self.profile.inner, self.profile.outer):
+        for i, v in zip(self.profile.inner, self.profile.outer):
             view.add(cg.Polyline(i.locus()), linewidth=2, linecolor=(1, 0, 0))
             view.add(cg.Polyline(v.locus()), linewidth=2, linecolor=(0, 1, 0))
         self.profile(parent_obj=self.extrusion_parent)
-        self.curve_two=[self.profile.inner, self.profile.outer]
-        for i,v in zip(self.profile.inner, self.profile.outer):
+        self.curve_two = [self.profile.inner, self.profile.outer]
+        for i, v in zip(self.profile.inner, self.profile.outer):
             view.add(cg.Polyline(i.locus()), linewidth=2, linecolor=(1, 0, 0))
             view.add(cg.Polyline(v.locus()), linewidth=2, linecolor=(0, 1, 0))
-
 
         super().__call__(profile=self.profile, vector=self.vector, *args, **kwargs)
 
@@ -106,8 +104,6 @@ class BendPanelExtrusion(Extrusion):
             bend = next(self)
             self.bend_extr.append(bend)
 
-
-
         self.reload()
 
     def __len__(self):
@@ -115,17 +111,16 @@ class BendPanelExtrusion(Extrusion):
 
     def __next__(self):
         extrusion = self.profile.obj_transform[self._i]
-        transl = cg.Translation.from_vector(self.vector.unitized().inverted()*(self.neigh_one))
+        transl = cg.Translation.from_vector(self.vector.unitized().inverted() * (self.neigh_one))
 
         extrude_profile = self.occ_extrusion(extrusion, transf=transl)
 
         self._i += 1
-        #self.to_json(extrusion)
+        # self.to_json(extrusion)
         return extrude_profile
 
     def reload(self):
         self._i = 0
-
 
 
 class BendPanelUnroll(BendPanelExtrusion):
@@ -134,6 +129,7 @@ class BendPanelUnroll(BendPanelExtrusion):
         vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
         self._vector = vector.unitized() * (vector.length - self.neigh_one - self.neigh_two)
         return self._vector
+
     def translation_vector(self, dist):
         vec = self.extrusion_parent.xaxis * dist
         transl = cg.Translation.from_vector(vec)
@@ -145,14 +141,13 @@ class BendPanelUnroll(BendPanelExtrusion):
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
 
-
     def __len__(self):
         return len(self.profile.obj_transform)
 
     def __next__(self):
         extrusion = self.profile.obj_transform[self._i]
         if isinstance(extrusion, StraightElement):
-            n_o = self.profile.obj_transform[self._i-1].straight_len / 2
+            n_o = self.profile.obj_transform[self._i - 1].straight_len / 2
             try:
                 n_t = self.profile.obj_transform[self._i + 1].straight_len / 2
                 transl_point = self.translation_vector(extrusion.length - n_o - n_t)
@@ -167,13 +162,13 @@ class BendPanelUnroll(BendPanelExtrusion):
             self.point = transl_point
             self._i += 1
 
-            #with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='r') as j:
-             #   my_data = json.load(j)
-              #  i = [v.to_polyline(n=2).to_data() for v in extrude_profile.unroll]
-               # my_data['triangle'].append(i)
+            # with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='r') as j:
+            #   my_data = json.load(j)
+            #  i = [v.to_polyline(n=2).to_data() for v in extrude_profile.unroll]
+            # my_data['triangle'].append(i)
 
-            #with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='w') as jp:
-               # json.dump(my_data, jp)
+            # with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='w') as jp:
+            # json.dump(my_data, jp)
 
             return extrude_profile
 
@@ -200,7 +195,7 @@ class Panel(TransformableItem):
 
     @property
     def coor_offset_unroll(self):
-        offset = cg.offset_polygon(self.coor_axis, self.tri_offset/2)
+        offset = cg.offset_polygon(self.coor_axis, self.tri_offset / 2)
         self._coor_offset_unroll = cg.Polygon(offset)
         return self._coor_offset_unroll
 
@@ -212,24 +207,23 @@ class Panel(TransformableItem):
         for o, t in zip(l_one, l_two):
             vec_o = cg.Vector.from_start_end(o[1], o[0])
             vec_t = cg.Vector.from_start_end(t[0], t[1])
-            angles.append(vec_o.angle(vec_t)/2)
+            angles.append(vec_o.angle(vec_t) / 2)
         angles.append(angles[0])
         self._angles = list(pairwise(angles))
         return self._angles
 
     @property
     def normal(self):
-        self._normal = [self.coor_offset_extrusion.normal, self.coor_offset_extrusion.normal, self.coor_offset_extrusion.normal]
+        self._normal = [self.coor_offset_extrusion.normal, self.coor_offset_extrusion.normal,
+                        self.coor_offset_extrusion.normal]
         return self._normal
-
 
     def __call__(self, coor_axis, bend_types, *args, **kwargs):
         super().__call__(coor_axis=coor_axis, bend_types=bend_types, *args, **kwargs)
 
         self.bend_types = bend_types
-        self.bends_extrusion = list(map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal, np.repeat(self.tri_offset, 3), self.angles))
-        self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal, np.repeat(self.tri_offset, 3), self.angles))
-
-
-
-
+        self.bends_extrusion = list(
+            map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal,
+                np.repeat(self.tri_offset, 3), self.angles))
+        self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal,
+                                     np.repeat(self.tri_offset, 3), self.angles))
