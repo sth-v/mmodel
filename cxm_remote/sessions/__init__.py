@@ -1,16 +1,19 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import json
-import os
 from functools import wraps
 
 import boto3
 
-os.environ["STORAGE"] = "https://storage.yandexcloud.net/"
+BUCKET = "lahta.contextmachine.online"
+STORAGE = "https://storage.yandexcloud.net/"
+REGION = "ru-central1"
+AWS_ACCESS_KEY_ID = "YCAJEWyfhMEdpJv5yhuXECVLT"
+AWS_SECRET_ACCESS_KEY = "YCPsGaw0zZXczhE-vtsG2_XYgM7yW1F_FqCg7de1"
 
 
 class WatchSession:
     session = boto3.session.Session()
-    storage = "https://storage.yandexcloud.net/"
+    storage = STORAGE
 
     def __init__(self, bucket=None):
         self.bucket = bucket
@@ -23,7 +26,7 @@ class S3Session(WatchSession):
             service_name='s3',
             endpoint_url=self.storage
         )
-        #self.s3.__init__()
+        # self.s3.__init__()
 
 
 class WatchTargets:
@@ -71,7 +74,7 @@ class WatchTargets:
 
 
 class BucketSession(S3Session):
-    def __init__(self, bucket=None, prefix=None, postfix=None, **kwargs):
+    def __init__(self, bucket=BUCKET, prefix=None, postfix=None, **kwargs):
         super().__init__(bucket=bucket)
 
         self.prefix = prefix
@@ -79,7 +82,7 @@ class BucketSession(S3Session):
         self.__dict__ |= kwargs
         for k in self.s3.meta.method_to_api_mapping.keys():
             setattr(self, k, self._decorate(getattr(self.s3, k)))
-            print(f"decorate {k}")
+            # print(f"decorate {k}")
 
     def _decorate(self, m):
         @wraps(m)
@@ -110,16 +113,19 @@ class BucketTargetSession(BucketSession, WatchTargets):
     def state(self):
         return self.targets(self.s3.list_objects(Bucket=self.bucket)["Contents"])
 
+
 import pandas as pd
+
+
 class S3Client(WatchSession):
-    storage = "https://storage.yandexcloud.net/"
+    storage = STORAGE
     service_name = 's3'
-    region_name: str = "ru-central1"
+    region_name: str = REGION
     aws_access_key_id: str = None,
     aws_secret_access_key: str = None
 
-    def __init__(self, bucket: str = None, prefix="", auth_type="credentials.json", **kwargs):
-        self.prefix=prefix
+    def __init__(self, bucket: str = BUCKET, prefix="", auth_type="credentials.json", **kwargs):
+        self.prefix = prefix
         if auth_type == "credentials":
             pass
         elif auth_type == "credentials.json":
@@ -149,5 +155,5 @@ class S3Client(WatchSession):
         super().__setattr__(key, value)
 
     def table(self, **kwargs):
+        # print(self.bucket)
         return pd.DataFrame(self.client.list_objects_v2(Bucket=self.bucket, **kwargs)["Contents"])
-

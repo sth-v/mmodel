@@ -1,3 +1,5 @@
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 import itertools
 import json
 import argparse
@@ -33,10 +35,13 @@ class Timer(object):
         self.seconds = '0{}'.format(_secs) if len(str(_secs)[:2]) == 1 else str(_secs)
 
     def __str__(self):
-        return f"{fg('#49B0CE')}{self.date_tag} {self.hours}:{self.minutes}.{self.seconds}{attr('reset')}"
+        return f"{('#49B0CE')}{self.date_tag} {self.hours}:{self.minutes}.{self.seconds}{attr('reset')}"
 
     def __call__(self):
         return self.date_tag, self.hours, self.minutes, self.seconds
+
+
+
 
 
 class BucketWatchDog:
@@ -52,7 +57,7 @@ class BucketWatchDog:
         self.prefix = prefix
         self.postfix = postfix
         self.url = url
-        print(self.prefix,self.postfix)
+        # print(self.prefix,self.postfix)
         self.buffer = self.targets(self.s3.list_objects_v2(Bucket=bucket, Prefix=self.prefix)["Contents"])
 
         init_changes = {
@@ -117,12 +122,9 @@ class BucketWatchDog:
             pass
 
         else:
-            print(
-                f"\n{Timer()} Bucket Watchdog {fg('#F97BB0') + attr('bold')}changes detection{attr('reset')}\n{fg('#FFA245')}changes:{attr('reset')}  {changes}")
-            try:
-                requests.post(self.url, data=json.dumps(changes, ensure_ascii=False))
-            except:
-                print("[WARN] Request Failed")
+            print(f"\n{Timer()} Bucket Watchdog {fg('#F97BB0') + attr('bold')}changes detection{attr('reset')}\n{fg('#FFA245')}changes:{attr('reset')}  {changes}")
+            try: requests.post(self.url, data=json.dumps(changes, ensure_ascii=False))
+            except: print("[WARN] Request Failed")
             self.buffer = list_obj
         return changes
 
