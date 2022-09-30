@@ -78,9 +78,8 @@ class BendPanelExtrusion(Extrusion):
         self._i = 0
         self.bend_extr = []
 
-        self.profile, self.extrusion_line, self.normal, self.tri_offset, self.lengths = args
+        self.profile, self.extrusion_line, self.normal,self.lengths = args
         self.profile(parent_obj=self.extrusion_parent)
-        #self.profile(parent_obj=self.transl_frame)
 
         super().__call__(profile=self.profile, vector=self.vector, *args, **kwargs)
         self.point = self.extrusion_parent.point
@@ -97,12 +96,10 @@ class BendPanelExtrusion(Extrusion):
     def __next__(self):
         extrusion = self.profile.obj_transform[self._i]
         transl = cg.Translation.from_vector(self.vector.unitized() * (self.lengths[1]))
-        print(self.lengths[1])
 
         extrude_profile = self.occ_extrusion(extrusion, transf=transl)
 
         self._i += 1
-        # self.to_json(extrusion)
         return extrude_profile
 
     def reload(self):
@@ -310,17 +307,15 @@ class Panel(TransformableItem):
 
 
         self.bend_types = bend_types
-        self.bends_extrusion = list(
-            map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal,
-                np.repeat(self.tri_offset, 3), self.lengths))
-        #self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal,
-                                     #np.repeat(self.tri_offset, 3), self.lengths))
+        #self.bends_extrusion = list(
+            #map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
+        self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
 
 
     def to_rhino(self):
         model = rhino3dm.File3dm()
 
-        for ext, unr in zip(self.bends_extrusion, self.bends_unroll):
+        for unr in self.bends_unroll:
             #for i in ext.rhino_extrusion:
                 #model.Objects.Add(i)
 
@@ -352,10 +347,8 @@ class TypingPanel(Panel):
 
         self.bend_types = bend_types
         self.bends_extrusion = list(
-            map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal,
-                np.repeat(self.tri_offset, 3), self.lengths))
-        #self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal,
-                                     #np.repeat(self.tri_offset, 3), self.lengths))
+            map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
+        #self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
 
 
 class RhinoFriendlyPanel(TypingPanel):
