@@ -8,7 +8,7 @@ import numpy as np
 import rhino3dm
 from more_itertools import pairwise
 
-from lahta.items import Bend, ParentFrame3D, ParentFrame3D_end, StraightElement, TransformableItem
+from lahta.items import ParentFrame3D, StraightElement, TransformableItem, Bend, BendSegment, BendSegmentFres
 from lahta.setup_view import view
 from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
 
@@ -16,65 +16,59 @@ from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compa
 class Extrusion(TransformableItem):
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
+        self.inner_extr = []
+        self.outer_extr = []
+        self.unroll = []
 
     def occ_extrusion(self, elems, transf=None, line=None):
         if transf is not None:
             inner_extr = cc.OCCNurbsSurface.from_extrusion(elems.inner, self.vector)
             inner_extr = inner_extr.transformed(transf)
+            print(transf)
             outer_extr = cc.OCCNurbsSurface.from_extrusion(elems.outer, self.vector)
             outer_extr = outer_extr.transformed(transf)
             setattr(elems, 'extrusion_inner', inner_extr)
             setattr(elems, 'extrusion_outer', outer_extr)
+            self.inner_extr.append(inner_extr)
+            self.outer_extr.append(outer_extr)
+
         elif line is not None:
-            unroll = cc.OCCNurbsSurface.from_extrusion(line, self.vector)
-            setattr(elems, 'unroll', unroll)
+            unroll = cc.OCCNurbsSurface.from_extrusion(line, self.vector).boundary()
+
+            crv = unroll[0].to_polyline(n=2)
+            join = cc.OCCNurbsCurve.from_line(cg.Line(crv.points[0], crv.points[1]))
+            for i in unroll[1:]:
+                crv = i.to_polyline(n=2)
+                l = cc.OCCNurbsCurve.from_line(cg.Line(crv.points[0], crv.points[1]))
+                join = join.joined(l)
+
+            setattr(elems, 'unroll', join)
+            self.unroll.append(join)
 
         return elems
 
-    def viewer(self, v, elems):
-        v.add(elems.extrusion_inner.to_mesh())
-        v.add(elems.extrusion_outer.to_mesh())
-        return v
 
-    def to_json(self, elems):
-        with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='r') as j:
-            my_data = json.load(j)
-            i = elems.extrusion_inner.to_mesh(nu=15, nv=15).to_data()
-            o = elems.extrusion_outer.to_mesh(nu=15, nv=15).to_data()
-            my_data['triangle'].append(i)
-            my_data['triangle'].append(o)
 
-        with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='w') as jp:
-            json.dump(my_data, jp)
 
 
 class BendPanelExtrusion(Extrusion):
-    param = 0.1
 
     @ParentFrame3D
     def extrusion_parent(self):
         return self.extrusion_line, self.normal
 
-    @ParentFrame3D_end
-    def extrusion_parent_end(self):
-        return self.extrusion_line, self.normal
-
     @property
-    def neigh_one(self):
-        dist = self.param / (2 * math.cos((math.pi - (2 * self.angles[0])) / 2))
-        self._neigh_one = (self.tri_offset - 1) / math.tan(self.angles[0]) - dist
-        return self._neigh_one
-
-    @property
-    def neigh_two(self):
-        dist = self.param / (2 * math.cos((math.pi - (2 * self.angles[1])) / 2))
-        self._neigh_two = (self.tri_offset - 1) / math.tan(self.angles[1]) - dist
-        return self._neigh_two
+    def transl_frame(self):
+        vec = cg.Vector.from_start_end(self.profile.inner[0].start, self.profile.outer[0].start)
+        v = vec.unitized().inverted()*vec.length
+        tr = cg.Translation.from_vector(v)
+        self._transl_frame = self.extrusion_parent.transformed(tr)
+        return self._transl_frame
 
     @property
     def vector(self):
         vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
-        self._vector = vector.unitized() * (vector.length + self.neigh_one + self.neigh_two)
+        self._vector = vector.unitized() * self.lengths[0]
         return self._vector
 
     def __init__(self, *args, **kwargs):
@@ -84,22 +78,10 @@ class BendPanelExtrusion(Extrusion):
         self._i = 0
         self.bend_extr = []
 
-        self.profile, self.extrusion_line, self.normal, self.tri_offset, self.angles = args
-        self.profile, self.extrusion_line, self.normal, self.tri_offset, self.angles = args
-
-        self.profile(parent_obj=self.extrusion_parent_end)
-        self.curve_one = [self.profile.inner, self.profile.outer]
-        for i, v in zip(self.profile.inner, self.profile.outer):
-            view.add(cg.Polyline(i.locus()), linewidth=2, linecolor=(1, 0, 0))
-            view.add(cg.Polyline(v.locus()), linewidth=2, linecolor=(0, 1, 0))
+        self.profile, self.extrusion_line, self.normal,self.lengths = args
         self.profile(parent_obj=self.extrusion_parent)
-        self.curve_two = [self.profile.inner, self.profile.outer]
-        for i, v in zip(self.profile.inner, self.profile.outer):
-            view.add(cg.Polyline(i.locus()), linewidth=2, linecolor=(1, 0, 0))
-            view.add(cg.Polyline(v.locus()), linewidth=2, linecolor=(0, 1, 0))
 
         super().__call__(profile=self.profile, vector=self.vector, *args, **kwargs)
-
         self.point = self.extrusion_parent.point
 
         while self._i < self.__len__():
@@ -113,12 +95,11 @@ class BendPanelExtrusion(Extrusion):
 
     def __next__(self):
         extrusion = self.profile.obj_transform[self._i]
-        transl = cg.Translation.from_vector(self.vector.unitized().inverted() * (self.neigh_one))
+        transl = cg.Translation.from_vector(self.vector.unitized() * (self.lengths[1]))
 
         extrude_profile = self.occ_extrusion(extrusion, transf=transl)
 
         self._i += 1
-        # self.to_json(extrusion)
         return extrude_profile
 
     def reload(self):
@@ -199,11 +180,7 @@ class StrongBendExtrusion(BendPanelExtrusion):
 
 
 class BendPanelUnroll(BendPanelExtrusion):
-    @property
-    def vector(self):
-        vector = cg.Vector.from_start_end(self.extrusion_line.start, self.extrusion_line.end)
-        self._vector = vector.unitized() * (vector.length - self.neigh_one - self.neigh_two)
-        return self._vector
+
 
     def translation_vector(self, dist):
         vec = self.extrusion_parent.xaxis * dist
@@ -220,30 +197,24 @@ class BendPanelUnroll(BendPanelExtrusion):
         return len(self.profile.obj_transform)
 
     def __next__(self):
+
         extrusion = self.profile.obj_transform[self._i]
+
         if isinstance(extrusion, StraightElement):
             n_o = self.profile.obj_transform[self._i - 1].straight_len / 2
             try:
                 n_t = self.profile.obj_transform[self._i + 1].straight_len / 2
-                transl_point = self.translation_vector(extrusion.length - n_o - n_t)
+                transl_point = self.translation_vector(extrusion.length_out + n_o + n_t)
             except IndexError:
-                transl_point = self.translation_vector(extrusion.length - n_o)
+                transl_point = self.translation_vector(extrusion.length_out + n_o)
 
             line = cc.OCCNurbsCurve.from_line(cg.Line(self.point, transl_point))
-            transl = cg.Translation.from_vector(self.vector.unitized() * (self.neigh_one))
+            transl = cg.Translation.from_vector(self.vector.unitized() * self.lengths[2])
 
             extrude_profile = self.occ_extrusion(extrusion, line=line.transformed(transl))
 
             self.point = transl_point
             self._i += 1
-
-            # with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='r') as j:
-            #   my_data = json.load(j)
-            #  i = [v.to_polyline(n=2).to_data() for v in extrude_profile.unroll]
-            # my_data['triangle'].append(i)
-
-            # with open('/Users/sofyadobycina/Documents/GitHub/mmodel/lahta/tests/triangle.json', mode='w') as jp:
-            # json.dump(my_data, jp)
 
             return extrude_profile
 
@@ -254,6 +225,18 @@ class BendPanelUnroll(BendPanelExtrusion):
         self._i = 0
         self.point = self.extrusion_parent.point
 
+    @property
+    def rhino_extrusion(self):
+        l =[]
+        for i in self.unroll:
+            crv = rhino_crv_from_compas([i])
+            crv = list_curves_to_polycurves(crv)
+            l.append(crv)
+        self._rhino_extrusion = l
+        return self._rhino_extrusion
+
+
+
 
 class Panel(TransformableItem):
 
@@ -263,6 +246,11 @@ class Panel(TransformableItem):
         return self._tri_offset
 
     @property
+    def unroll_offset(self):
+        self._unroll_offset = self.bend_types[0].unroll_offset
+        return self._unroll_offset
+
+    @property
     def coor_offset_extrusion(self):
         offset = cg.offset_polygon(self.coor_axis, self.tri_offset)
         self._coor_offset_extrusion = cg.Polygon(offset)
@@ -270,7 +258,8 @@ class Panel(TransformableItem):
 
     @property
     def coor_offset_unroll(self):
-        offset = cg.offset_polygon(self.coor_axis, self.tri_offset / 2)
+        dist = self.bend_types[0].unroll_offset
+        offset = cg.offset_polygon(self.coor_axis, self.tri_offset-dist)
         self._coor_offset_unroll = cg.Polygon(offset)
         return self._coor_offset_unroll
 
@@ -288,6 +277,26 @@ class Panel(TransformableItem):
         return self._angles
 
     @property
+    def lengths(self):
+        self._lengths =[]
+
+        param = 0.01
+        poly = cg.Polygon(self.coor_axis).lines
+        for i, v in enumerate(poly):
+            dist = (param / 2) / math.sin(self.angles[i][0])
+            neigh_one = 1 / math.tan(self.angles[i][0])
+            neigh_two = 1 / math.tan(self.angles[i][1])
+            bend_l = v.length - neigh_one - neigh_two
+
+            ofs_l = neigh_one * (1 - self.tri_offset)
+
+            unrl_l = neigh_one * (1 - (self.tri_offset - self.unroll_offset))
+
+            self._lengths.append([bend_l, ofs_l, unrl_l])
+
+        return self._lengths
+
+    @property
     def normal(self):
         self._normal = [self.coor_offset_extrusion.normal, self.coor_offset_extrusion.normal,
                         self.coor_offset_extrusion.normal]
@@ -296,12 +305,34 @@ class Panel(TransformableItem):
     def __call__(self, coor_axis, bend_types, *args, **kwargs):
         super().__call__(coor_axis=coor_axis, bend_types=bend_types, *args, **kwargs)
 
+
         self.bend_types = bend_types
-        self.bends_extrusion = list(
-            map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal,
-                np.repeat(self.tri_offset, 3), self.angles))
-        self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal,
-                                     np.repeat(self.tri_offset, 3), self.angles))
+        #self.bends_extrusion = list(
+            #map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
+        self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
+
+
+    def to_rhino(self):
+        model = rhino3dm.File3dm()
+
+        for unr in self.bends_unroll:
+            #for i in ext.rhino_extrusion:
+                #model.Objects.Add(i)
+
+            for i in unr.rhino_extrusion:
+                model.Objects.Add(i)
+
+        poly = [cc.OCCNurbsCurve.from_line(i) for i in cg.Polygon(self.coor_axis).lines]
+        crv_poly = rhino_crv_from_compas(poly)
+        crv_poly = list_curves_to_polycurves(crv_poly)
+        model.Objects.Add(crv_poly)
+
+        poly_of = [cc.OCCNurbsCurve.from_line(i) for i in self.coor_offset_extrusion.lines]
+        crv_poly_of = rhino_crv_from_compas(poly_of)
+        crv_poly_of = list_curves_to_polycurves(crv_poly_of)
+        model.Objects.Add(crv_poly_of)
+
+        model.Write(f"/Users/sofyadobycina/Desktop/{hex(id(self))}.3dm")
 
 
 class TypingPanel(Panel):
@@ -316,10 +347,8 @@ class TypingPanel(Panel):
 
         self.bend_types = bend_types
         self.bends_extrusion = list(
-            map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal,
-                np.repeat(self.tri_offset, 3), self.angles))
-        self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal,
-                                     np.repeat(self.tri_offset, 3), self.angles))
+            map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
+        #self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
 
 
 class RhinoFriendlyPanel(TypingPanel):
