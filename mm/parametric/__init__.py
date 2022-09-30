@@ -1,19 +1,15 @@
-#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction process"
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import copy
-import json
 from abc import ABCMeta, abstractmethod
 from functools import wraps
 
+import compas.geometry as cg
 import numpy as np
-import requests
-import compas
 import rhino3dm
 
-
-from mm.xforms import XformParametricDecorator, mirror
-import compas.geometry as cg
 from mm.baseitems import Base, DictableItem, Item
 from mm.geom import Point
+
 
 def to_cmp_point(func):
     @wraps(func)
@@ -66,7 +62,7 @@ class PrmGenerator(Item, metaclass=ABCMeta):
     def __next__(self):
 
         if self.si <= self.stop + 0.001:
-            print(self.si, self.start, self.stop, self.step)
+            # print(self.si, self.start, self.stop, self.step)
             t = copy.deepcopy(self.si)
             self.si += self.step
             return self.evaluate(t)
@@ -212,7 +208,8 @@ class Circle(Circular):
 
 class Cone3d(Circle, Circular):
     z0 = 0.0
-    vertex=np.array([0.0,0.0,0.0])
+    vertex = np.array([0.0, 0.0, 0.0])
+
     @property
     def plane(self):
         return self._plane
@@ -276,10 +273,10 @@ class Cone3d(Circle, Circular):
         # T=self._plane_xf()
         xyz = [cg.Point(*self.evaluate(t)), cg.Point(*self.origin)]
         al, bl = cg.world_to_local_coordinates(self.plane, xyz)
-        print(al, bl)
+        # print(al, bl)
         rt = np.asarray(bl) - np.asarray(al)
         lx, ly, lz = rt / np.linalg.norm(rt)
-        print(lx, ly, lz)
+        # print(lx, ly, lz)
 
         return -ly, lx, 0.0
 
@@ -403,4 +400,3 @@ class Arc(SimpleCircle, DictableItem):
 
     def to_compas_json(self):
         return self.to_compas().to_jsonstring()
-

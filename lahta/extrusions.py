@@ -323,7 +323,6 @@ class TypingPanel(Panel):
 
 
 class RhinoFriendlyPanel(TypingPanel):
-
     """
     >>> from lahta.items import *
     >>> panel = RhinoFriendlyPanel(coor_axis=[[258.627489, 545.484455, 490.055883],

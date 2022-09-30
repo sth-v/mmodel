@@ -1,15 +1,19 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import copy
+import json
+import os
 import unittest
+
+import dotenv
 
 from mm.meta import RemoteType
 
-import json
-
+dotenv.load_dotenv(dotenv.find_dotenv('.env', True))
 CHECK_VAL = 11
 
 
-class TestRemoteObject(metaclass=RemoteType, bucket="lahta.contextmachine.online", prefix="cxm/tests/", suffix=""):
+class TestRemoteObject(metaclass=RemoteType, bucket="lahta.contextmachine.online", storage=os.getenv("STORAGE"),
+                       prefix="cxm/tests/", suffix=""):
 
     def __gethook__(self, hook):
         print(f"{self} get hook")
@@ -40,4 +44,3 @@ class RemoteTestCase(unittest.TestCase):
         self.test_object.test_attribute = {"name": "test_attribute", "check_val": 11}
 
         self.assertTrue((self.test_object.test_attribute["check_val"] == CHECK_VAL) and (cached == 22))
-

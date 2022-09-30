@@ -2,8 +2,9 @@
 
 # some version control
 from __future__ import annotations
-from abc import ABCMeta
 
+import os
+from abc import ABCMeta
 from typing import Any
 
 function_type = type(lambda: None)
@@ -20,7 +21,7 @@ class DefaultFied:
         self.default = owner.__default_fields__[self.name]
         self.private_name = "_" + self.name
         if self.name in owner.__annotations__.keys():
-            print(owner.mcs.types)
+            # print(owner.mcs.types)
             self.hint = owner.__annotations__[self.name]
         else:
             self.hint = Any
@@ -48,8 +49,6 @@ class DefaultFied:
                 return True
             else:
                 return False
-
-
 
 
 class Dct(dict):
@@ -95,7 +94,7 @@ class MetaItem(ABCMeta):
 
     def __new__(mcs, name, base, attrs, default_descriptor=DefaultFied, dict_descriptor=Dct, **kws):
 
-        print(attrs, "\n", kws)
+        # print(attrs, "\n", kws)
         attrs["__default_fields__"] = dict()
         annotates = attrs["__annotations__"] if "__annotations__" in attrs.keys() else dict()
         attrs["__annotations__"] = annotates
@@ -106,7 +105,7 @@ class MetaItem(ABCMeta):
             seg = not isinstance(v, function_type), not isinstance(v, property), not (k[:2] == "__"), not (
                     k[:1] == "_" and not k[:2] == "__")
             if all(seg):
-                print(k)
+                # print(k)
                 attrs["__default_fields__"][k] = v
                 default_keys.append(k)
         for k in default_keys:
@@ -127,7 +126,7 @@ class MetaItem(ABCMeta):
             post_init(slf, *args, **kwargs)
 
         def call(slf, *args, **kwargs):
-            print(args)
+            # print(args)
             argkeys = list(default_keys)[
                       :len(default_keys) if len(default_keys) < len(args) else len(args)]
             kwargs |= dict(zip(argkeys, args))
@@ -141,8 +140,6 @@ class MetaItem(ABCMeta):
         mcs.types[name] = c
         c.mcs = mcs
         return c
-
-
 
 
 class ItemEncoder(JSONEncoder):
@@ -236,22 +233,34 @@ class BufferDescriptor(dict):
         instance.__class__.table[instance.uid] = value
 
 
+STORAGE = os.getenv("STORAGE")
+BUCKET = os.getenv("BUCKET")
+
+
 class RemoteType(type):
 
     @classmethod
-    def __prepare__(metacls, name, bases, prefix=None, client=S3Client, default_descriptor=HookDescriptor, **kws):
+    def __prepare__(metacls, name, bases, bucket=BUCKET, prefix=None, client=S3Client,
+                    default_descriptor=HookDescriptor, storage=STORAGE, **kws):
+
         dct = super(RemoteType, metacls).__prepare__(name, bases)
-        print(dct)
+        # print(dct)
 
         _client = client(**kws)
         kws["prefix"] = prefix
-
+        kws["bucket"] = bucket
+        kws["storage"] = storage
+        kws["default_descriptor"] = default_descriptor
+        kws["client"] = _client
         table = _client.table(Prefix=prefix)
+
         kws["__client__"] = _client
         kws.update(dct)
-        print(table.Key)
+        # print(table.Key)
         for k in table.Key:
-            ky = k.replace(prefix, '')
+
+            ky = k.replace(prefix, '').replace("/", '_').replace(".", '__')
+
             if not ky == '':
                 kws[ky] = default_descriptor()
             else:
@@ -260,7 +269,7 @@ class RemoteType(type):
 
     def __new__(mcs, classname, bases, dct, **kwds):
 
-        print(classname, bases, dct)
+        # print(classname, bases, dct)
         return type(classname, bases, dct)
 
 

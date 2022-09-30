@@ -22,16 +22,16 @@ def t(glb):
 def clsmap(seq, item):
     cls = seq[0].__class__
     cls_attr = getattr(cls, item)
-    print(f"Target <{item}> is <{cls.__name__}>'s method or base attribute ...")
+    # print(f"Target <{item}> is <{cls.__name__}>'s method or base attribute ...")
     if inspect.ismethod(cls_attr):
-        print("It is method!")
+        # print("It is method!")
 
         @wraps(cls_attr)
         def wrp(args, **kwargs):
             for i, slf in enumerate(cls.seq):
                 arg = args[i]
                 f = getattr(slf, item)
-                print(f"Start yielding ...\nwith seq[{i}] yield {slf.__repr__()}.{item}(args={arg}, kwargs={kwargs})")
+                # print(f"Start yielding ...\nwith seq[{i}] yield {slf.__repr__()}.{item}(args={arg}, kwargs={kwargs})")
 
                 try:
                     kw = dict(arg)
@@ -75,17 +75,16 @@ class BaseCollection(Item, Iterator):
     def __getattr__(self, item):
         try:
             cls_attr = getattr(self.item_dtype, item)
-            print(f"Target <{item}> is <{self.item_dtype.__name__}>'s method or base attribute ...")
+            # print(f"Target <{item}> is <{self.item_dtype.__name__}>'s method or base attribute ...")
             if inspect.ismethod(cls_attr):
-                print("It is method!")
+                # print("It is method!")
 
                 @wraps(cls_attr)
                 def wrp(args, **kwargs):
                     for i, slf in enumerate(self.seq):
                         arg = args[i]
                         f = getattr(slf, item)
-                        print(
-                            f"Start yielding ...\nwith {self.uid}[{i}] yield {slf.__repr__()}.{item}(args={arg}, kwargs={kwargs})")
+                        # print(f"Start yielding ...\nwith {self.uid}[{i}] yield {slf.__repr__()}.{item}(args={arg}, kwargs={kwargs})")
 
                         try:
                             kw = dict(arg)
@@ -97,7 +96,7 @@ class BaseCollection(Item, Iterator):
 
 
             else:
-                print(f"it is base attribute")
+                # print(f"it is base attribute")
                 for itm in self.seq:
                     yield getattr(itm, item)
         finally:
@@ -261,7 +260,7 @@ class AbstractItemCollection(_AttrHandlerCollection):
     >>>list(next(t_collection))[0].ikw
     Out[10]: {'x': 4, 'y': 2}
     >>>for o in t_collection:
-    ....   print(list(o)[0].__dict__)
+    ....   # print(list(o)[0].__dict__)
     {'ikw': {'x': 1, 'y': 11}, 'iar': (), '_uid': '0x12a5ab040', 'x': 1, 'y': 11, 'version': '0x4d0x5b0x600x600x62'}
     {'ikw': {'x': 2, 'y': 45}, 'iar': (), '_uid': '0x12a5ab430', 'x': 2, 'y': 45, 'version': '0x4d0x5b0x600x600x62'}
     {'ikw': {'x': 33, 'y': 3}, 'iar': (), '_uid': '0x12a5ab2b0', 'x': 33, 'y': 3, 'version': '0x4d0x5b0x600x600x62'}
@@ -277,7 +276,7 @@ class AbstractItemCollection(_AttrHandlerCollection):
 class NamedNumericCollection(BaseItem):
     def __init__(self, arg, *args, **kwargs):
         self._i = -1
-        print(arg, args)
+        # print(arg, args)
         try:
             iter(arg)
 
@@ -315,9 +314,8 @@ class NamedNumericCollection(BaseItem):
         return self.__array__()[i]
 
 
-
 class CollectionDescriptor:
-    grid: InitGrid
+    grid = None
 
     def __init__(self, function):
         super().__init__()

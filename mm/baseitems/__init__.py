@@ -3,23 +3,22 @@ from __future__ import annotations
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
            'DataItem', 'FieldItem', 'DictableItem', 'JsItem']
 
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
+import base64
 import inspect
 import itertools
 import json
-
-import base64
+from collections.abc import Callable
 from typing import Any
 
 import compas
 import compas.geometry
-from collections.abc import Callable
-
 import numpy as np
 import pandas as pd
 
 from connectors.gzjson import gzip_encoder
 from mm.meta import ItemEncoder, MetaItem
-
 from vcs.utils import HashVersion
 
 
@@ -137,7 +136,7 @@ class HistoryArgItem(ArgsItem):
     def read_log(cls, path):
         with open(f"{path}", "rb") as fp:
             data = eval(base64.b64decode(fp.read()))
-            print(data)
+            # print(data)
         return cls(**data)
 
 
@@ -167,7 +166,7 @@ class member_table(dict):
 
     def __setattr__(self, key, value):
         self[next(self.names_irerator)[self]].__setattr__(key, value)
-        print(key, value)
+        # print(key, value)
 
     def __getattr__(self, k):
         return self[next(self.names_irerator)[self]].__getattr__(k)

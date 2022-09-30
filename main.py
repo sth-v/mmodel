@@ -6,7 +6,7 @@ from compas.geometry import Line, Point
 
 from lahta.extrusions import NaivePanel
 
-print('Python %s on %s' % (sys.version, sys.platform))
+# print('Python %s on %s' % (sys.version, sys.platform))
 
 sys.path.extend(
     ['/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/', '/tmp/mmodel_server_remote/bucket_watchdog',
@@ -35,11 +35,11 @@ with open("/tmp/mmodel_server_remote/mm/parametric/localconfig.json", "rb") as f
     parent = local_configs["parent"]
     remote_configs = local_configs["remote"]
     obj_list = sess.s3.list_objects(Bucket=sess.bucket, Prefix="dev/")
-    print(f"S3 Session {sess.bucket} success!\n\n"
+    # print(f"S3 Session {sess.bucket} success!\n\n"
           f"----------------------------------------------------------------------------------------------------------\n"
           f"List objects from prefix - ({parent}/{pref}/)\n{obj_list} ")
     CONFIGS = json.loads(sess.s3.get_object(Bucket=sess.bucket, Key='dev/mm/parametric/cxmmodule.json')["Body"].read())
-    print(f"Get remote configs {sess.bucket,} success!\n\n"
+    # print(f"Get remote configs {sess.bucket,} success!\n\n"
           f"----------------------------------------------------------------------------------------------------------\n"
           f"Configs = ({CONFIGS}")
 

@@ -1,3 +1,5 @@
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 import sys
 
 
@@ -6,13 +8,13 @@ def progressbar(it, prefix="", size=60, out=sys.stdout):  # Python3.6+
 
     def show(j):
         x = int(size * j / count)
-        print(f"{prefix}{u'█' * x}{('.' * (size - x))} {j}/{count}", end='\r', file=out, flush=True)
+        # print(f"{prefix}{u'█' * x}{('.' * (size - x))} {j}/{count}", end='\r', file=out, flush=True)
 
     show(0)
     for i, item in enumerate(it):
         yield item
         show(i + 1)
-    print("\n", flush=True, file=out)
+    # print("\n", flush=True, file=out)
 
 
 from functools import wraps
@@ -27,7 +29,7 @@ def decorate_signature(connection):
             init_fields = {}
             # Get the field names from the connection class.
             required_fields = connection.__annotations__.keys()
-            print(f'required fields: {list(required_fields)}')
+            # print(f'required fields: {list(required_fields)}')
             for field in required_fields:
 
                 # If the field is in kwargs, everything is fine.

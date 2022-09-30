@@ -1,14 +1,13 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 from functools import wraps
-from typing import Callable
+from typing import Any, Union
 
 import numpy as np
+from compas.data import Data
+from compas.geometry import Transformation
 from numpy import ndarray
-from typing import Union, Any, Optional
 
 from mm.baseitems import Item
-from compas.geometry import Transformation
-from compas.data import Data
 
 
 def mirror(right):
@@ -17,7 +16,7 @@ def mirror(right):
     left = np.zeros((len(right), 3))
 
     for i, pt in enumerate(right):
-        print(i,pt)
+        # print(i,pt)
         left[i, ...] = mirror @ np.asarray(pt).T
     return left
 

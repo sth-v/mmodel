@@ -131,7 +131,7 @@ class RhinoBiCone:
         for ii in range(i):
             for jj in range(j):
                 setattr(t, f"M{ii}{jj}", float(np.asarray(T.matrix)[ii, jj]))
-        print(t)
+        # print(t)
         n = c.ToNurbsCurve()
         n.Transform(t)
 
@@ -150,7 +150,7 @@ class RhinoBiCone:
         for ii in range(i):
             for jj in range(j):
                 setattr(t, f"M{ii}{jj}", float(np.asarray(T.matrix)[ii, jj]))
-        print(t)
+        # print(t)
         n = c.ToNurbsCurve()
         n.Transform(t)
         return n
