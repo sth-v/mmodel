@@ -1,5 +1,4 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-
 import json
 import math
 
@@ -8,9 +7,10 @@ import compas_occ.geometry as cc
 import numpy as np
 import rhino3dm
 from more_itertools import pairwise
-from mm.conversions.rhino import rhino_crv_from_compas, list_curves_to_polycurves
-from lahta.items import ParentFrame3D, StraightElement, TransformableItem
+
+from lahta.items import ParentFrame3D, ParentFrame3D_end, StraightElement, TransformableItem
 from lahta.setup_view import view
+from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
 
 
 class Extrusion(TransformableItem):
@@ -105,24 +105,78 @@ class BendPanelExtrusion(Extrusion):
     def reload(self):
         self._i = 0
 
+
+class StrongBendExtrusion(BendPanelExtrusion):
+    def __call__(self, profile: Bend, line: cg.Line, normal: cg.Vector, *args, **kwargs):
+        super(StrongBendExtrusion, self).__call__(profile, line, normal, *args, **kwargs)
+
     @property
-    def rhino_extrusion(self):
-        crv_in = rhino_crv_from_compas(self.profile.inner)
-        crv_in = list_curves_to_polycurves(crv_in)
+    def extrude_transform_rh(self):
+        return rhino3dm.Transform.Translation(*np.array(self.vector))
 
-        ext_in = rhino3dm.Extrusion()
-        extr_in = ext_in.Create(crv_in, self.vector.length, False)
+    @property
+    def inner_rh(self) -> rhino3dm.PolyCurve:
+        return list_curves_to_polycurves(rhino_crv_from_compas(self.profile.inner))
 
-        crv_out = rhino_crv_from_compas(self.profile.inner)
-        crv_out = list_curves_to_polycurves(crv_out)
+    @property
+    def outer_rh(self) -> rhino3dm.PolyCurve:
+        return list_curves_to_polycurves(rhino_crv_from_compas(self.profile.outer))
 
-        ext_out = rhino3dm.Extrusion()
-        extr_out = ext_out.Create(crv_out, self.vector.length, False)
-        self._rhino_extrusion = [extr_in, extr_out]
-        return self._rhino_extrusion
+    @property
+    def extruded_inner_rh(self) -> rhino3dm.PolyCurve:
+        i = self.inner_rh.Duplicate()
+        i.Transform(self.extrude_transform_rh)
+        return i
 
+    @property
+    def extruded_outer_rh(self) -> rhino3dm.PolyCurve:
+        o = self.outer_rh.Duplicate()
+        o.Transform(self.extrude_transform_rh)
+        return o
 
+    @property
+    def extruded_cap_start_rh(self) -> rhino3dm.Line:
+        return rhino3dm.NurbsCurve.CreateFromLine(
+            rhino3dm.Line(self.extruded_inner_rh.PointAtStart, self.extruded_outer_rh.PointAtStart))
 
+    @property
+    def extruded_cap_end_rh(self) -> rhino3dm.Line:
+        return rhino3dm.NurbsCurve.CreateFromLine(
+            rhino3dm.Line(self.extruded_inner_rh.PointAtEnd, self.extruded_outer_rh.PointAtEnd))
+
+    @property
+    def cap_start_rh(self) -> rhino3dm.Line:
+        return rhino3dm.NurbsCurve.CreateFromLine(rhino3dm.Line(self.inner_rh.PointAtStart, self.outer_rh.PointAtStart))
+
+    @property
+    def cap_end_rh(self) -> rhino3dm.Line:
+        return rhino3dm.NurbsCurve.CreateFromLine(rhino3dm.Line(self.inner_rh.PointAtEnd, self.outer_rh.PointAtEnd))
+
+    @property
+    def extrusion_inner_rh(self):
+        return rhino3dm.NurbsSurface.CreateRuledSurface(self.inner_rh, self.extruded_inner_rh)
+
+    @property
+    def extrusion_outer_rh(self):
+        return rhino3dm.NurbsSurface.CreateRuledSurface(self.outer_rh, self.extruded_outer_rh)
+
+    @property
+    def extrusion_cap_start_rh(self):
+        return rhino3dm.NurbsSurface.CreateRuledSurface(self.cap_start_rh, self.extruded_cap_start_rh)
+
+    @property
+    def extrusion_cap_end_rh(self):
+        return rhino3dm.NurbsSurface.CreateRuledSurface(self.cap_end_rh, self.extruded_cap_end_rh)
+
+    @property
+    def extrusion_rh(self):
+        # polycurve_a = list_curves_to_polycurves([self.outer_rh, self.cap_start_rh, self.inner_rh, self.cap_end_rh])
+        # polycurve_b = polycurve_a.Duplicate()
+        # polycurve_b.Transform(self.extrude_transform_rh)
+        # rhino3dm.NurbsSurface.CreateRuledSurface(polycurve_a, polycurve_b)
+
+        return [self.extrusion_cap_start_rh, self.extrusion_outer_rh, self.extrusion_cap_end_rh,
+                self.extrusion_inner_rh]
 
 
 class BendPanelUnroll(BendPanelExtrusion):
@@ -282,3 +336,59 @@ class Panel(TransformableItem):
         model.Objects.Add(crv_poly_of)
 
         model.Write(f"/Users/sofyadobycina/Desktop/{hex(id(self))}.3dm")
+
+
+class TypingPanel(Panel):
+    unroll_type = BendPanelUnroll
+    extrusion_type = BendPanelExtrusion
+
+    def __call__(self, coor_axis, bend_types, *args, **kwargs):
+        # Мне пришлось полностью переопределить __call__ для этой реализации,
+        # только потому что классы было не достать.
+        # Вся идея в том, чтобы объявить классы Unroll и Extrusion в качестве переменных.
+        super(TransformableItem, self).__call__(coor_axis=coor_axis, bend_types=bend_types, *args, **kwargs)
+
+        self.bend_types = bend_types
+        self.bends_extrusion = list(
+            map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal,
+                np.repeat(self.tri_offset, 3), self.angles))
+        self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal,
+                                     np.repeat(self.tri_offset, 3), self.angles))
+
+
+class RhinoFriendlyPanel(TypingPanel):
+
+    """
+    >>> from lahta.items import *
+    >>> panel = RhinoFriendlyPanel(coor_axis=[[258.627489, 545.484455, 490.055883],
+    ...                         [36.862172, -12.028006, 490.055883],
+    ...                         [705.257292, 44.962907, 490.055883]],
+    ...              bend_types=[
+    ...                  Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3),
+    ...                       BendSegment(18, 1.0, 90),
+    ...                       BendSegment(7, 1.0, 90)]),
+    ...                  Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3)]),
+    ...                  Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3)])
+    ...              ]
+    ...              )
+    >>> ext1=panel.bends_extrusion[0]
+    >>> model=rhino3dm.File3dm()
+    >>> [model.Objects.Add(ext) for ext in ext1.extrusion_rh]
+    [UUID('08874b17-c8d0-4236-8c55-de433175eecc'),
+     UUID('37e220fe-8f20-4b50-8d5d-15af571240f3'),
+     UUID('29c41150-f50d-44e8-875e-68551084ce3d'),
+     UUID('04bfec2a-60af-4a32-ba82-5c0014f116b2')]
+    >>> [model.Objects.Add(ext) for ext in panel.bends_extrusion[1].extrusion_rh]
+    [UUID('ea7c4044-6e79-4f25-b3d8-1875091fac16'),
+     UUID('ada9f62c-6fcc-440e-9b31-bde88e6e4958'),
+     UUID('affa554a-90fe-4594-bde5-71374ced1fc9'),
+     UUID('0318af09-8a5f-4f5e-b5a6-c966c575fa2c')]
+    >>> [model.Objects.Add(ext) for ext in panel.bends_extrusion[2].extrusion_rh]
+    [UUID('b4df8ce7-2321-4780-96d3-437ce2231e3b'),
+     UUID('780a9855-0a8a-472e-85ff-636a544147ba'),
+     UUID('7addc705-4b07-4951-bc26-fa6fe63a73e9'),
+     UUID('1faf1e87-d446-4b03-9389-68373e540095')]
+    >>> model.Write("example.3dm")
+    True
+    """
+    extrusion_type = StrongBendExtrusion
