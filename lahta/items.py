@@ -10,10 +10,11 @@ import compas_occ.geometry as cc
 from lahta.setup_view import view
 from dataclasses import dataclass, astuple
 import compas.geometry as cg
+from compas_view2.app import App
 
 js = {'poly': []}
 
-
+view = App()
 class Element(Item):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -109,13 +110,7 @@ class ParentFrame3D(ParentFrame2D):
         parent = cg.Frame(args[0].start, xaxis=x, yaxis=z)
         return parent
 
-class ParentFrame3D_end(ParentFrame2D):
-    def parent_frame(self, *args):
-        y = cg.Vector.from_start_end(args[0].start, args[0].end).unitized()
-        x = cg.Vector.cross(y, args[1])
-        z = cg.Vector(*args[1]).inverted()
-        parent = cg.Frame(args[0].end, xaxis=x, yaxis=z)
-        return parent
+
 
 
 class ParentFrameUnroll(ParentFrame2D):
@@ -156,6 +151,7 @@ class TransformableItem(Item):
 
 class FoldElement(TransformableItem):
     inner_parts_trim = 0
+    param = 0.5
 
     @ParentFrame2D
     def parent_frame(self):
@@ -214,7 +210,8 @@ class FoldElement(TransformableItem):
 
     @property
     def straight_len(self):
-        self._straight_len = (2 * math.pi * self.radius) * (np.radians(self.angle) / (2 * math.pi))
+        rad = self.metal_width * self.param + self.radius
+        self._straight_len = (2 * math.pi * rad) * (np.radians(np.abs(self.angle)) / (2 * math.pi))
         return self._straight_len
 
 
@@ -294,6 +291,12 @@ class FoldElementFres(FoldElement):
         inner = self.construct_inner(crv_segments[0])
         outer = crv_segments[1]
         return [inner, outer]
+
+    @property
+    def straight_len(self):
+        rad = self.met_left * self.param + self.in_rad
+        self._straight_len = (2 * math.pi * rad) * (np.radians(np.abs(self.angle)) / (2 * math.pi))
+        return self._straight_len
 
     def calc_rightangle_length(self):
         a = math.tan(math.pi / 4)
@@ -377,6 +380,7 @@ class BendSegment(Segment, TransformableItem):
 
     @TransformableItem.obj_transform
     def transform_data(self, transformation):
+
         self.fold.inner = self.fold.inner.transformed(transformation)
         self.fold.outer = self.fold.outer.transformed(transformation)
         self.straight.inner = self.straight.inner.transformed(transformation)
@@ -421,7 +425,6 @@ class BendSegmentFres(BendSegment):
         fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad, met_left=self.met_left,
                                metal_width=self.metal_width, parent=self.parent)
         return fold
-
 
 class Bend(Item):
     def __init__(self, segments: list[BendSegment], parent=cg.Frame.worldXY(), *args, **kwargs):
@@ -487,14 +490,16 @@ class Bend(Item):
         fold = self.bend_stage[0].fold
         a = math.tan(np.radians(fold.angle/2))
         if isinstance(fold, FoldElementFres):
-            self._tri_offset = (fold.in_rad + fold.metal_width) / a
+            self._tri_offset = (fold.radius) / a
         else:
             self._tri_offset = (fold.radius + fold.metal_width) / a
         return self._tri_offset
 
-    @tri_offset.setter
-    def tri_offset(self, v):
-        self._tri_offset = v
+    @property
+    def unroll_offset(self):
+        fold = self.bend_stage[0].fold
+        self._unroll_offset= fold.straight_len / 2
+        return self._unroll_offset
 
     @property
     def inner(self):
@@ -528,68 +533,3 @@ class Bend(Item):
 
 
 
-class Panel(Item):
-    def __call__(self, panel, bends, *args, **kwargs):
-        super().__call__(panel=panel, bends=bends, *args, **kwargs)
-        self.offset_panel = cg.Polygon(cg.offset_polygon(self.panel, self.bends[0].tri_offset))
-        self.normal = self.offset_panel.normal
-        self.panel_lines = self.offset_panel.lines
-
-    @property
-    def parent_frames(self):
-        self._parent_frames = []
-        for i in self.panel_lines:
-            y = cg.Vector.from_start_end(i.start, i.end).unitized()
-            x = cg.Vector.cross(y, self.normal)
-            z = cg.Vector(*self.normal).inverted()
-            parent = cg.Frame(i.start, xaxis=x, yaxis=z)
-            self._parent_frames.append(parent)
-        return self._parent_frames
-
-    @parent_frames.setter
-    def parent_frames(self, v):
-        self._parent_frames = v
-
-
-class PanelUnroll(Panel):
-    def __call__(self, panel, bends, *args, **kwargs):
-        super().__call__(panel=panel, bends=bends, *args, **kwargs)
-
-    @property
-    def parent_frames(self):
-        self._parent_frames = []
-        for i in self.panel_lines:
-            y = cg.Vector.from_start_end(i.start, i.end).unitized()
-            x = cg.Vector.cross(y, self.normal)
-            parent = cg.Frame(i.start, xaxis=x, yaxis=y)
-            self._parent_frames.append(parent)
-        return self._parent_frames
-
-    @parent_frames.setter
-    def parent_frames(self, v):
-        self._parent_frames = v
-
-    @property
-    def unroll(self):
-        self._unroll = []
-        for num, bend in enumerate(self.bends):
-            bend_list = []
-            start = self.parent_frames[num].point
-
-            for i in bend.lengths:
-                start_ps = start
-                tr_x = cg.Translation.from_vector(self.parent_frames[num].xaxis * i)
-                end_ps = start_ps.transformed(tr_x)
-                tr_y = cg.Translation.from_vector(
-                    cg.Vector.from_start_end(self.panel_lines[num].start, self.panel_lines[num].end))
-                start_pe = start_ps.transformed(tr_y)
-                end_pe = end_ps.transformed(tr_y)
-                bend_list.append(cg.Polygon([start_ps, end_ps, end_pe, start_pe]))
-
-                start = end_ps
-            self._unroll.append(bend_list)
-        return self._unroll
-
-    @unroll.setter
-    def unroll(self, r):
-        self._unroll = r

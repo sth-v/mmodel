@@ -163,7 +163,7 @@ class RhinoBiCone:
 import compas.geometry as cg
 
 
-def rhino_crv_from_compas(nurbs_curves: list[cg.NurbsCurve | cg.Curve | compas_occ.geometry.OCCNurbsCurve]) -> list[
+def rhino_crv_from_compas(nurbs_curves: list) -> list[
     rhino3dm.NurbsCurve]:
     """
     Convert list of compas-like Nurbs curves to Rhino Nurbs Curves
