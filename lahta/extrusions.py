@@ -1,5 +1,4 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-import json
 import math
 
 import compas.geometry as cg
@@ -8,8 +7,7 @@ import numpy as np
 import rhino3dm
 from more_itertools import pairwise
 
-from lahta.items import ParentFrame3D, StraightElement, TransformableItem, Bend, BendSegment, BendSegmentFres
-from lahta.setup_view import view
+from lahta.items import Bend, ParentFrame3D, StraightElement, TransformableItem
 from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
 
 
@@ -24,7 +22,7 @@ class Extrusion(TransformableItem):
         if transf is not None:
             inner_extr = cc.OCCNurbsSurface.from_extrusion(elems.inner, self.vector)
             inner_extr = inner_extr.transformed(transf)
-            print(transf)
+            #print(transf)
             outer_extr = cc.OCCNurbsSurface.from_extrusion(elems.outer, self.vector)
             outer_extr = outer_extr.transformed(transf)
             setattr(elems, 'extrusion_inner', inner_extr)
@@ -48,9 +46,6 @@ class Extrusion(TransformableItem):
         return elems
 
 
-
-
-
 class BendPanelExtrusion(Extrusion):
 
     @ParentFrame3D
@@ -60,7 +55,7 @@ class BendPanelExtrusion(Extrusion):
     @property
     def transl_frame(self):
         vec = cg.Vector.from_start_end(self.profile.inner[0].start, self.profile.outer[0].start)
-        v = vec.unitized().inverted()*vec.length
+        v = vec.unitized().inverted() * vec.length
         tr = cg.Translation.from_vector(v)
         self._transl_frame = self.extrusion_parent.transformed(tr)
         return self._transl_frame
@@ -78,7 +73,7 @@ class BendPanelExtrusion(Extrusion):
         self._i = 0
         self.bend_extr = []
 
-        self.profile, self.extrusion_line, self.normal,self.lengths = args
+        self.profile, self.extrusion_line, self.normal, self.lengths = args
         self.profile(parent_obj=self.extrusion_parent)
 
         super().__call__(profile=self.profile, vector=self.vector, *args, **kwargs)
@@ -181,7 +176,6 @@ class StrongBendExtrusion(BendPanelExtrusion):
 
 class BendPanelUnroll(BendPanelExtrusion):
 
-
     def translation_vector(self, dist):
         vec = self.extrusion_parent.xaxis * dist
         transl = cg.Translation.from_vector(vec)
@@ -227,15 +221,13 @@ class BendPanelUnroll(BendPanelExtrusion):
 
     @property
     def rhino_extrusion(self):
-        l =[]
+        l = []
         for i in self.unroll:
             crv = rhino_crv_from_compas([i])
             crv = list_curves_to_polycurves(crv)
             l.append(crv)
         self._rhino_extrusion = l
         return self._rhino_extrusion
-
-
 
 
 class Panel(TransformableItem):
@@ -259,7 +251,7 @@ class Panel(TransformableItem):
     @property
     def coor_offset_unroll(self):
         dist = self.bend_types[0].unroll_offset
-        offset = cg.offset_polygon(self.coor_axis, self.tri_offset-dist)
+        offset = cg.offset_polygon(self.coor_axis, self.tri_offset - dist)
         self._coor_offset_unroll = cg.Polygon(offset)
         return self._coor_offset_unroll
 
@@ -278,7 +270,7 @@ class Panel(TransformableItem):
 
     @property
     def lengths(self):
-        self._lengths =[]
+        self._lengths = []
 
         param = 0.01
         poly = cg.Polygon(self.coor_axis).lines
@@ -305,19 +297,18 @@ class Panel(TransformableItem):
     def __call__(self, coor_axis, bend_types, *args, **kwargs):
         super().__call__(coor_axis=coor_axis, bend_types=bend_types, *args, **kwargs)
 
-
         self.bend_types = bend_types
-        #self.bends_extrusion = list(
-            #map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
-        self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
-
+        # self.bends_extrusion = list(
+        # map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
+        self.bends_unroll = list(
+            map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
 
     def to_rhino(self):
         model = rhino3dm.File3dm()
 
         for unr in self.bends_unroll:
-            #for i in ext.rhino_extrusion:
-                #model.Objects.Add(i)
+            # for i in ext.rhino_extrusion:
+            # model.Objects.Add(i)
 
             for i in unr.rhino_extrusion:
                 model.Objects.Add(i)
@@ -348,7 +339,7 @@ class TypingPanel(Panel):
         self.bend_types = bend_types
         self.bends_extrusion = list(
             map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
-        #self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
+        # self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
 
 
 class RhinoFriendlyPanel(TypingPanel):

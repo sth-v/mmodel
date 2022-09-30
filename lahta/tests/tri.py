@@ -1,11 +1,11 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import ast
+from collections.abc import Iterator
+
+import rhino3dm
 
 from mm.baseitems import Item
 from mm.meta import RemoteType
-from collections.abc import Iterator
-from typing import ContextManager
-import rhino3dm
 
 
 class L2(metaclass=RemoteType, bucket="lahta.contextmachine.online", prefix="cxm/internal/L2/",
@@ -18,11 +18,11 @@ class L2(metaclass=RemoteType, bucket="lahta.contextmachine.online", prefix="cxm
         return True
 
     def __gethook__(self, hook):
-        print(f"{self} get hook")
+        # print(f"{self} get hook")
         return list(map(rhino3dm.GeometryBase.Decode, ast.literal_eval(hook["Body"].read().decode())["rhino"]))
 
     def __sethook__(self, hook):
-        print(f"{self} set hook")
+        # print(f"{self} set hook")
         return {"rhino": map(rhino3dm.GeometryBase.Encode, hook)}
 
 
@@ -36,7 +36,7 @@ class CollectionMethod:
         self.owner = owner
 
     def __get__(self, instance, owner):
-        print("call method")
+        # print("call method")
 
         try:
             return self.__call__
@@ -45,9 +45,6 @@ class CollectionMethod:
 
     def __call__(self, *args, **kwargs):
         return self._f(self.owner, *args, **kwargs)
-
-
-import inspect
 
 
 class RhItemCollection(Iterator):

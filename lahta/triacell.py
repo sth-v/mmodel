@@ -1,15 +1,17 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+import json
 import os
 import sys
 
 import dotenv
+
+from cxm_remote.sessions import S3Client
 
 dotenv.load_dotenv(".env")
 sys.path.extend(
     [os.getenv("HOME") + "/mmodel", os.getenv("HOME") + "/mmodel/lahta",
      os.getenv("HOME") + "/mmodel/cxm_remote", os.getenv("HOME") + "/mm",
      os.getenv("HOME") + "/mmodel/cxm_remote/sessions"])
-from lahta.extrusions import *
 from lahta.items import *
 from mm.meta import RemoteType
 
@@ -37,9 +39,11 @@ from mm.baseitems import Item
 import itertools
 
 
-class L2Model(metaclass=RemoteType, storage=STORAGE, bucket=BUCKET, prefix="cxm/internal/L2/", suffix=""):
+class L2Model(metaclass=RemoteType, client=S3Client, storage=STORAGE, bucket=BUCKET, prefix="cxm/internal/L2/",
+              suffix=""):
     bucket = BUCKET
     storage = STORAGE
+    client: S3Client
 
     def __gethook__(self, hook):
         data = json.loads(hook["Body"].read())
@@ -53,6 +57,7 @@ class L2Model(metaclass=RemoteType, storage=STORAGE, bucket=BUCKET, prefix="cxm/
 class TS(Item):
     model = L2Model()
     mask = ModelAttrDescriptor()
+    client = ModelAttrDescriptor()
     target_triangles = ModelAttrDescriptor()
 
     def solve_celling(self):
@@ -60,7 +65,8 @@ class TS(Item):
         self.warns = []
         size = 40
         prefix = "Building "
-        l = len(self.target_triangles)
+
+        l = 200
 
         out = sys.stdout
 
@@ -69,30 +75,22 @@ class TS(Item):
             print(f"{prefix}{u'█' * x}{('.' * (size - x))} {j}/{l}", end='\r', file=out, flush=True)
 
         show(0)
-        model = rhino3dm.File3dm()
-        for i, pnl in enumerate(self.target_triangles):
 
-            pnl = ts.target_triangles[999][:-1]
+        for i, pnl in enumerate(self.target_triangles[:200]):
+
             ll = [Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3),
                         BendSegment(18, 1.0, 90),
                         BendSegment(7, 1.0, 90)])]
-            ll.extend(list(itertools.repeat(Bend([BendSegment(18, 1.0, 90)]), len(pnl) - 1)))
+            ll.extend(list(itertools.repeat(Bend([BendSegment(18, 1.0, 90)]), len(pnl[:-1]) - 1)))
             show(i + 1)
 
             # print(ll, pnl[:-1])
             try:
-
-                # for side in rp.bends_extrusion:
-                #   [model.Objects.Add(ext) for ext in side.extrusion_rh]
-
-                self.cells.append(RhinoFriendlyPanel(coor_axis=pnl, bend_types=ll))
+                self.cells.append(RhinoFriendlyPanel(coor_axis=pnl[:-1], bend_types=ll))
 
             except:
-                self.warns.append(i)
-                # print(i)
                 raise Exception(i, pnl)
-        model.Write("assembly.3dm", 7)
-        return self.cells, self.warns
+        return self.cells
 
 
 if __name__ == "__main__":

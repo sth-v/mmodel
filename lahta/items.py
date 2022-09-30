@@ -1,20 +1,22 @@
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 from __future__ import print_function
+
 import math
-from tools.geoms import OCCNurbsCurvePanels
-import numpy as np
+from dataclasses import astuple, dataclass
 from functools import wraps
-from mm.parametric import Arc
-from mm.baseitems import Item
-from compas_occ.geometry import OCCNurbsCurve
-import compas_occ.geometry as cc
-from lahta.setup_view import view
-from dataclasses import dataclass, astuple
+
 import compas.geometry as cg
-from compas_view2.app import App
+import numpy as np
+from compas_occ.geometry import OCCNurbsCurve
+
+from mm.baseitems import Item
+from mm.parametric import Arc
+from tools.geoms import OCCNurbsCurvePanels
 
 js = {'poly': []}
 
-view = App()
+
 class Element(Item):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -109,8 +111,6 @@ class ParentFrame3D(ParentFrame2D):
         z = cg.Vector(*args[1]).inverted()
         parent = cg.Frame(args[0].start, xaxis=x, yaxis=z)
         return parent
-
-
 
 
 class ParentFrameUnroll(ParentFrame2D):
@@ -213,7 +213,6 @@ class FoldElement(TransformableItem):
         rad = self.metal_width * self.param + self.radius
         self._straight_len = (2 * math.pi * rad) * (np.radians(np.abs(self.angle)) / (2 * math.pi))
         return self._straight_len
-
 
     # расстояние от точки касания до точки пересечения касательных
     def calc_extra_length(self):
@@ -373,10 +372,8 @@ class BendSegment(Segment, TransformableItem):
 
     def bending_straight(self, fold):
         straight = StraightElement(metal_width=self.metal_width, parent=fold, length_in=[self.fold.inner_parts_trim, 0],
-                                   length_out=self.length - (self.fold.calc_rightangle_length()), length = self.length)
+                                   length_out=self.length - (self.fold.calc_rightangle_length()), length=self.length)
         return straight
-
-
 
     @TransformableItem.obj_transform
     def transform_data(self, transformation):
@@ -425,6 +422,7 @@ class BendSegmentFres(BendSegment):
         fold = FoldElementFres(angle=self.angle, radius=self.radius, in_rad=self.in_rad, met_left=self.met_left,
                                metal_width=self.metal_width, parent=self.parent)
         return fold
+
 
 class Bend(Item):
     def __init__(self, segments: list[BendSegment], parent=cg.Frame.worldXY(), *args, **kwargs):
@@ -488,7 +486,7 @@ class Bend(Item):
     @property
     def tri_offset(self):
         fold = self.bend_stage[0].fold
-        a = math.tan(np.radians(fold.angle/2))
+        a = math.tan(np.radians(fold.angle / 2))
         if isinstance(fold, FoldElementFres):
             self._tri_offset = (fold.radius) / a
         else:
@@ -498,7 +496,7 @@ class Bend(Item):
     @property
     def unroll_offset(self):
         fold = self.bend_stage[0].fold
-        self._unroll_offset= fold.straight_len / 2
+        self._unroll_offset = fold.straight_len / 2
         return self._unroll_offset
 
     @property
@@ -530,6 +528,3 @@ class Bend(Item):
             self._lengths.append(i.fold.straight_len)
             self._lengths.append(i.straight.length_out)
         return self._lengths
-
-
-
