@@ -1,10 +1,6 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-import os, sys
+import os
 import sys
-
-from compas.geometry import Line, Point
-
-from lahta.extrusions import NaivePanel
 
 # print('Python %s on %s' % (sys.version, sys.platform))
 
@@ -17,17 +13,15 @@ sys.path.extend(
 import json
 from typing import Iterable, Optional, Any, Union
 import pickle
-import mm.parametric as prm
-from dataclasses import dataclass
-import importlib
 from cxm_remote.sessions import S3Session
 from fastapi import FastAPI
-from fastapi.responses import StreamingResponse, JSONResponse, RedirectResponse, FileResponse
-import uvicorn
-from lahta.items import OCCNurbsCurve, BendSegment, Bend, BendSegmentFres, Panel
+from fastapi.responses import StreamingResponse
+from lahta.items import *
+from lahta.extrusions import *
+
 from pydantic import BaseModel
 
-with open("/tmp/mmodel_server_remote/mm/parametric/localconfig.json", "rb") as fp:
+with open(f"{os.getenv('PWD')}/mm/parametric/localconfig.json", "rb") as fp:
     local_configs = json.load(fp)
     S3Session.storage = local_configs["storage"]
     sess = S3Session(bucket=local_configs["bucket"])
@@ -35,11 +29,11 @@ with open("/tmp/mmodel_server_remote/mm/parametric/localconfig.json", "rb") as f
     parent = local_configs["parent"]
     remote_configs = local_configs["remote"]
     obj_list = sess.s3.list_objects(Bucket=sess.bucket, Prefix="dev/")
-    # print(f"S3 Session {sess.bucket} success!\n\n"
+    print(f"S3 Session {sess.bucket} success!\n\n"
           f"----------------------------------------------------------------------------------------------------------\n"
           f"List objects from prefix - ({parent}/{pref}/)\n{obj_list} ")
     CONFIGS = json.loads(sess.s3.get_object(Bucket=sess.bucket, Key='dev/mm/parametric/cxmmodule.json')["Body"].read())
-    # print(f"Get remote configs {sess.bucket,} success!\n\n"
+    print(f"Get remote configs {sess.bucket,} success!\n\n"
           f"----------------------------------------------------------------------------------------------------------\n"
           f"Configs = ({CONFIGS}")
 
@@ -171,39 +165,8 @@ bend_sess = S3Session(bucket="lahta.contextmachine.online")
 
 
 @bend.get("/")
-def construct_bend():
+def entry_bend():
     return {"api": "bend"}
-
-
-@bend.get("/objects")
-def construct_bend(uid: str):
-    bend_sess.s3.list_objects(Bucket=bend_sess.bucket, Prefix="cxm/playground/bend/pkl/")
-    obj = pickle.loads(
-        bend_sess.s3.get_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{uid}")["Body"].read())
-    return {
-        "data": obj.to_compas(),
-        "metadata": {
-            "uid": obj.uid,
-            "version": obj.version,
-            "dtype": "Bend"
-
-        }
-    }
-
-
-@bend.get("/objects/{uid}")
-def construct_bend(uid: str):
-    obj = pickle.loads(
-        bend_sess.s3.get_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{uid}")["Body"].read())
-    return {
-        "data": obj.to_compas(),
-        "metadata": {
-            "uid": obj.uid,
-            "version": obj.version,
-            "dtype": "Bend"
-
-        }
-    }
 
 
 bend_db = dict()
@@ -266,23 +229,24 @@ class BendPatch(BaseModel):
 
 class BendMulti(BaseModel):
     bends: list[BendInput]
+
+
 class PanelApi(BaseModel):
     bends: list[BendInput]
-    panel:list[list[float]]
-    dtype: str="Panel"
-
+    panel: list[list[float]]
+    dtype: str = "Panel"
 
     @property
     def cxm(self):
         cls = globals()[self.dtype]
-        bends=[]
+        bends = []
         for k in self.bends:
             bends.append(Bend([s.cxm for s in k.segments]))
         return cls(self.panel, bends)
 
 
 @bend.get("/objects")
-def construct_bend():
+def get_bend_stream():
     def stream():
         for k, v in bend_db.items():
             yield {
@@ -316,7 +280,7 @@ def construct_bend4(uid: str):
     }
 
 
-@bend.post("/objects/create")
+@bend.post("/object/create")
 def construct_bend2(data: BendInput):
     print(list(data.segments), data.segments[0])
 
@@ -336,6 +300,7 @@ def construct_bend2(data: BendInput):
     }
 
 
+"""
 @bend.post("/objects/create_multi")
 def construct_bends(data: BendMulti):
     print(list(data.bends), data.bends[0])
@@ -351,10 +316,10 @@ def construct_bends(data: BendMulti):
     def stream():
         yield from test.to_compas()
 
-    return StreamingResponse(stream())
+    return StreamingResponse(stream())"""
 
 
-@bend.patch("/objects/patch/{uid}")
+@bend.patch("/object/patch/{uid}")
 def update_bend(uid: str, data: BendPatch):
     print(data)
 
@@ -395,5 +360,7 @@ def construct_panel(data: PanelApi):
 
 
 app.mount("/bend", bend)
+"""
 if __name__ == "__main__":
     uvicorn.run("main:app", host='0.0.0.0', port=8888)
+"""

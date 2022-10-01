@@ -10,6 +10,11 @@ from datetime import date
 
 import boto3
 import requests
+from attr import attr
+from colored import fg
+
+def addd(a,d): return a+d
+
 from colored import attr, fg
 
 

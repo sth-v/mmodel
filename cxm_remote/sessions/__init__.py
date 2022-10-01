@@ -115,6 +115,33 @@ class BucketTargetSession(BucketSession, WatchTargets):
 
 
 import pandas as pd
+from botocore.client import BaseClient
+
+
+class AuthTypes(dict):
+    auth_type: str = ""
+
+    def credentials_json(self, path="credentials.json"):
+
+        with open(path, "rb") as fp:
+            self.__dict__ |= json.load(fp)
+
+    def credentials(self):
+        ...
+
+    def dotenv(self):
+        import dotenv
+        dotenv.load_dotenv(dotenv.find_dotenv('.env'))
+        dict.__ior__(self, dotenv.dotenv_values(dotenv.find_dotenv('.env')))
+
+    def __call__(self, *args, path=None, **kwargs):
+        if self.auth_type == "credentials":
+            self.credentials()
+        elif self.auth_type == "credentials.json":
+            self.credentials_json(path) if path is not None else self.credentials_json()
+        elif self.auth_type == "dotenv":
+            self.dotenv()
+        return self
 
 
 class S3Client(WatchSession):
@@ -123,25 +150,23 @@ class S3Client(WatchSession):
     region_name: str = REGION
     aws_access_key_id: str = None,
     aws_secret_access_key: str = None
+    auth_dict = AuthTypes()
 
     def __init__(self, bucket: str = BUCKET, prefix="", auth_type="credentials.json", **kwargs):
         self.prefix = prefix
-        if auth_type == "credentials":
-            pass
-        elif auth_type == "credentials.json":
-            with open("credentials.json", "rb") as fp:
-                self.__dict__ |= json.load(fp)
-        else:
-            pass
-
+        self.auth_dict.auth_type = auth_type
+        self.auth_dict(**kwargs)
         super().__init__(bucket)
-        self.__dict__ |= kwargs
-        self.client = self.session.client(
+        self.__dict__ |= self.auth_dict
+
+    @property
+    def client(self) -> BaseClient:
+        return self.session.client(
             service_name=self.service_name,
             region_name=self.region_name,
             endpoint_url=self.storage,
-            aws_secret_access_key=self.aws_secret_access_key,
-            aws_access_key_id=self.aws_access_key_id
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            aws_access_key_id=AWS_ACCESS_KEY_ID
         )
 
     def __getattr__(self, item):

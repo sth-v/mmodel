@@ -10,7 +10,7 @@ import compas.geometry as cg
 import numpy as np
 from compas_occ.geometry import OCCNurbsCurve
 
-from mm.baseitems import Item
+from mm.baseitems import DictableItem, Item
 from mm.parametric import Arc
 from tools.geoms import OCCNurbsCurvePanels
 
@@ -424,7 +424,7 @@ class BendSegmentFres(BendSegment):
         return fold
 
 
-class Bend(Item):
+class Bend(DictableItem):
     def __init__(self, segments: list[BendSegment], parent=cg.Frame.worldXY(), *args, **kwargs):
         self._i = 0
         self.bend_stage = []
