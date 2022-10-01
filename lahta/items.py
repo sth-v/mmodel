@@ -8,13 +8,15 @@ from mm.baseitems import Item
 from compas_occ.geometry import OCCNurbsCurve
 import compas_occ.geometry as cc
 from lahta.setup_view import view
+from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
 from dataclasses import dataclass, astuple
 import compas.geometry as cg
 from compas_view2.app import App
+import rhino3dm
 
 js = {'poly': []}
 
-view = App()
+
 class Element(Item):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -139,6 +141,7 @@ class TransformableItem(Item):
             if hasattr(this, 'parent_obj'):
                 transformation = cg.Transformation.from_frame_to_frame(this.zero_frame, this.parent_obj)
                 this.zero_frame = this.parent_obj
+
             else:
                 transformation = cg.Transformation.from_frame_to_frame(this.zero_frame, this.zero_frame)
 
@@ -452,8 +455,23 @@ class Bend(Item):
         return len(self.segments)
 
     def to_compas(self):
-        for d in self._data:
+        _data = [*self.inner, *self.outer]
+        for d in _data:
             yield d.to_data()
+
+    def to_rhino(self):
+        _data = []
+
+        crv_in = rhino_crv_from_compas(self.inner)
+        crv_in = list_curves_to_polycurves(crv_in)
+        _data.append(crv_in)
+
+        crv_out = rhino_crv_from_compas(self.outer)
+        crv_out = list_curves_to_polycurves(crv_out)
+        _data.append(crv_out)
+
+        for d in _data:
+            yield d.Encode()
 
     def reload(self):
         self._i = 0
@@ -504,8 +522,14 @@ class Bend(Item):
     @property
     def inner(self):
         self._inner = []
-        for i in self.obj_transform:
-            self._inner.append(i.inner)
+        try:
+            for i in self.obj_transform:
+                self._inner.append(i.inner)
+        except AttributeError:
+            for i in self.bend_stage:
+                self._inner.append(i.fold.inner)
+                self._inner.append(i.straight.inner)
+
         return self._inner
 
     @inner.setter
@@ -515,8 +539,13 @@ class Bend(Item):
     @property
     def outer(self):
         self._outer = []
-        for i in self.obj_transform:
-            self._outer.append(i.outer)
+        try:
+            for i in self.obj_transform:
+                self._outer.append(i.outer)
+        except AttributeError:
+            for i in self.bend_stage:
+                self._outer.append(i.fold.outer)
+                self._outer.append(i.straight.outer)
         return self._outer
 
     @outer.setter
