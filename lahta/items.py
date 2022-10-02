@@ -460,13 +460,15 @@ class Bend(GeometryItem):
     def to_rhino(self):
         _data = []
 
-        crv_in = rhino_crv_from_compas(self.inner)
-        crv_in = list_curves_to_polycurves(crv_in)
-        _data.append(crv_in)
+        for i in self.inner:
+            crv_in = rhino_crv_from_compas([i])
+            crv_in = list_curves_to_polycurves(crv_in)
+            _data.append(crv_in)
 
-        crv_out = rhino_crv_from_compas(self.outer)
-        crv_out = list_curves_to_polycurves(crv_out)
-        _data.append(crv_out)
+        for i in self.outer:
+            crv_out = rhino_crv_from_compas([i])
+            crv_out = list_curves_to_polycurves(crv_out)
+            _data.append(crv_out)
 
         for d in _data:
             yield d.Encode()
