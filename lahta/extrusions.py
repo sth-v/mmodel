@@ -7,7 +7,7 @@ import compas_occ.geometry as cc
 import numpy as np
 import rhino3dm
 from more_itertools import pairwise
-
+import itertools
 from lahta.items import ParentFrame3D, StraightElement, TransformableItem, Bend, BendSegment, BendSegmentFres
 from lahta.setup_view import view
 from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
@@ -298,8 +298,7 @@ class Panel(TransformableItem):
 
     @property
     def normal(self):
-        self._normal = [self.coor_offset_extrusion.normal, self.coor_offset_extrusion.normal,
-                        self.coor_offset_extrusion.normal]
+        self._normal = list(itertools.repeat(self.coor_offset_extrusion.normal, len(self.bend_types)))
         return self._normal
 
     def __call__(self, coor_axis, bend_types, *args, **kwargs):
@@ -307,8 +306,8 @@ class Panel(TransformableItem):
 
 
         self.bend_types = bend_types
-        #self.bends_extrusion = list(
-            #map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
+        self.bends_extrusion = list(
+            map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
         self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
 
 
@@ -348,7 +347,7 @@ class TypingPanel(Panel):
         self.bend_types = bend_types
         self.bends_extrusion = list(
             map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
-        #self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
+        self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
 
 
 class RhinoFriendlyPanel(TypingPanel):
