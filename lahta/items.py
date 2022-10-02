@@ -6,21 +6,16 @@ import math
 from dataclasses import astuple, dataclass
 from functools import wraps
 
-from mm.parametric import Arc
-from mm.baseitems import Item
-from compas_occ.geometry import OCCNurbsCurve
-import compas_occ.geometry as cc
-from lahta.setup_view import view
-from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
-from dataclasses import dataclass, astuple
 import compas.geometry as cg
 import numpy as np
 from compas_occ.geometry import OCCNurbsCurve
 
-from mm.baseitems import DictableItem, Item
+from mm.baseitems import GeometryItem
+from mm.baseitems import Item
+from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
 from mm.parametric import Arc
 from tools.geoms import OCCNurbsCurvePanels
-import rhino3dm
+
 js = {'poly': []}
 
 
@@ -431,7 +426,8 @@ class BendSegmentFres(BendSegment):
                                metal_width=self.metal_width, parent=self.parent)
         return fold
 
-class Bend(Item):
+
+class Bend(GeometryItem):
     def __init__(self, segments: list[BendSegment], parent=cg.Frame.worldXY(), *args, **kwargs):
         self._i = 0
         self.bend_stage = []

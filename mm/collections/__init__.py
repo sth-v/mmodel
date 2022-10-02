@@ -1,15 +1,15 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 from __future__ import annotations
 
+import inspect
 from collections import defaultdict
 from collections.abc import Iterator
 from functools import wraps
 from typing import Any
-import inspect
 
 import numpy as np
 
-from mm.baseitems import BaseItem, Item, ArgsItem
+from mm.baseitems import BaseItem, Item
 
 
 def t(glb):
@@ -155,8 +155,6 @@ class ItemCollection(Iterator):
     def __next__(self):
         pass
 
-    target = ArgsItem
-
     def __init__(self, *args, **kwargs):
         ...
 
@@ -270,7 +268,6 @@ class AbstractItemCollection(_AttrHandlerCollection):
     {'ikw': {'x': 51, 'y': 1}, 'iar': (), '_uid': '0x11fc27880', 'x': 51, 'y': 1, 'version': '0x4d0x5b0x600x600x62'}
     {'ikw': {'x': 8, 'y': 3}, 'iar': (), '_uid': '0x11fc27e50', 'x': 8, 'y': 3, 'version': '0x4d0x5b0x600x600x62'}
     """
-    target = ArgsItem
 
 
 class NamedNumericCollection(BaseItem):

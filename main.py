@@ -11,7 +11,7 @@ sys.path.extend(
      '/tmp/mmodel_server_remote/tests', '/Users/andrewastakhov/mmodel', '/Users/andrewastakhov/mmodel/lahta'])
 
 import json
-from typing import Iterable, Optional, Any, Union
+from typing import Iterable, Optional, Any, Type, Union
 import pickle
 from cxm_remote.sessions import S3Session
 from fastapi import FastAPI
@@ -245,42 +245,65 @@ class PanelApi(BaseModel):
         return cls(self.panel, bends)
 
 
+class MmodelGeometryData(BaseModel):
+    compas: Any
+    rhino: Any
+
+
+class MmodelMetaData(BaseModel):
+    uid: str
+    uuid: str
+    version: str
+    dtype: str
+
+
+class BindPydantic:
+    def __init__(self, model: Type[BaseModel]):
+        self.model = model
+        self.name = model.__name__
+
+    @property
+    def pydantic_type(self) -> Type[BaseModel]:
+        return self.model
+
+    def __call__(self, obj) -> BaseModel:
+        data = {
+            "data": {
+                "compas": list(obj.to_compas()),
+                "rhino": list(obj.to_rhino())
+            },
+
+            "metadata": obj.metadata
+        }
+        return self.model(**data)
+
+
+@BindPydantic
+class MmodelObjectSchema(BaseModel):
+    data: MmodelGeometryData
+    metadata: MmodelMetaData
+
+
 @bend.get("/objects")
 def get_bend_stream():
     def stream():
         for k, v in bend_db.items():
-            yield {
-                "data": v.to_compas(),
-
-                "metadata": {
-                    "uid": v.uid,
-                    "version": v.version,
-                    "dtype": "Bend"
-                }
-            }
+            yield MmodelObjectSchema(v)
 
     return StreamingResponse(stream())
 
     # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
 
 
-@bend.get("/objects/{uid}")
+@bend.get("/objects/{uid}", response_model=MmodelObjectSchema.pydantic_type)
 def construct_bend4(uid: str):
     test = bend_db[uid]
     # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
 
-    return {
-        "data": test.to_compas(),
-
-        "metadata": {
-            "uid": test.uid,
-            "version": test.version,
-            "dtype": "Bend"
-        }
-    }
+    return MmodelObjectSchema(test)
 
 
-@bend.post("/object/create")
+@bend.post("/object/create", response_model=MmodelObjectSchema.pydantic_type)
 def construct_bend2(data: BendInput):
     print(list(data.segments), data.segments[0])
 
@@ -289,15 +312,7 @@ def construct_bend2(data: BendInput):
     print(test)
     # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
 
-    return {
-        "data": test.to_compas(),
-
-        "metadata": {
-            "uid": test.uid,
-            "version": test.version,
-            "dtype": "Bend"
-        }
-    }
+    return MmodelObjectSchema(test)
 
 
 """
@@ -319,27 +334,19 @@ def construct_bends(data: BendMulti):
     return StreamingResponse(stream())"""
 
 
-@bend.patch("/object/patch/{uid}")
+@bend.patch("/object/patch/{uid}", response_model=MmodelObjectSchema.pydantic_type)
 def update_bend(uid: str, data: BendPatch):
     print(data)
 
-    obj = segments = bend_db[uid]
+    test = segments = bend_db[uid]
     # pkl = pickle.dumps(obj=obj)
 
     # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/pkl/{uid}", Body=pkl)
 
-    return {
-        "data": obj.to_compas(),
-        "metadata": {
-            "uid": obj.uid,
-            "version": obj.version,
-            "dtype": "Bend"
-
-        }
-    }
+    return MmodelObjectSchema(test)
 
 
-@bend.post("/panel/create")
+@bend.post("/panel/create", response_model=MmodelObjectSchema.pydantic_type)
 def construct_panel(data: PanelApi):
     print(list(data.panel), data.bends[0])
 
@@ -348,15 +355,7 @@ def construct_panel(data: PanelApi):
     print(test)
     # bend_sess.s3.put_object(Bucket=bend_sess.bucket, Key=f"cxm/playground/bend/pkl/{test.uid}", Body=pkl)
 
-    return {
-        "data": test.to_compas(),
-
-        "metadata": {
-            "uid": test.uid,
-            "version": test.version,
-            "dtype": "Panel"
-        }
-    }
+    return MmodelObjectSchema(test)
 
 
 app.mount("/bend", bend)

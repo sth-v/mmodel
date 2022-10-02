@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
-           'DataItem', 'FieldItem', 'DictableItem', 'JsItem']
+__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'DictableItem', 'JsItem',
+           'DataviewInterface', 'Dataview', 'DataviewDescriptor', 'Metadata', 'ReprData', 'GeomConversionMap'
+           ]
 
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import base64
-import inspect
 import itertools
 import json
-from collections.abc import Callable
+from abc import ABCMeta, abstractmethod
+from collections.abc import Callable, Generator
 from typing import Any
 
 import compas
@@ -95,7 +96,98 @@ class Identifiable(Versioned):
         ...
 
 
-class Item(Identifiable):
+class DataviewInterface(metaclass=ABCMeta):
+    include: list[str] = []
+    replace: dict[str, str] = dict()
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        for name, constrain in kwargs.items():
+            if constrain is not None: setattr(self, name, constrain)
+
+    @abstractmethod
+    def __get_dict__(self, instance, owner):
+        pass
+
+
+class Dataview(DataviewInterface):
+    include: list[str] = []
+    replace: dict[str, str] = dict()
+
+    def __get_dict__(self, instance, owner):
+        get_dict = {}
+        for k in self.include:
+            get_dict[self.replace[k] if k in self.replace.keys() else k] = getattr(instance, k)
+        return get_dict
+
+
+class DataviewDescriptor(Dataview):
+    include: list[str] = []
+    replace: dict[str, str] = dict()
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner) -> dict:
+        return self.__get_dict__(instance, owner)
+
+
+class Metadata(DataviewDescriptor):
+    include = ["uid", "uuid", "dtype", "version"]
+    replace = {
+        "_dtype": "dtype"
+    }
+
+
+class ReprData(DataviewDescriptor):
+    include = []
+    replace = {
+        "_dtype": "dtype"
+    }
+
+    def __init__(self, *include, **kwargs):
+        super().__init__(**kwargs)
+        list_include = list(include)
+        list_include.extend(self.include)
+        self.include = list_include
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+
+class ItemFormatter:
+    _dtype = "ItemFormatter"
+    __representation: ReprData
+    representation = ReprData()
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def format_spec(self):
+        return self.representation
+
+    def __format__(self, format_spec: dict = None):
+        if format_spec is not None:
+            self.representation |= format_spec
+        return "{}({})".format(self.__class__.__name__,
+                               "".join([f"{k}={v}, " for k, v in self.representation.items()])[:-1][:-1])
+
+    def __str__(self):
+        """
+        Item Format str
+        """
+
+        return self.__format__()
+
+    def __repr__(self):
+        return f"< {self.__format__()} at {hex(id(self))} >"
+
+
+class Item(Identifiable, ItemFormatter):
+    metadata = Metadata()
+    representation = ReprData("version", "uid", "dtype")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -104,40 +196,33 @@ class Item(Identifiable):
         super().__call__(*args, **kwargs)
 
 
-class ArgsItem(Item):
-    def __init__(self, *args, **kwargs):
-        self.init_args = locals()
-        self.arg_spec = inspect.getfullargspec(self.__class__.__init__)
-        super().__init__(*args, **kwargs)
+class GeomConversionMap(DataviewDescriptor):
+    include = ["to_rhino", "to_compas"]
+    replace = {
 
-    def __call__(self, *args, **kwargs):
-        super(ArgsItem, self).__call__(*args, **kwargs)
-        self.new_args = locals()
+    }
 
-    def __getinitargs__(self):
-        return self.init_args
+    def __get_dict__(self, instance, owner):
+        get_dict = {}
+        for k in self.include:
+            v = getattr(instance, k)
+            if callable(v):
+                val = list(getattr(owner, k)(v)) if isinstance(getattr(owner, k)(v), Generator) else getattr(owner, k)(
+                    v)
+            else:
+                val = getattr(owner, k)
+            get_dict[self.replace[k] if k in self.replace.keys() else k] = val
+        return get_dict
 
-    def __getnewargs__(self):
-        return self.new_args
 
+class GeometryItem(Item):
+    data = GeomConversionMap()
 
-class HistoryArgItem(ArgsItem):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        with open(f"tmp/{self.uid}", "wb") as fp:
-            fp.write(base64.b64encode((json.dumps(self.__dict__['init_args']['kwargs']) + '\n').encode()))
+    def to_rhino(self) -> Generator[dict[str:Any]]:
+        ...
 
-    def __call__(self, *args, **kwargs):
-        super(HistoryArgItem, self).__call__(*args, **kwargs)
-        with open(f"tmp/{self.uid}", "ab") as fp:
-            fp.write(base64.b64encode((json.dumps(self.__dict__['new_args']['kwargs']) + '\n').encode()))
-
-    @classmethod
-    def read_log(cls, path):
-        with open(f"{path}", "rb") as fp:
-            data = eval(base64.b64decode(fp.read()))
-            # print(data)
-        return cls(**data)
+    def to_compas(self) -> Generator[dict[str:Any]]:
+        ...
 
 
 class member_table(dict):
@@ -255,53 +340,12 @@ class FieldItem(Item):
                     self.custom_fields.append(k)
 
 
-class ItemFormatter:
-    _dtype = "ItemFormatter"
-    format_spec = {"_dtype"}
-
-    def __format__(self, format_spec: set = None):
-
-        s = ''
-
-        if format_spec is None:
-            format_spec = self.__class__.format_spec
-
-        elif format_spec is not None:
-            format_spec.update(self.__class__.format_spec)
-        else:
-            pass
-        for k in format_spec:
-            s += f"{k}={getattr(self, k)} ,"
-
-        return "{}({})".format(self.__class__.__name__, s[:-1])
-
-    def __str__(self):
-        """
-        Item Format str
-        """
-
-        return self.__format__()
-
-    def __repr__(self):
-        return f"<{self.__format__()} at {hex(id(self))}>"
-
-
 class DictableItem(FieldItem, ItemFormatter):
     fields = []
-    exclude = ('args', 'kw', 'aliases', "fields", "uid", "__array__")
-    format_spec = {"uid", "version"}
 
-    def __format__(self, format_spec=None):
-
-        return super(DictableItem, self).__format__(format_spec=format_spec)
-
-    def __str__(self):
-
-        return self.__format__(format_spec=set(self.__class__.fields))
-
-    def __repr__(self):
-
-        return f"<{self.__format__(format_spec=set(self.__class__.fields))} at {self.uid}>"
+    representation = ReprData("uid", "version")
+    exclude = ('args', 'kw', 'representation', 'aliases', "fields", "uid", "__array__")
+    metadata = Metadata(include=["uid", "uuid", "dtype", "version", "custom_fields", "base_fields"])
 
     def __hash__(self):
         st = ""
@@ -326,12 +370,13 @@ class DictableItem(FieldItem, ItemFormatter):
         return st
 
     def to_dict(self):
-        st: dict = {'metadata': {}}
+        st: dict = {}
 
         for k, v in self.__dict__.items():
             k = k[1:] if k[0] == "_" else k
             if k in self.exclude:
-                pass
+                continue
+
             else:
 
                 try:
@@ -347,12 +392,12 @@ class DictableItem(FieldItem, ItemFormatter):
 
                         dct = v
 
-                if k in self.__class__.fields:
+                if k in self.base_fields:
 
                     st |= {k: dct}
                 else:
-                    st['metadata'] |= {k: dct}
-
+                    pass
+        st["metadata"] = self.metadata
         return st
 
     def encode(self, **kwargs):
@@ -371,7 +416,6 @@ class DictableItem(FieldItem, ItemFormatter):
 
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
-        self.__dict__["hash"] = self.__hash__()
 
     def to_compas(self):
         ...
@@ -379,6 +423,13 @@ class DictableItem(FieldItem, ItemFormatter):
 
 class JsItem(DictableItem):
     schema_js = dict()
+
+
+class GeomDataItem(DictableItem, GeometryItem):
+    def to_dict(self):
+        dct = super().to_dict()
+        dct["data"] = self.data
+        return dct
 
 
 # New Style Classes
