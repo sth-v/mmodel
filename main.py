@@ -21,31 +21,6 @@ from lahta.extrusions import *
 
 from pydantic import BaseModel
 
-with open(f"{os.getenv('PWD')}/mm/parametric/localconfig.json", "rb") as fp:
-    local_configs = json.load(fp)
-    S3Session.storage = local_configs["storage"]
-    sess = S3Session(bucket=local_configs["bucket"])
-    pref = local_configs["prefix"]
-    parent = local_configs["parent"]
-    remote_configs = local_configs["remote"]
-    obj_list = sess.s3.list_objects(Bucket=sess.bucket, Prefix="dev/")
-    print(f"S3 Session {sess.bucket} success!\n\n"
-          f"----------------------------------------------------------------------------------------------------------\n"
-          f"List objects from prefix - ({parent}/{pref}/)\n{obj_list} ")
-    CONFIGS = json.loads(sess.s3.get_object(Bucket=sess.bucket, Key='dev/mm/parametric/cxmmodule.json')["Body"].read())
-    print(f"Get remote configs {sess.bucket,} success!\n\n"
-          f"----------------------------------------------------------------------------------------------------------\n"
-          f"Configs = ({CONFIGS}")
-
-
-@dataclass
-class CreateSchema:
-    a: Optional[float] = 0.0
-    b: Optional[float] = 1.0
-    r: Optional[float] = 1.0
-    x0: float = 0.0
-    y0: float = 0.0
-
 
 @dataclass
 class UpdSchema:
@@ -57,78 +32,6 @@ app = FastAPI(debug=True)
 bend = FastAPI(debug=True)
 
 
-@app.get("/")
-def home():
-    return {"api": "playground"}
-
-
-@app.get("/all")
-def get_all():
-    return json.loads(sess.s3.get_object(Bucket=sess.bucket, Key='dev/mm/parametric/cxmmodule.json')["Body"].read())[
-        "all"]
-
-
-@app.put("/create/{name}")
-def create_object(name: str, data: CreateSchema = CreateSchema()):
-    cls_ = eval("prm.{}".format(name))
-    globals()[name] = [cls_]
-
-    obj = cls_(**data.__dict__)
-    pkl = pickle.dumps(obj=obj)
-    sess.s3.put_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/pkl/{name}/{hex(id(obj))}", Body=pkl)
-    sess.s3.put_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/dump/{hex(id(obj))}", Body=pkl)
-
-    return hex(id(obj))
-
-
-"""
-@app.get("/objects/{name}/{item_id}")
-def get_object_item(name: str, item_id: str):
-    return StreamingResponse(
-        sess.s3.get_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/pkl/{name}/{item_id}")["Body"])
-"""
-
-
-@app.get("/objects/{item_id}")
-def get_objects_by_id(item_id: str):
-    obj = pickle.loads(sess.s3.get_object(Bucket=sess.bucket, Key=f'dev/{parent}/{pref}/dump/{item_id}')["Body"].read())
-    return {
-        "type": obj.__class__.__name__,
-        "id": item_id,
-        "repr": obj.__repr__(),
-        "attrs": obj.__dict__
-    }
-
-
-@app.get("/eval/{item_id}")
-def eval_object_by_id(item_id: str, start: float = -1.0, stop: float = 1.0, step: float = 0.1):
-    obj_type = get_objects_by_id(item_id)["type"]
-    obj = pickle.loads(
-        sess.s3.get_object(Bucket=sess.bucket, Key=f'dev/{parent}/{pref}/pkl/{obj_type}/{item_id}')["Body"].read())
-    return list(obj[start:stop:step])
-
-
-@app.get("/eval_single/{item_id}")
-def eval_object_single_parametr(item_id: str, t: float = 0.3):
-    obj = pickle.loads(sess.s3.get_object(Bucket=sess.bucket, Key=f'dev/{parent}/{pref}/dump/{item_id}')["Body"].read())
-    return obj.evaluate(t)
-
-
-@app.post("/objects_patch/{item_id}")
-def eval_object_single_parametr(item_id: str, data: UpdSchema):
-    obj = pickle.loads(sess.s3.get_object(Bucket=sess.bucket, Key=f'dev/{parent}/{pref}/dump/{item_id}')["Body"].read())
-    obj(**data.patch)
-    pkl = pickle.dumps(obj=obj)
-    sess.s3.put_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/pkl/{obj.__class__.__name__}/{item_id}", Body=pkl)
-    sess.s3.put_object(Bucket=sess.bucket, Key=f"dev/{parent}/{pref}/dump/{item_id}", Body=pkl)
-    print(obj)
-
-    return {
-        "type": obj.__class__.__name__,
-        "id": item_id,
-        "repr": obj.__repr__(),
-        "attrs": obj.__dict__
-    }
 
 
 @dataclass
