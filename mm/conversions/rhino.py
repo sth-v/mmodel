@@ -1,7 +1,6 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import warnings
 
-import compas_occ.geometry
 import numpy as np
 import rhino3dm
 
@@ -171,7 +170,9 @@ def rhino_crv_from_compas(nurbs_curves: list) -> list[
     :type
     :return:
     :rtype:
+
     """
+
     return list(map(lambda x: rhino3dm.NurbsCurve.Create(
         x.is_periodic,
         x.degree,

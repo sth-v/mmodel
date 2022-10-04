@@ -11,7 +11,7 @@ import itertools
 import json
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Generator
-from typing import Any
+from typing import Any, Union
 
 import compas
 import compas.geometry
@@ -218,10 +218,10 @@ class GeomConversionMap(DataviewDescriptor):
 class GeometryItem(Item):
     data = GeomConversionMap()
 
-    def to_rhino(self) -> Generator[dict[str:Any]]:
+    def to_rhino(self) -> Union[list[float], Generator]:
         ...
 
-    def to_compas(self) -> Generator[dict[str:Any]]:
+    def to_compas(self) -> Union[list[float], Generator]:
         ...
 
 

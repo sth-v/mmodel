@@ -1,4 +1,5 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+import json
 import math
 
 import compas.geometry as cg
@@ -6,6 +7,9 @@ import compas_occ.geometry as cc
 import numpy as np
 import rhino3dm
 from more_itertools import pairwise
+import itertools
+from lahta.items import ParentFrame3D, StraightElement, TransformableItem, Bend, BendSegment, BendSegmentFres
+from lahta.setup_view import view
 
 from lahta.items import Bend, ParentFrame3D, StraightElement, TransformableItem
 from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
@@ -44,6 +48,9 @@ class Extrusion(TransformableItem):
             self.unroll.append(join)
 
         return elems
+
+
+
 
 
 class BendPanelExtrusion(Extrusion):
@@ -290,25 +297,24 @@ class Panel(TransformableItem):
 
     @property
     def normal(self):
-        self._normal = [self.coor_offset_extrusion.normal, self.coor_offset_extrusion.normal,
-                        self.coor_offset_extrusion.normal]
+        self._normal = list(itertools.repeat(self.coor_offset_extrusion.normal, len(self.bend_types)))
         return self._normal
 
     def __call__(self, coor_axis, bend_types, *args, **kwargs):
         super().__call__(coor_axis=coor_axis, bend_types=bend_types, *args, **kwargs)
 
         self.bend_types = bend_types
-        # self.bends_extrusion = list(
-        # map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
-        self.bends_unroll = list(
-            map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
+        self.bends_extrusion = list(
+            map(BendPanelExtrusion, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
+        self.bends_unroll = list(map(BendPanelUnroll, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
+
 
     def to_rhino(self):
         model = rhino3dm.File3dm()
 
         for unr in self.bends_unroll:
-            # for i in ext.rhino_extrusion:
-            # model.Objects.Add(i)
+            #for i in ext.rhino_extrusion:
+                #model.Objects.Add(i)
 
             for i in unr.rhino_extrusion:
                 model.Objects.Add(i)
@@ -340,9 +346,11 @@ class TypingPanel(Panel):
         self.bends_extrusion = list(
             map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
         # self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
+        self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
 
 
 class RhinoFriendlyPanel(TypingPanel):
+
     """
     >>> from lahta.items import *
     >>> panel = RhinoFriendlyPanel(coor_axis=[[258.627489, 545.484455, 490.055883],
