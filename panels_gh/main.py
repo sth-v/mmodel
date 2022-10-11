@@ -106,6 +106,10 @@ class Panel:
         self.type = type
 
         self.surf = surface
+        #unrol_surf = rh.Unroller(self.surf).PerformUnroll()[0][0]
+        #tr = rh.Transform.Translation(rh.Vector3d(500,500,0))
+        #unrol_surf.Transform(tr)
+
         self.unrol_surf = rh.Unroller(self.surf).PerformUnroll()[0][0]
         self.edges = self.unrol_surf.Curves3D
 
@@ -113,7 +117,7 @@ class Panel:
 
     def side_types(self):
 
-        if self.type == 0:
+        if self.type == 0 or self.type == 1:
             self.niche = Niche(self.edges[0])
             self.schov = Schov(self.edges[2])
             self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
@@ -140,68 +144,6 @@ class Panel:
             v.fres = trimed
 
 
-class FramePanel:
-
-    @property
-    def frame_offset(self):
-        ofs = []
-        for i, v in enumerate(self.panel.fres):
-            if i !=2:
-                c = rh.Curve.Offset(v, rh.Plane.WorldXY, 45, 0.01, rh.CurveOffsetCornerStyle.Sharp)[0]
-            else:
-                c = rh.Curve.Offset(v, rh.Plane.WorldXY, 40, 0.01, rh.CurveOffsetCornerStyle.Sharp)[0]
-            if i == 1:
-                ofs.append(rh.Curve.Extend(c, rh.Interval(c.Domain[0] - 200, c.Domain[1] + 200)))
-            elif i==0:
-                ofs.append(rh.Curve.Extend(c, rh.Interval(c.Domain[0] - 200, c.Domain[1])))
-            else:
-                ofs.append(rh.Curve.Extend(c, rh.Interval(c.Domain[0], c.Domain[1] + 200)))
-        self._frame_offset = rh.Curve.JoinCurves(self.intersect(ofs))[0]
-        return self._frame_offset
-
-    def __init__(self, panel):
-        self.panel = panel
-
-    def cut(self):
-        st = self.panel.niche.top_part.PointAtEnd
-        en = self.panel.side[0].top_part.PointAtStart
-        crv = rh.Line.ToNurbsCurve(rh.Line(st, en))
-        p = self.panel.niche.fres.PointAtEnd
-        crv_d = crv.PointAtLength(rh.Curve.DivideByCount(crv, 2, False)[0])
-        dist = rh.Point3d.DistanceTo(p, crv_d) + 10
-        line = crv.Offset(rh.Plane.WorldXY, dist, 0.01, rh.CurveOffsetCornerStyle.Sharp)[0]
-        return line
-
-
-    def bound_rec(self):
-        param = 30
-        rec_max = rh.PolyCurve.GetBoundingBox(self.frame_offset, rh.Plane.WorldXY).Max
-        rec_min = rh.PolyCurve.GetBoundingBox(self.frame_offset, rh.Plane.WorldXY).Min
-        rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(rec_min[0]-param, rec_min[1]-param, 0), rh.Point3d(rec_max)).ToNurbsCurve()
-        inters = rs.CurveCurveIntersection(rect, self.frame_offset)
-        trimed = rh.Curve.Trim(rect, inters[1][5], inters[0][5])
-        return rh.Curve.JoinCurves([trimed, self.frame_offset])
-
-    def intersect(self, vals):
-        res = []
-        for i, v in enumerate(vals):
-            if i == 2:
-                pass
-            else:
-                param = []
-                for ind, val in enumerate(vals):
-                    if i != ind:
-                        inters = rs.CurveCurveIntersection(v, val)
-                        if inters is not None:
-                            param.append(inters[0][5])
-                param = sorted(param)
-                if len(param) != 1:
-                    trimed = rh.Curve.Trim(v, param[0], param[1])
-                else:
-                    trimed = rh.Curve.Trim(v, param[0], v.Domain[1])
-                res.append(trimed)
-        return res
-
 
 try:
     p_left = Panel(surf_left, 1)
@@ -212,10 +154,9 @@ try:
     right_fres = p_right.fres
     right_cut = p_right.cut
 
-    fr = FramePanel(p_right)
-    frame = fr.frame_offset
-    perp = fr.cut()
-    rec = fr.bound_rec()
+    panel_right = p_right
+    panel_left = p_left
+
 except AttributeError:
     try:
         p_left = Panel(surf_left, 1)
