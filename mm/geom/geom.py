@@ -4,7 +4,7 @@ import compas.geometry as cg
 import numpy as np
 
 from mm.baseitems import DictableItem, Item
-from ..collections import Vector
+#from ..collections import Vector
 from ..meta import MetaItem
 
 mesh_js_schema = {
@@ -61,8 +61,8 @@ class Triangle(Item, metaclass=MetaItem):
         return np.asarray([self.a, self.b, self.c])
 
 
-class Quad(Vector):
+'''class Quad(Vector):
     a: Point
     b: Point
     c: Point
-    d: Point
+    d: Point'''

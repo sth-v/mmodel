@@ -10,9 +10,9 @@ from functools import partial, wraps
 from typing import Any, Callable, Generator, Iterable
 
 import numpy as np
-
-from mm.baseitems import ArgsItem, BaseItem, Item
-from mm.utils import args_flatten
+from mm.baseitems import Item
+#from mm.baseitems import ArgsItem, BaseItem, Item
+#from mm.utils import args_flatten
 
 
 def t(glb):
@@ -155,7 +155,7 @@ class BaseCollection(Item, Iterator):
         return f"<{self.dtype}({self.state} in {self.seq}) at {self.uid}>"
 
 
-class _ItemCollection(Iterator):
+'''class _ItemCollection(Iterator):
     def __next__(self):
         pass
 
@@ -163,7 +163,7 @@ class _ItemCollection(Iterator):
 
     def __init__(self, *args, **kwargs):
         ...
-
+'''
 
 class _AbstractItemCollection(Iterator):
     target = None
@@ -274,7 +274,7 @@ class AbstractItemCollection(_AttrHandlerCollection):
     {'ikw': {'x': 51, 'y': 1}, 'iar': (), '_uid': '0x11fc27880', 'x': 51, 'y': 1, 'version': '0x4d0x5b0x600x600x62'}
     {'ikw': {'x': 8, 'y': 3}, 'iar': (), '_uid': '0x11fc27e50', 'x': 8, 'y': 3, 'version': '0x4d0x5b0x600x600x62'}
     """
-    target = ArgsItem
+''' target = ArgsItem
 
 
 class Vector(BaseItem):
@@ -300,7 +300,7 @@ class Vector(BaseItem):
 
     def __getitem__(self, i):
         return self.__array__()[i]
-
+'''
 
 class AbstractPropertyCollection:
     shape: tuple[int]

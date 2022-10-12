@@ -154,7 +154,7 @@ class TransformableItem(Item):
 
 class FoldElement(TransformableItem):
     inner_parts_trim = 0
-    param = 0.5
+    param = 0.273
 
     @ParentFrame2D
     def parent_frame(self):
@@ -474,7 +474,6 @@ class Bend(GeometryItem):
     def reload(self):
         self._i = 0
 
-    # гнем и все остальное относительно внутреннего радиуса
     def __next__(self):
 
         bend_segment = self.segments[self._i]
@@ -488,7 +487,6 @@ class Bend(GeometryItem):
 
         self.parent = bend_segment.parent_frame
         self._i += 1
-        # self._data.extend(bend_segment.to_compas())
         return bend_segment
 
     @property
@@ -515,6 +513,7 @@ class Bend(GeometryItem):
     def unroll_offset(self):
         fold = self.bend_stage[0].fold
         self._unroll_offset = fold.straight_len / 2
+        print(self._unroll_offset)
         return self._unroll_offset
 
     @property

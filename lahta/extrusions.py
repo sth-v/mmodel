@@ -345,8 +345,8 @@ class TypingPanel(Panel):
         self.bend_types = bend_types
         self.bends_extrusion = list(
             map(self.extrusion_type, self.bend_types, self.coor_offset_extrusion.lines, self.normal, self.lengths))
-        # self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
-        self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
+
+        #self.bends_unroll = list(map(self.unroll_type, self.bend_types, self.coor_offset_unroll.lines, self.normal, self.lengths))
 
 
 class RhinoFriendlyPanel(TypingPanel):
