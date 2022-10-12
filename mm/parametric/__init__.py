@@ -63,7 +63,7 @@ class PrmGenerator(Item, metaclass=ABCMeta):
     def __next__(self):
 
         if self.si <= self.stop + 0.001:
-            print(self.si, self.start, self.stop, self.step)
+            # print(self.si, self.start, self.stop, self.step)
             t = copy.deepcopy(self.si)
             self.si += self.step
             return self.evaluate(t)
@@ -274,10 +274,10 @@ class Cone3d(Circle, Circular):
         # T=self._plane_xf()
         xyz = [cg.Point(*self.evaluate(t)), cg.Point(*self.origin)]
         al, bl = cg.world_to_local_coordinates(self.plane, xyz)
-        print(al, bl)
+        # print(al, bl)
         rt = np.asarray(bl) - np.asarray(al)
         lx, ly, lz = rt / np.linalg.norm(rt)
-        print(lx, ly, lz)
+        # print(lx, ly, lz)
 
         return -ly, lx, 0.0
 
@@ -389,7 +389,7 @@ class Arc(SimpleCircle):
 
     def evaluate(self, t):
         x, y = super().evaluate(t)
-        return Point(x, y)
+        return Point(x=x, y=y)
 
     def to_rhino(self):
         rh_arc = rhino3dm.Arc(rhino3dm.Point3d(0.0, 0.0, 0.0), radius=self.r,

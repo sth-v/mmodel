@@ -37,6 +37,17 @@ class ReplaceMapping:
         return string
 
 
+class rm(ReplaceMapping):
+    def __set_name__(self, owner, name):
+        self.name = self.replace(self.name)
+
+    def __get__(self, instance, owner):
+        return instance.__dict__[self.replace(self.name)]
+
+    def __set__(self, instance, v):
+        instance.__dict__[self.replace_back(self.name)] = v
+
+
 class DotView(Item, ReplaceMapping):
     """
     >>> class R2(ReplaceMapping):
@@ -80,27 +91,31 @@ class DotView(Item, ReplaceMapping):
 
 
 class TraverseDict(dict):
-    def __init__(self, obj, dict_attr="__dict__"):
+    dict_attr = "__dict__"
+
+    def __init__(self):
 
         super().__init__()
-        self.dict_attr = dict_attr
-        self.do_traverse(self, obj)
 
     def __getitem__(self, item):
-        ...
+        return dict.__getitem__(self, item)
 
-    def do_traverse(self, obj, dct):
-        for k, v in getattr(obj, self.dict_attr).items():
+    def __setitem__(self, item, v):
+        dict.__setitem__(self, item, v)
+
+    def __call__(self, obj, *args, **kwargs):
+        self.do_traverse(self, obj)
+        return self
+
+    @classmethod
+    def do_traverse(cls, obj, dct):
+        for k, v in dct.items():
 
             if isinstance(v, dict):
+                new_item = cls()
 
-                new_dct = dict()
-
-                new_dct
                 obj.__call__(**{cls.replace(k): new_item})
 
                 cls.do_traverse(new_item, v)
             else:
-                return {k: v}
-
                 obj.__call__(**{cls.replace(k): v})

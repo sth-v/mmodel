@@ -1,6 +1,6 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+import warnings
 
-import compas.geometry as cg
 import numpy as np
 import rhino3dm
 
@@ -130,7 +130,7 @@ class RhinoBiCone:
         for ii in range(i):
             for jj in range(j):
                 setattr(t, f"M{ii}{jj}", float(np.asarray(T.matrix)[ii, jj]))
-        print(t)
+        # print(t)
         n = c.ToNurbsCurve()
         n.Transform(t)
 
@@ -149,7 +149,7 @@ class RhinoBiCone:
         for ii in range(i):
             for jj in range(j):
                 setattr(t, f"M{ii}{jj}", float(np.asarray(T.matrix)[ii, jj]))
-        print(t)
+        # print(t)
         n = c.ToNurbsCurve()
         n.Transform(t)
         return n
@@ -157,3 +157,41 @@ class RhinoBiCone:
     @property
     def source(self):
         return self.source_cls(self.c1, self.c2)
+
+
+import compas.geometry as cg
+
+
+def rhino_crv_from_compas(nurbs_curves: list) -> list[
+    rhino3dm.NurbsCurve]:
+    """
+    Convert list of compas-like Nurbs curves to Rhino Nurbs Curves
+    :param nurbs_curves:
+    :type
+    :return:
+    :rtype:
+
+    """
+
+    return list(map(lambda x: rhino3dm.NurbsCurve.Create(
+        x.is_periodic,
+        x.degree,
+        list(map(lambda y: rhino3dm.Point3d(*y), x.points))), nurbs_curves))
+
+
+def list_curves_to_polycurves(curves):
+    poly = rhino3dm.PolyCurve()
+    for curve in curves:
+        poly.AppendSegment(curve)
+    return poly
+
+
+def polyline_from_pts(pts):
+    polyline = rhino3dm.Polyline(0)
+    for pt in pts:
+        polyline.Add(*pt)
+    if polyline.IsValid:
+        return polyline
+    else:
+        warnings.warn("InValid Rhino Object")
+        return polyline
