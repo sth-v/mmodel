@@ -1,0 +1,28 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Lahta Test build Triangle Celling" type="PythonConfigurationType" factoryName="Python" activateToolWindowBeforeRun="false" singleton="false">
+    <module name="mmodel_server" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="AWS_ACCESS_KEY_ID" value="YCAJEWyfhMEdpJv5yhuXECVLT" />
+      <env name="AWS_SECRET_ACCESS_KEY" value="YCPsGaw0zZXczhE-vtsG2_XYgM7yW1F_FqCg7de1" />
+      <env name="BUCKET" value="lahta.contextmachine.online" />
+      <env name="REGION" value="ru-central1" />
+      <env name="STORAGE" value="https://storage.yandexcloud.net/" />
+    </envs>
+    <option name="SDK_HOME" value="$PROJECT_DIR$/../mambaforge/envs/work/bin/python3.10" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/lahta/triacell.py" />
+    <option name="PARAMETERS" value="" />
+    <option name="SHOW_COMMAND_LINE" value="true" />
+    <option name="EMULATE_TERMINAL" value="false" />
+    <option name="MODULE_MODE" value="false" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>
