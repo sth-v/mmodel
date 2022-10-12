@@ -6,8 +6,8 @@ from typing import Any, MutableSequence
 
 import numpy as np
 
+from mm.baseitems import DefaultFildItem, DictableItem
 from mm.baseitems import FieldItem, Item
-from mm.baseitems import DictableItem, DefaultFildItem
 from mm.exceptions import MModelException
 from mm.meta import FieldsMeta
 from tools.temps import AXIS_NAMES
@@ -34,12 +34,12 @@ class NestedStructure(dict):
 
     def __getitem__(self, keys):
         self.dct_data = self.get_dict_data()
-        print(self.dct_data)
+        # print(self.dct_data)
 
         return list(self.item_traversal(self.dct_data, keys))
 
     def item_traversal(self, vls, keys):
-        print("root", keys, vls)
+        # print("root", keys, vls)
         if isinstance(keys, str):
             v = vls.pop(keys)
             yield keys, v
@@ -73,7 +73,7 @@ class PathMapping(dict):
                 # pth += f'_{x}'
 
                 setattr(self, ptt, v)
-                print(list(d.values()).index(v), ptt)
+                # print(list(d.values()).index(v), ptt)
                 self.paths[ptt] = v
 
 
