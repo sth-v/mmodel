@@ -15,7 +15,8 @@ class WatchSession:
     session = boto3.session.Session()
     storage = STORAGE
 
-    def __init__(self, bucket=None):
+    def __init__(self, bucket=None, *args, **kwargs):
+        super(WatchSession, self).__init__(*args, **kwargs)
         self.bucket = bucket
 
 
@@ -150,14 +151,11 @@ class S3Client(WatchSession):
     region_name: str = REGION
     aws_access_key_id: str = None,
     aws_secret_access_key: str = None
-    auth_dict = AuthTypes()
 
-    def __init__(self, bucket: str = BUCKET, prefix="", auth_type="credentials.json", **kwargs):
+    def __init__(self, bucket: str = BUCKET, prefix="", **kwargs):
         self.prefix = prefix
-        self.auth_dict.auth_type = auth_type
-        self.auth_dict(**kwargs)
+
         super().__init__(bucket)
-        self.__dict__ |= self.auth_dict
 
     @property
     def client(self) -> BaseClient:
