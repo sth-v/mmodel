@@ -1,19 +1,16 @@
-#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction process"
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import copy
-import json
 from abc import ABCMeta, abstractmethod
 from functools import wraps
 
-import numpy as np
-import requests
-import compas
-import rhino3dm
-
-
-from mm.xforms import XformParametricDecorator, mirror
 import compas.geometry as cg
+import numpy as np
+import rhino3dm
+from compas_occ.geometry.curves.nurbs import OCCNurbsCurve
+
 from mm.baseitems import Base, DictableItem, Item
 from mm.geom import Point
+
 
 def to_cmp_point(func):
     @wraps(func)
@@ -212,7 +209,8 @@ class Circle(Circular):
 
 class Cone3d(Circle, Circular):
     z0 = 0.0
-    vertex=np.array([0.0,0.0,0.0])
+    vertex = np.array([0.0, 0.0, 0.0])
+
     @property
     def plane(self):
         return self._plane
@@ -370,7 +368,7 @@ class Arc1(Circle, DictableItem):
         super(Arc1, self).__next__()
 
 
-class Arc(SimpleCircle, DictableItem):
+class Arc(SimpleCircle):
     r = 1.0
     x0 = 0.0
     y0 = 0.0
@@ -384,14 +382,14 @@ class Arc(SimpleCircle, DictableItem):
         self.end = self.evaluate(self.end_angle)
 
     def to_compas(self):
-        self.cc = cg.NurbsCurve.from_circle(cg.Circle(cg.Plane([self.x0, self.y0, 0.0], [0, 0, 1]), self.r))
+        self.cc = OCCNurbsCurve.from_circle(cg.Circle(cg.Plane([self.x0, self.y0, 0.0], [0, 0, 1]), self.r))
         _, self.ts = self.cc.closest_point(self.start.to_compas(), return_parameter=True)
         _, self.te = self.cc.closest_point(self.end.to_compas(), return_parameter=True)
         return self.cc.segmented(self.ts, self.te)
 
     def evaluate(self, t):
         x, y = super().evaluate(t)
-        return Point(x=x, y=y)
+        return Point(x, y)
 
     def to_rhino(self):
         rh_arc = rhino3dm.Arc(rhino3dm.Point3d(0.0, 0.0, 0.0), radius=self.r,
@@ -403,4 +401,3 @@ class Arc(SimpleCircle, DictableItem):
 
     def to_compas_json(self):
         return self.to_compas().to_jsonstring()
-

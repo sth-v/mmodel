@@ -1,7 +1,14 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+import numpy as np
 
 from mm.baseitems import Item
-import weakref
+
+
+def args_flatten(arg, *args):
+    arr = np.asarray((arg,)).flatten()
+    for barr in args:
+        arr = np.concatenate([arr, np.asarray((barr,)).flatten()])
+    return arr
 
 
 class ReplaceMapping:
@@ -28,9 +35,6 @@ class ReplaceMapping:
             if v in string:
                 string = string.replace(v, k)
         return string
-
-
-from typing import Mapping, MappingView
 
 
 class DotView(Item, ReplaceMapping):
@@ -75,10 +79,6 @@ class DotView(Item, ReplaceMapping):
                 obj.__call__(**{cls.replace(k): v})
 
 
-
-
-
-
 class TraverseDict(dict):
     def __init__(self, obj, dict_attr="__dict__"):
 
@@ -88,13 +88,13 @@ class TraverseDict(dict):
 
     def __getitem__(self, item):
         ...
+
     def do_traverse(self, obj, dct):
         for k, v in getattr(obj, self.dict_attr).items():
 
             if isinstance(v, dict):
 
                 new_dct = dict()
-
 
                 new_dct
                 obj.__call__(**{cls.replace(k): new_item})

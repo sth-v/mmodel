@@ -1,25 +1,22 @@
 from __future__ import annotations
 
-__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'ArgsItem',
-           'DataItem', 'FieldItem', 'DictableItem', 'JsItem']
+__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'MultiDict', 'BaseItem']
 
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
+import base64
 import inspect
 import itertools
 import json
-
-import base64
-from typing import Any
+from collections.abc import Callable
 
 import compas
 import compas.geometry
-from collections.abc import Callable
-
 import numpy as np
 import pandas as pd
 
 from connectors.gzjson import gzip_encoder
 from mm.meta import ItemEncoder, MetaItem
-
 from vcs.utils import HashVersion
 
 
@@ -54,22 +51,56 @@ class Base(Callable):
         super().__call__()
 
         self.__dict__.update(kwargs)
-        self._dtype = self.__class__.__name__
+        self.dtype = self.__class__.__name__
+
+
+class ItemFormatter:
+    dtype = "ItemFormatter"
+    format_spec = {"dtype"}
+
+    def __format__(self, format_spec: set = None):
+
+        s = ''
+
+        if format_spec is None:
+            format_spec = self.__class__.format_spec
+
+        elif format_spec is not None:
+            format_spec.update(self.__class__.format_spec)
+        else:
+            pass
+        for k in format_spec:
+            s += f"{k}={getattr(self, k)} ,"
+
+        return "{}({})".format(self.__class__.__name__, s[:-1])
+
+    def __str__(self):
+        """
+        Item Format str
+        """
+
+        return self.__format__()
+
+    def __repr__(self):
+        return f"<{self.__format__()} at {hex(id(self))}>"
 
 
 class Versioned(Base):
     def __init__(self, *args, **kwargs):
+        self._version = HashVersion()
         super().__init__(*args, **kwargs)
 
-    def _version(self):
-        self.version = HashVersion().__hex__()
+    @property
+    def version(self):
+        return self._version.__hex__()
 
     def __eq__(self, other):
         return hex(self.version) == hex(other.version)
 
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
-        self._version()
+
+        self._version = HashVersion()
 
 
 import uuid
@@ -88,15 +119,8 @@ class Identifiable(Versioned):
     def uuid(self):
         return self._uuid
 
-    @uuid.setter
-    def uuid(self, v):
-        self._uuid = v
 
-    def __hash__(self):
-        ...
-
-
-class Item(Identifiable):
+class Item(Identifiable, ItemFormatter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -139,38 +163,6 @@ class HistoryArgItem(ArgsItem):
             data = eval(base64.b64decode(fp.read()))
             print(data)
         return cls(**data)
-
-
-class member_table(dict):
-    def __init__(self):
-        self.members = []
-        self.methods = []
-
-    def __setitem__(self, key, value: list[Any]):
-        # if the key is not already defined, add to the
-        # list of keys.
-
-        ml = []
-        for m, v in zip(self.members, value):
-            setattr(m, key, v)
-
-            ml.append(getattr(m, key))
-            dict.__setitem__(self, m, {key: ml})
-
-    def __getitem__(self, item):
-        for m in self.members:
-            yield getattr(m, item)
-
-    def reload(self):
-        del self.names_irerator
-        self.names_irerator()
-
-    def __setattr__(self, key, value):
-        self[next(self.names_irerator)[self]].__setattr__(key, value)
-        print(key, value)
-
-    def __getattr__(self, k):
-        return self[next(self.names_irerator)[self]].__getattr__(k)
 
 
 class DataItem(Item):
@@ -254,37 +246,6 @@ class FieldItem(Item):
                 else:
 
                     self.custom_fields.append(k)
-
-
-class ItemFormatter:
-    _dtype = "ItemFormatter"
-    format_spec = {"_dtype"}
-
-    def __format__(self, format_spec: set = None):
-
-        s = ''
-
-        if format_spec is None:
-            format_spec = self.__class__.format_spec
-
-        elif format_spec is not None:
-            format_spec.update(self.__class__.format_spec)
-        else:
-            pass
-        for k in format_spec:
-            s += f"{k}={getattr(self, k)} ,"
-
-        return "{}({})".format(self.__class__.__name__, s[:-1])
-
-    def __str__(self):
-        """
-        Item Format str
-        """
-
-        return self.__format__()
-
-    def __repr__(self):
-        return f"<{self.__format__()} at {hex(id(self))}>"
 
 
 class DictableItem(FieldItem, ItemFormatter):
@@ -390,9 +351,9 @@ class _Item(metaclass=MetaItem, encoder=ItemEncoder):
     __default_keys__ = dict()
 
     def __init__(self, *args, **kwargs):
-        self.version = 0
 
         super().__init__()
+        self.version = 0
         self.encoder = self.__class__.encoder
         self.__call__(*args, **kwargs)
 

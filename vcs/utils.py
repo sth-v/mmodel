@@ -1,8 +1,13 @@
-__all__ = ["Timer","HashVersion", "HashNode", "Version", "HashVerDec", "HexTimer"]
+from __future__ import annotations
 
+__all__ = ["Timer", "HashVersion", "HashNode", "Version", "HashVerDec", "HexTimer"]
+
+import copy
 import json
 import time
+from abc import abstractmethod
 from datetime import date
+from typing import Any
 
 import numpy as np
 
@@ -147,6 +152,7 @@ class HashVersion(HexTimer):
     def __call__(self):
         return self._val
 
+
     def __hex__(self):
         return "".join(map(lambda y: hex(y), self.key - np.asarray(self.val, dtype=np.int)))
 
@@ -163,7 +169,7 @@ class HashVersion(HexTimer):
 
         return st + ')'
 
-    def _dict(self):
+    def _dct(self):
 
         return {'version': self.__hex__()}
 
@@ -171,7 +177,187 @@ class HashVersion(HexTimer):
         return f"v{self.__hex__()}"
 
     def encode(self):
-        return json.dump(self._dict())
+        return json.dumps(self._dct())
 
     def to_json(self):
-        return self._dict()
+        return json.dumps(self._dct())
+class Vector(list):
+    def __new__(cls, follow=None, **kwargs):
+
+        instance = super().__new__(cls, list(kwargs.values()))
+        if follow is None:
+            instance._follow = hex(id(instance))
+        else:
+            instance._follow = follow
+        instance.cls = cls
+        instance._vals = np.asarray(list(kwargs.values()))
+        instance._kws = kwargs
+        instance._keys = np.asarray(list(kwargs.keys()))
+        return instance
+
+    @property
+    def keys(self):
+        return self._keys
+
+    @property
+    def follow(self):
+        return self._follow
+
+    @keys.setter
+    def keys(self, v):
+        k, v = v
+        self._keys[self._keys.index(k)] = v
+        self.__dict__ |= self.dct
+
+    @property
+    def dct(self):
+        return dict(zip(self.keys, self.values))
+
+    @property
+    def values(self):
+        return self._vals
+
+    @values.setter
+    def values(self, v):
+        k, v = v
+        self.dct[k] = v
+        self.__dict__ |= self.dct
+
+    def __add__(self, other):
+        vl = []
+        keys = []
+        for key in set(tuple(self.keys) + tuple(other.keys)):
+            vl.append(self.cls(**{key:[self.dct[key], other.dct[key]]}))
+            keys.append(key)
+        return self.cls(**dict(zip(list(keys), vl)))
+
+
+
+
+"""
+class Vers(Vector):
+    _tsl:int = 3
+    _ishex:bool=False
+    _view:tuple=None
+    def __new__(cls, follow="",  v=Vector((0,)), init_timestamp=time.gmtime(), **kwargs):
+
+        super().__new__(cls, (follow, v, init_timestamp), _follow=follow,  _i=v,init_timestamp=init_timestamp, _timestamp=init_timestamp, **kwargs)
+
+    def __next__(self):
+        self._i += 1
+        self._timestamp = time.gmtime()
+        return self
+    @property
+    def follow(self):
+        return self._follow
+
+    def __iadd__(self, other):
+        for i in range(other):
+            next(self)
+        return self
+
+    def timestamp_len(self):
+        return self._tsl
+
+    @property
+    def timestamp(self):
+        return self._timestamp[self._tsl]
+    @property
+    def vers_view(self):
+        if self._ishex:
+
+            self._view =self.follow ,hex(self._i), hex(int(self.timestamp))
+        else:
+            self._view =self.follow, self._i, int(self.timestamp)
+        return self._view
+
+    @vers_view.setter
+    def vers_view(self, v:bool):
+        self._ishex = v
+
+    @timestamp_len.setter
+    def timestamp_len(self, v):
+        self._tsl = v
+
+    def encode(self):
+        return b"v'".join(bytes(self.follow)).join(bytes(self.vers_view))+b"'"
+    def __str__(self):
+        v,t=self.vers_view
+
+        return f"v'{self.follow} {v} {t}'"
+    @classmethod
+    def decode(cls, v: bytes|str):
+
+        newcls=cls()
+        if isinstance(v,str):
+            vv=v.encode()
+        elif isinstance(v, bytes):
+            vv=v
+        else:
+            raise TypeError(f"MM expected bytes or string, not {type(v)} .")
+        if vv.startswith(b"v'"):
+            follow, vrs, tms = vv.removesuffix(b"'").removeprefix(b"v'").split(b" ")
+            newcls._follow=follow.decode()
+            newcls._i =vrs
+            newcls._timestamp  = time.gmtime( float(tms.decode())*1e-9)
+            return newcls
+        else:
+            raise TypeError(f"MM {vv[:1]} is not {cls.__name__} byte-tag. Expected b''v' .")
+
+    def __iadd__(self, other):
+        self._i += 1
+        return self
+    def __repr__(self):
+
+        return f"<{self.__str__()} object at {hex(id(self))}>"
+    def __radd__(self, other):
+        if isinstance(other, Vers):
+            return self, other
+        elif isinstance(other, list(Vers)):
+            return other+self
+
+class SimpleSemanticVersion:
+    def __init__(self):
+
+        self._i = 0
+        self._instance = None
+
+    def __iadd__(self, other):
+        self._i += 1
+        return self
+
+    def __set_name__(self, owner, name):
+        self.name = name
+        self.priv_name = "_" + self.name
+        try:
+            owner.vers[self.name] = self
+        except:
+            owner.vers = dict()
+            owner.vers[self.name] = self
+        setattr(owner, self.priv_name, None)
+        self.owner = owner
+
+    def __set__(self, instance, value):
+        if getattr(instance, self.priv_name) == value:
+            pass
+        else:
+            next(self)
+
+            instance.vers[self.name] += 1
+            setattr(instance, self.priv_name, value)
+
+    def __get__(self, instance, owner):
+        return self
+class CombineVersion:
+    def __set_name__(self, owner, name):
+        self.name = "vers"
+        self.owner = owner
+        self._dct = dict()
+        setattr(self.owner, "vers", "dict")
+
+    def follow(self, f):
+
+        self._dct[f.__name__].__set_name__(self.owner, name=f.__name__)
+
+    def __get__(self, instance, value):
+        return"""
