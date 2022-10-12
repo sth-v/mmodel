@@ -9,7 +9,6 @@ import rhino3dm
 from more_itertools import pairwise
 import itertools
 from lahta.items import ParentFrame3D, StraightElement, TransformableItem, Bend, BendSegment, BendSegmentFres
-from lahta.setup_view import view
 
 from lahta.items import Bend, ParentFrame3D, StraightElement, TransformableItem
 from mm.conversions.rhino import list_curves_to_polycurves, rhino_crv_from_compas
@@ -26,7 +25,6 @@ class Extrusion(TransformableItem):
         if transf is not None:
             inner_extr = cc.OCCNurbsSurface.from_extrusion(elems.inner, self.vector)
             inner_extr = inner_extr.transformed(transf)
-            #print(transf)
             outer_extr = cc.OCCNurbsSurface.from_extrusion(elems.outer, self.vector)
             outer_extr = outer_extr.transformed(transf)
             setattr(elems, 'extrusion_inner', inner_extr)
@@ -278,13 +276,14 @@ class Panel(TransformableItem):
     @property
     def lengths(self):
         self._lengths = []
+        param = 0.12
 
-        param = 0.01
         poly = cg.Polygon(self.coor_axis).lines
         for i, v in enumerate(poly):
-            dist = (param / 2) / math.sin(self.angles[i][0])
-            neigh_one = 1 / math.tan(self.angles[i][0])
-            neigh_two = 1 / math.tan(self.angles[i][1])
+            dist_one = (param / 2) / math.sin(self.angles[i][0])
+            dist_two = (param / 2) / math.sin(self.angles[i][1])
+            neigh_one = 1 / math.tan(self.angles[i][0]) + dist_one
+            neigh_two = 1 / math.tan(self.angles[i][1]) + dist_two
             bend_l = v.length - neigh_one - neigh_two
 
             ofs_l = neigh_one * (1 - self.tri_offset)
@@ -313,8 +312,6 @@ class Panel(TransformableItem):
         model = rhino3dm.File3dm()
 
         for unr in self.bends_unroll:
-            #for i in ext.rhino_extrusion:
-                #model.Objects.Add(i)
 
             for i in unr.rhino_extrusion:
                 model.Objects.Add(i)
@@ -357,11 +354,10 @@ class RhinoFriendlyPanel(TypingPanel):
     ...                         [36.862172, -12.028006, 490.055883],
     ...                         [705.257292, 44.962907, 490.055883]],
     ...              bend_types=[
-    ...                  Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3),
-    ...                       BendSegment(18, 1.0, 90),
-    ...                       BendSegment(7, 1.0, 90)]),
-    ...                  Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3)]),
-    ...                  Bend([BendSegmentFres(36, 0.8, 90, in_rad=0.3)])
+    ...                  Bend([BendSegmentFres(37, 0.8, 90, in_rad=0.4),
+    ...                       BendSegment(21, 1.0, -90)]),
+    ...                  Bend([BendSegmentFres(29, 0.8, 90, in_rad=0.4)]),
+    ...                  Bend([BendSegmentFres(29, 0.8, 90, in_rad=0.4)])
     ...              ]
     ...              )
     >>> ext1=panel.bends_extrusion[0]
