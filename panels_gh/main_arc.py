@@ -29,6 +29,18 @@ def right_angle_ofs(side, met_left):
     rad = ((side/2)/math.cos(ang)) + met_left
     return rad
 
+def trim_with_frame(frame, surf):
+    tr = rh.Brep.Trim()
+
+def get_plane(surf, edge, edge_point):
+    point_surf = surf.Faces[0].ClosestPoint(edge_point)
+    eval_surf = surf.Faces[0].FrameAt(point_surf[1], point_surf[2])[1]
+    point_edge = edge.ClosestPoint(edge_point)
+    eval_edge = edge.FrameAt(point_edge[1])[1]
+    frame = rh.Plane(eval_surf.Origin, eval_edge.XAxis, eval_surf.ZAxis)
+    return frame
+
+
 class BendSide:
     angle = 90
     side = 0.3
@@ -38,12 +50,8 @@ class BendSide:
 
     @property
     def eval_frame(self):
-        point_surf = self.base_surf.Faces[0].ClosestPoint(self.edge.PointAtStart)
-        eval_surf = self.base_surf.Faces[0].FrameAt( point_surf[1],  point_surf[2])[1]
-        point_edge = self.edge.ClosestPoint(self.edge.PointAtStart)
-        eval_edge = self.edge.FrameAt(point_edge[1])[1]
-        frame = rh.Plane(eval_surf.Origin, eval_edge.XAxis, eval_surf.ZAxis)
-        self._eval_frame =rh.Plane(eval_surf.Origin, frame.ZAxis, -frame.YAxis)
+        frame = get_plane(self.base_surf, self.edge, self.edge.PointAtStart)
+        self._eval_frame =rh.Plane(frame.Origin, frame.ZAxis, -frame.YAxis)
         return self._eval_frame
 
     @property
@@ -82,6 +90,24 @@ class Niche(BendSide):
     side_offset = right_angle_ofs(side, met_left)
     otgib = otgib_niche
 
+    @property
+    def trim_otgib(self):
+        frame_one = get_plane(self.base_surf, self.edge, self.edge.PointAtStart)
+        frame_one = rh.Plane(frame_one.Origin, frame_one.ZAxis, frame_one.YAxis)
+        tr = rh.Transform.Rotation(math.radians(60), frame_one.XAxis, frame_one.Origin)
+        frame_one.Transform(tr)
+        trim_planes = self.surf_otgib.Trim(frame_one, 0.1)[0]
+
+        frame_two = get_plane(self.base_surf, self.edge, self.edge.PointAtEnd)
+        frame_two = rh.Plane(frame_two.Origin, frame_two.ZAxis, frame_two.YAxis)
+        tr = rh.Transform.Rotation(math.radians(120), frame_two.XAxis, frame_two.Origin)
+        frame_two.Transform(tr)
+        self._trim_otgib = trim_planes.Trim(frame_two, 0.1)[0]
+
+        return self._trim_otgib
+
+
+
     def __init__(self, edge, base_surf):
         BendSide.__init__(self, edge, base_surf)
 
@@ -113,7 +139,7 @@ class Panel:
 
     @property
     def surf_otgib(self):
-        self._surf_otgib = [self.niche.surf_otgib, self.side[0].surf_otgib, self.side[1].surf_otgib]
+        self._surf_otgib = [self.niche.trim_otgib, self.side[0].surf_otgib, self.side[1].surf_otgib]
         return self._surf_otgib
 
 
@@ -155,12 +181,14 @@ o_left=[]
 s_left=[]
 o_right = []
 s_right = []
-
+pl=[]
+r =[]
 
 for i in panels[0:3:2]:
     pan = Panel(i, 0)
     s_left.append(pan.surf_top)
     o_left.append(pan.surf_otgib)
+
 
 for i in panels[1:4:2]:
     pan = Panel(i, 1)
