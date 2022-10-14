@@ -109,8 +109,13 @@ class Panel:
     def surf_top(self):
         s = rh.Brep.CreateEdgeSurface([self.niche.edge, self.side[0].edge, self.schov.edge, self.side[1].edge])
         self._surf_top = s
-        print(s)
         return self._surf_top
+
+    @property
+    def surf_otgib(self):
+        self._surf_otgib = [self.niche.surf_otgib, self.side[0].surf_otgib, self.side[1].surf_otgib]
+        return self._surf_otgib
+
 
     def __init__(self, surface, type):
         self.surface = surface
@@ -146,27 +151,21 @@ class Panel:
             trimed = rh.Curve.Trim(v.edge, param[0], param[1])
             v.edge = trimed
 
-bbb=[]
-ccc=[]
-ddd=[]
-e=[]
+o_left=[]
+s_left=[]
+o_right = []
+s_right = []
 
 
-a = panels[0::2]
-for i in a:
+for i in panels[0:3:2]:
     pan = Panel(i, 0)
-    bbb.append([pan.niche.edge, pan.schov.edge, pan.side[0].edge, pan.side[1].edge])
-    ccc.append([pan.niche.eval_frame, pan.schov.eval_frame, pan.side[0].eval_frame, pan.side[1].eval_frame])
-    ddd.append([pan.niche.surf_otgib, pan.schov.surf_otgib, pan.side[0].surf_otgib, pan.side[1].surf_otgib])
-    e.append(pan.surf_top)
+    s_left.append(pan.surf_top)
+    o_left.append(pan.surf_otgib)
 
-b=[]
-c=[]
-d=[]
-for bb,cc,dd in zip(bbb,ccc,ddd):
-    for i in bb:
-        b.append(i)
-    for i in cc:
-        c.append(i)
-    for i in dd:
-        d.append(i)
+for i in panels[1:4:2]:
+    pan = Panel(i, 1)
+    s_right.append(pan.surf_top)
+    o_right.append(pan.surf_otgib)
+
+o_left = th.list_to_tree(o_left)
+o_right = th.list_to_tree(o_right)
