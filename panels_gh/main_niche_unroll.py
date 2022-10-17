@@ -31,11 +31,18 @@ def niche_offset(angle, side, met_left):
     d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
     return d * math.tan(math.radians(angle))
 
+def niche_shorten(angle, side, met_left):
+    d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
+    return d / math.cos(math.radians(angle))
+
 
 class BendSide:
     side_offset = 0.5
     angle = 30
-    length = 35
+    angle_niche = 45
+    side_niche = 0.3
+    met_left_niche = 0.5
+    length = 35 - niche_shorten(angle_niche, side_niche, met_left_niche)
 
     @property
     def top_offset(self):
