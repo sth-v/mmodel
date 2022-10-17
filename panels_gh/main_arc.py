@@ -102,11 +102,10 @@ class Niche(BendSide):
         frame_two = rh.Plane(frame_two.Origin, frame_two.ZAxis, frame_two.YAxis)
         tr = rh.Transform.Rotation(math.radians(120), frame_two.XAxis, frame_two.Origin)
         frame_two.Transform(tr)
-        self._trim_otgib = trim_planes.Trim(frame_two, 0.1)[0]
+        trim_otgib = trim_planes.Trim(frame_two, 0.1)[0]
+        self._trim_otgib = trim_otgib.CapPlanarHoles(0.1)
 
         return self._trim_otgib
-
-
 
     def __init__(self, edge, base_surf):
         BendSide.__init__(self, edge, base_surf)
@@ -125,8 +124,28 @@ class Side(BendSide):
     side_offset = 0.5 + right_angle_ofs(side, met_left)
     otgib = otgib_side
 
-    def __init__(self, edge, base_surf):
+    @property
+    def trim_otgib(self):
+        if self.reverse is False:
+            frame_one = get_plane(self.base_surf, self.edge, self.edge.PointAtStart)
+            frame_one = rh.Plane(frame_one.Origin, frame_one.ZAxis, frame_one.YAxis)
+            tr = rh.Transform.Rotation(math.radians(60), frame_one.XAxis, frame_one.Origin)
+            frame_one.Transform(tr)
+            trim_otgib = self.surf_otgib.Trim(frame_one, 0.1)[0]
+            self._trim_otgib = trim_otgib.CapPlanarHoles(0.1)
+        else:
+            frame_two = get_plane(self.base_surf, self.edge, self.edge.PointAtEnd)
+            frame_two = rh.Plane(frame_two.Origin, frame_two.ZAxis, frame_two.YAxis)
+            tr = rh.Transform.Rotation(math.radians(120), frame_two.XAxis, frame_two.Origin)
+            frame_two.Transform(tr)
+            trim_otgib = self.surf_otgib.Trim(frame_two, 0.1)[0]
+            self._trim_otgib = trim_otgib.CapPlanarHoles(0.1)
+
+        return self._trim_otgib
+
+    def __init__(self, edge, base_surf, reverse):
         BendSide.__init__(self, edge, base_surf)
+        self.reverse = reverse
 
 
 class Panel:
@@ -139,7 +158,7 @@ class Panel:
 
     @property
     def surf_otgib(self):
-        self._surf_otgib = [self.niche.trim_otgib, self.side[0].surf_otgib, self.side[1].surf_otgib]
+        self._surf_otgib = [self.niche.trim_otgib, self.side[0].trim_otgib, self.side[1].trim_otgib]
         return self._surf_otgib
 
 
@@ -154,12 +173,12 @@ class Panel:
         if self.type == 0:
             self.niche = Niche(self.edges[3], self.surface)
             self.schov = Schov(self.edges[1], self.surface)
-            self.side = [Side(self.edges[0], self.surface), Side(self.edges[2], self.surface)]
+            self.side = [Side(self.edges[0], self.surface, False), Side(self.edges[2], self.surface, True)]
 
         else:
             self.niche = Niche(self.edges[1], self.surface)
             self.schov = Schov(self.edges[3], self.surface)
-            self.side = [Side(self.edges[0], self.surface), Side(self.edges[2], self.surface)]
+            self.side = [Side(self.edges[0], self.surface, True), Side(self.edges[2], self.surface, False)]
 
         self.side_types = [self.niche, self.schov, self.side[0], self.side[1]]
         self.intersect()
@@ -184,13 +203,13 @@ s_right = []
 pl=[]
 r =[]
 
-for i in panels[0:3:2]:
+for i in panels[0:6:2]:
     pan = Panel(i, 0)
     s_left.append(pan.surf_top)
     o_left.append(pan.surf_otgib)
 
 
-for i in panels[1:4:2]:
+for i in panels[1:7:2]:
     pan = Panel(i, 1)
     s_right.append(pan.surf_top)
     o_right.append(pan.surf_otgib)

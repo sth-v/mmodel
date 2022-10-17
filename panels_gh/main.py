@@ -12,7 +12,7 @@ try:
 except:
     import rhinoscript as rs
 
-
+import ghpythonlib.treehelpers as th
 import Rhino.Geometry as rh
 import math
 
@@ -106,9 +106,6 @@ class Panel:
         self.type = type
 
         self.surf = surface
-        #unrol_surf = rh.Unroller(self.surf).PerformUnroll()[0][0]
-        #tr = rh.Transform.Translation(rh.Vector3d(500,500,0))
-        #unrol_surf.Transform(tr)
 
         self.unrol_surf = rh.Unroller(self.surf).PerformUnroll()[0][0]
         self.edges = self.unrol_surf.Curves3D
@@ -117,7 +114,7 @@ class Panel:
 
     def side_types(self):
 
-        if self.type == 0 or self.type == 1:
+        if self.type == 0:
             self.niche = Niche(self.edges[0])
             self.schov = Schov(self.edges[2])
             self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
@@ -145,29 +142,20 @@ class Panel:
 
 
 
-try:
-    p_left = Panel(surf_left, 1)
-    left_fres = p_left.fres
-    left_cut = p_left.cut
 
-    p_right = Panel(surf_right, 0)
-    right_fres = p_right.fres
-    right_cut = p_right.cut
+panel = []
+fres = []
+cut = []
 
-    panel_right = p_right
-    panel_left = p_left
-
-except AttributeError:
-    try:
-        p_left = Panel(surf_left, 1)
-        left_fres = p_left.fres
-        left_cut = p_left.cut
-    except AttributeError:
-        try:
-            p_right = Panel(surf_right, 0)
-            right_fres = p_right.fres
-            right_cut = p_right.cut
-        except:
-            pass
+for p, t in zip(panels, tip):
+    print(panels, tip)
+    pan = Panel(p, t)
+    panel.append(pan)
+    fres.append(pan.fres)
+    cut.append(pan.cut)
 
 
+
+
+fres = th.list_to_tree(fres)
+cut = th.list_to_tree(cut)

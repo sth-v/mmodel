@@ -160,12 +160,12 @@ n_right = []
 s_right = []
 
 
-for i in niche_left:
+for i in niche_left[0:3]:
     pan = Panel(i, 0)
     s_left.append(pan.surf_trimed)
     n_left.append(pan.niche_otgib)
 
-for i in niche_right:
+for i in niche_right[0:3]:
     pan = Panel(i, 1)
     s_right.append(pan.surf_trimed)
     n_right.append(pan.niche_otgib)
