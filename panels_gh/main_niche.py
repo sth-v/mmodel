@@ -34,25 +34,44 @@ def niche_offset(angle, side, met_left):
 
 class BendSide(object):
 
-    base_surf = None  # type: rh.Brep
+
     angle = 90
     side = 0.3
     met_left = 0.5
     _eval_frame = None  # type: rh.Plane
     otgib = otgib_niche
 
+    def __init__(self, edge, base_surf, type):
+        object.__init__(self)
+        self.base_surf = base_surf # type: rh.Brep
+        self.edge = self.curve_offset(edge)
+        self.type = type
+
     @property
     def eval_frame(self):
-        frame = rh.Plane(self.edge.PointAt(self.edge.NormalizedLengthParameter(0.0001)[1]),
-                         self.edge.TangentAt(self.edge.NormalizedLengthParameter(0.0001)[1]))
+        t=0.0001
+        ptt=self.edge.PointAt(self.edge.NormalizedLengthParameter(t)[1])
+
+        r2=self.base_surf.Edges[1].ToNurbsCurve()
+        ptt2=r2.PointAt(r2.ClosestPoint(ptt)[1])
+        print ptt2
+        vec=rh.Vector3d(ptt2.X-ptt.X,ptt2.Y-ptt.Y,ptt2.Z-ptt.Z)
+
+        xvec=rh.Vector3d.CrossProduct(self.edge.TangentAt(self.edge.NormalizedLengthParameter(t)[1]),vec)
+
+        frame = rh.Plane(self.edge.PointAt(self.edge.NormalizedLengthParameter(t)[1]), vec, xvec )
+
         if self.type == 0:
 
-              fr = copy.deepcopy(frame)
-              fr.Flip()
-              fr.Rotate(math.pi / 2, fr.Normal)
-              self._eval_frame = fr
+            fr = copy.deepcopy(frame)
+            fr.Flip()
+            fr.Rotate(math.pi * 0.5, frame.Normal)
+            self._eval_frame = fr
         else:
-            self._eval_frame = frame
+            fr = copy.deepcopy(frame)
+
+            fr.Rotate(math.pi * 1, frame.Normal)
+            self._eval_frame = fr
 
         return self._eval_frame
 
@@ -68,12 +87,6 @@ class BendSide(object):
         else:
             self._surf_otgib = None
         return self._surf_otgib
-
-    def __init__(self, edge, base_surf, type):
-        object.__init__(self)
-        self.base_surf = base_surf
-        self.edge = self.curve_offset(edge)
-        self.type = type
 
     def curve_offset(self, curve):
         # type: (rh.Curve) -> rh.NurbsCurve
