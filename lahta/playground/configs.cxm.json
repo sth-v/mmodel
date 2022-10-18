@@ -1,0 +1,17 @@
+
+{   
+	
+		"name": "lahta",
+	"s3": {
+        "storage": "https://storage.yandexcloud.net/",
+        "bucket": "lahta.contextmachine.online",
+        "targets": {
+            "prefix": ,
+        }
+	},
+	"host" :,
+	"port" :,
+	"includes": #parce("includes")
+	
+	}
+}

@@ -22,7 +22,7 @@ import typing
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from cxm_s3.sessions import WatchSession
+from cxm_remote.sessions import WatchSession
 from apps import AppSession
 from fastapi.middleware.gzip import GZipMiddleware
 

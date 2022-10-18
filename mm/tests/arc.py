@@ -1,13 +1,12 @@
-import math
-from tools.geoms import OCCNurbsCurvePanels
-import numpy as np
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 import compas.geometry as cg
-from compas.geometry import Point, Polygon, offset_polyline, Polyline, offset_polygon, normal_polygon, Plane, \
-    translate_points, Circle, Frame, Transformation, NurbsCurve, Vector, offset_line, intersection_line_line, \
-    Translation, Line, Rotation
+import numpy as np
+
 from mm.parametric import Arc
 
 js = {}
+
 
 class ArcForArc(Arc):
     evalute_param = np.pi / 2
@@ -32,14 +31,10 @@ class ArcForArc(Arc):
         return self.ts.unitized(), self.point, cg.Circle(cg.Plane([self.x0, self.y0, 0.0], [0, 0, 1]), self.r)
 
 
-test = ArcForArc(origin=[5.542538, 35.977149, -12.14216], normal=[68.076713, 40.180588, -14.656795], r=15, evalute_param=np.radians(10))
+test = ArcForArc(origin=[5.542538, 35.977149, -12.14216], normal=[68.076713, 40.180588, -14.656795], r=15,
+                 evalute_param=np.radians(10))
 print(test.to_compas_vector())
 
 js['tang'] = [test.to_compas_vector()[0].x, test.to_compas_vector()[0].y, test.to_compas_vector()[0].z]
 js['point'] = [test.to_compas_vector()[1].x, test.to_compas_vector()[1].y, test.to_compas_vector()[1].z]
 js['circ'] = test.to_compas_vector()[2].to_jsonstring()
-
-import json
-print(js)
-with open("/Users/sofyadobycina/Documents/GitHub/mmodel/mm/tests/package.json", "w") as outfile:
-    json.dump(js, outfile)

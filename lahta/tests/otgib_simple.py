@@ -1,7 +1,9 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+from math import pi
 from typing import Iterator
+
 import numpy as np
-from math import pi, degrees
+
 from mm.baseitems import Item
 
 
@@ -84,7 +86,7 @@ class TestOtgib(Iterator):
 
             xf @ self.prg
             self.prg.append(Point2d(0, 0))
-            print(f"Bending event {self._i}({self._spec}), ang: {degrees(angle)}°, len: {length}mm, rad: {radius}")
+            # print(f"Bending event {self._i}({self._spec}), ang: {degrees(angle)}°, len: {length}mm, rad: {radius}")
             return self.prg
         else:
             raise StopIteration

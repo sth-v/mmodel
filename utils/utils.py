@@ -1,17 +1,17 @@
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 from __future__ import annotations
 
 import copy
 import inspect
-from shapely.geometry import Point, Polygon
-import numpy as np
-import operator
-from itertools import *
 import math
+from itertools import *
 
+import numpy as np
 import rhino3dm
-from rhino3dm import File3dm
-
 from numpy import ndarray
+from rhino3dm import File3dm
+from shapely.geometry import Point, Polygon
 
 
 def np_to_shapely_points(arr):
@@ -66,7 +66,7 @@ def zip_transpose(zipped):
 
 def filterf_(zipper):
     # unz=list(zipper)
-    # print(unz)
+    # # print(unz)
     # dct = dict(unz)
     # rint(dct.keys())
     keys_ = []
@@ -77,7 +77,7 @@ def filterf_(zipper):
             vals_[i].append(v)
         else:
             keys_.append(k)
-            print(f'key append {k}')
+            # # print(f'key append {k}')
             vals_.append([v])
     return [keys_, vals_]
 
@@ -91,7 +91,7 @@ def oo(n):
             # To remove other methods that
             # doesnot start with a underscore
 
-            print(i)
+            # print(i)
             yield i
 
 
@@ -144,10 +144,10 @@ class RhLinked(type):
         # classes |= {k: rh_cls}
         classes_ |= {'__childnames__': childset}
         for nm, at in i_l:
-            print(at)
+            # print(at)
             if nm in childset:
-                print(nm + '_objects')
-                print(at)
+                # print(nm + '_objects')
+                # print(at)
                 cl = classes_[nm]
                 o = cl()
                 for k, v in at.items():
@@ -162,14 +162,15 @@ class RhLinked(type):
 def shortest_distance(x1, y1, z1, a, b, c, d):
     d = abs((a * x1 + b * y1 + c * z1 + d))
     e = (math.sqrt(a * a + b * b + c * c))
-    print("Perpendicular distance is", d / e)
+    # print("Perpendicular distance is", d / e)
     return d / e
 
 
 def remap_interval(OldValue, OldMin, OldMax, NewMin, NewMax):
     OldRange = OldMax - OldMin
     if OldRange == 0:
-        print("none domain length")
+        pass
+    # print("none domain length")
     else:
 
         NewRange = NewMax - NewMin
