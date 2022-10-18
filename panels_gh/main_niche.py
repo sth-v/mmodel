@@ -32,7 +32,7 @@ def niche_offset(angle, side, met_left):
     return d * math.tan(math.radians(angle))
 
 
-class BendSide:
+class BendSide(object):
 
     base_surf = None  # type: rh.Brep
     angle = 90
@@ -43,30 +43,34 @@ class BendSide:
 
     @property
     def eval_frame(self):
-        frame = rh.Plane(self.edge.PointAt(self.edge.NormalizedLengthParameter(0.9999)[1]),
-                         self.edge.TangentAt(self.edge.NormalizedLengthParameter(0.9999)[1]))
+        frame = rh.Plane(self.edge.PointAt(self.edge.NormalizedLengthParameter(0.0001)[1]),
+                         self.edge.TangentAt(self.edge.NormalizedLengthParameter(0.0001)[1]))
         if self.type == 0:
-              self._eval_frame = frame
-        else:
 
-            fr=copy.deepcopy(frame)
-            fr.Flip()
-            fr.Rotate(math.pi/2, fr.Normal)
-            self._eval_frame = fr
+              fr = copy.deepcopy(frame)
+              fr.Flip()
+              fr.Rotate(math.pi / 2, fr.Normal)
+              self._eval_frame = fr
+        else:
+            self._eval_frame = frame
+
         return self._eval_frame
 
     @property
     def surf_otgib(self):
         if self.otgib is not None:
             otg = self.transpose_otgib()
-            extr = rh.SweepOneRail()
-            extr = extr.PerformSweep(self.edge, [otg])[0]
+
+            swp=rh.SweepOneRail()
+            extr, = swp.PerformSweep(self.edge, otg)
+
             self._surf_otgib = extr.CapPlanarHoles(0.1)
         else:
             self._surf_otgib = None
         return self._surf_otgib
 
     def __init__(self, edge, base_surf, type):
+        object.__init__(self)
         self.base_surf = base_surf
         self.edge = self.curve_offset(edge)
         self.type = type
