@@ -65,7 +65,7 @@ class BendSide:
 
     def curve_offset(self, curve):
         if self.side_offset is not None:
-            crv = rh.Curve.Offset(curve, rh.Plane.WorldXY, -self.side_offset, 0.01, rh.CurveOffsetCornerStyle.None)
+            crv = rh.Curve.Offset(curve, rh.Plane.WorldXY, -self.side_offset, 0.01, rh.CurveOffsetCornerStyle.__dict__['None'])
             return crv[0]
         else:
             return curve
@@ -83,7 +83,7 @@ class Niche(BendSide):
         p_two = rh.Curve.LengthParameter(self.fres, self.fres.GetLength() - self.top_offset)
         trimed = rh.Curve.Trim(self.fres, p_one[1], p_two[1])
 
-        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.None)
+        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.__dict__['None'])
         return self._top_part[0]
 
     def __init__(self, curve):
@@ -102,7 +102,7 @@ class Side(BendSide):
             p_one = rh.Curve.LengthParameter(self.fres, self.top_offset)
             trimed = rh.Curve.Trim(self.fres, p_one[1], self.fres.Domain[1])
 
-        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.None)
+        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.__dict__['None'])
         return self._top_part[0]
 
     def __init__(self, curve, reverse):
