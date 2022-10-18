@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'DictableItem', 'JsItem',
-           'DataviewInterface', 'Dataview', 'DataviewDescriptor', 'Metadata', 'ReprData', 'GeomConversionMap'
-           ]
+           'DataviewInterface', 'Dataview', 'DataviewDescriptor', 'Metadata', 'ReprData', 'GeomConversionMap']
 
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 

@@ -6,6 +6,7 @@ from functools import wraps
 import compas.geometry as cg
 import numpy as np
 import rhino3dm
+from compas_occ.geometry.curves.nurbs import OCCNurbsCurve
 
 from mm.baseitems import Base, DictableItem, Item
 from mm.geom import Point
@@ -367,7 +368,7 @@ class Arc1(Circle, DictableItem):
         super(Arc1, self).__next__()
 
 
-class Arc(SimpleCircle, DictableItem):
+class Arc(SimpleCircle):
     r = 1.0
     x0 = 0.0
     y0 = 0.0
@@ -381,7 +382,7 @@ class Arc(SimpleCircle, DictableItem):
         self.end = self.evaluate(self.end_angle)
 
     def to_compas(self):
-        self.cc = cg.NurbsCurve.from_circle(cg.Circle(cg.Plane([self.x0, self.y0, 0.0], [0, 0, 1]), self.r))
+        self.cc = OCCNurbsCurve.from_circle(cg.Circle(cg.Plane([self.x0, self.y0, 0.0], [0, 0, 1]), self.r))
         _, self.ts = self.cc.closest_point(self.start.to_compas(), return_parameter=True)
         _, self.te = self.cc.closest_point(self.end.to_compas(), return_parameter=True)
         return self.cc.segmented(self.ts, self.te)

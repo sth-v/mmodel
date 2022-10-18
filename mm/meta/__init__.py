@@ -3,9 +3,11 @@
 # some version control
 from __future__ import annotations
 
-import os
+import functools
+import inspect
 from abc import ABCMeta
-from typing import Any
+from functools import partial, wraps
+from typing import Any, Callable, Optional
 
 function_type = type(lambda: None)
 from cxm_remote.sessions import S3Client
@@ -15,21 +17,61 @@ from mm.descriptors import HookDescriptor
 from json import JSONEncoder
 
 
+def curry(func):
+    @functools.wraps(func)
+    def curried(*args, **kwargs):
+        if len(args) + len(kwargs) >= func.__code__.co_argcount: return func(*args, **kwargs)
+        return (lambda *args2, **kwargs2: curried(*(args + args2), **dict(kwargs, **kwargs2)))
+
+    return curried
+
+
+def metalogger(method):
+    def log_wrapper(slf, *args, **kwargs):
+        print(
+            f"\n\n{slf.__class__.__name__}.{method.__name__}(self, *args, **kwargs) --> ...\n{'-' * 140}\n\tself: {slf}\n\targs: {args} \n\tkwargs: {kwargs}")
+        return method(slf, *args, **kwargs)
+
+    return log_wrapper
+
+
+class CallBind(Callable):
+    def __init__(self, func):
+        self._func = func
+
+    @metalogger
+    def __set_name__(self, owner, name="__call__"):
+        owner.__call__ = self
+        self.name = name
+        self.owner = owner
+
+    def __call__(self, instance, *args, **kwargs):
+        kwargs |= dict(zip(list(instance.__fields__)[:len(args)], args))
+        return self._func(instance, **kwargs)
+
+    @metalogger
+    def __get__(self, instance, owner):
+        return functools.wraps(self._func)(partial(self, instance))
+
+
 class DefaultFied:
+    @metalogger
     def __set_name__(self, owner, name):
         self.name = name
         self.default = owner.__default_fields__[self.name]
         self.private_name = "_" + self.name
         if self.name in owner.__annotations__.keys():
-            # print(owner.mcs.types)
+            print(owner.mcs.types)
             self.hint = owner.__annotations__[self.name]
         else:
             self.hint = Any
 
+    @metalogger
     def __get__(self, obj, objtype=None):
 
         return obj.default_fields[self.name]
 
+    @metalogger
     def __set__(self, obj, value):
         if self.validate(value):
 
@@ -55,6 +97,7 @@ class Dct(dict):
     exclude = ["default_fields", "encoder"]
     metadata = ["uid"]
 
+    @metalogger
     def __get__(self, obj, objtype=None):
         dct = dict()
 
@@ -69,6 +112,7 @@ class Dct(dict):
         self.trav(obj.__dict__, dct_['metadata'], obj=obj)
         return dct_
 
+    @metalogger
     def trav(self, dct, dct_, obj):
         for k, v in dct.items():
             if k in self.exclude:
@@ -85,60 +129,202 @@ class Dct(dict):
                     dct_[k] = v
 
 
-import copy
+class CallBinder:
+    @metalogger
+    def __get__(self, instance, owner):
+        def callwrapper(*args, **kwargs):
+            d = dict(zip(owner.__default__.names[:len(args)], args))
+            d |= kwargs
+            return owner.__call(instance, **d)
+
+        return callwrapper
+
+
+class DF:
+    @metalogger
+    def __init__(self, k, v=None):
+        self.name = k
+        self.default_name = k
+        self.default_value = v
+        self.value = v
+
+
+class DFF:
+    def __set_name__(self, owner, name):
+        self.name = name
+        self.owner = owner
+
+    def __get__(self, instance, owner):
+        try:
+            return getattr(owner, self.name)(instance)
+        finally:
+            maby_method = getattr(owner, self.name)
+            print("maby method", maby_method)
+            return wraps(maby_method)(partial(maby_method, instance))
+
+
+class DFDescriptor:
+    _table = None
+
+    @metalogger
+    def __set_name__(self, owner, name):
+
+        self.name = name
+
+    @metalogger
+    def __get__(self, instance, owner):
+
+        # Если дескриптор вызывается от owner.
+        if (instance is None) & (owner is not None):
+            return owner.__dict__[self.name]
+
+        # Если дескриптор вызывается от instance.
+        elif instance is not None:
+            target = owner.__dict__[self.name]
+            if isinstance(target, property):
+                # Если под дескриптором property.
+                return target.getter(instance)
+            elif inspect.ismethod(target):
+                # Если под дескриптором метод.
+                # - Возвращается просто `functools.wraps(<method>)(functools.partial(<method>, instance)`
+                #   где `functools.wraps` маскирует имя метода на привычное
+                # - В этом случае методы, не требующие передачи переменных,
+                #   кроме self, должны обрабатываться иначе.?
+                return wraps(target)(partial(target, instance))
+            else:
+                # Если под дескриптором аттрибут(не метод).
+                return instance.__dict__[self.name]
+        else:
+            raise KeyError
+
+    @metalogger
+    def __set__(self, instance, value):
+
+        instance.__dict__[self.name] = value
+
+    @property
+    def table(self):
+        return self._table
+
+    @table.setter
+    def table(self, v):
+        self._table = v
+
+
+class DescTable(dict):
+    """
+    Обертка <class>.__dict__
+    """
+    exclude = ["exclude", "mmap"]
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+        try:
+            iter(owner.__fields__)
+        except:
+
+            owner.__fields__ = []
+        self.owner = owner  # оборачиваемый класс
+        # Проверяем наличие аттрибута у оборачиваемого класса
+        # и то что он итерируемый.
+
+    def __get__(self, instance, owner):
+        return getattr(instance, self.name)
+
+    def __set__(self, instance, value):
+        dct = getattr(instance, self.name)
+        for k, v in value.items():
+            try:
+                dct.__setitem__(k, v)
+            except:
+                pass
+
+    @metalogger
+    def __init__(self):
+        super().__init__()
+        self.fields = []
+
+    @metalogger
+    def __setitem__(self, key: str, value: Optional[Any | None] = None):
+        if key not in self.exclude:
+
+            if key not in self.fields:
+                self.fields.append(key)
+                d = DFDescriptor()
+                d.__set_name__(self.owner, key)
+
+            dict.__setitem__(self, key, value)
+        else:
+            return KeyError
+
+    @metalogger
+    def __getitem__(self, item):
+        if item in self.owner.__fields__:
+            return dict.__getitem__(self, item)
+        else:
+            return KeyError("DescTable key error")
+
+    @metalogger
+    def __ior__(self, other):
+        self.owner.__defaultdict__ |= other
+
+    def as_dict(self):
+        return dict.copy(self)
+
+
+class ItemCall(CallBind):
+
+    def __init__(self):
+        super().__init__(self.func)
+
+    @metalogger
+    def func(self, instance, **kwargs):
+        for k, v in kwargs.items():
+            instance.__dict__[k] = v
+
+        return instance
 
 
 class MetaItem(ABCMeta):
     types = dict()
     tables = dict()
+    exclude = ["dtype", "mcs", "exclude"]
 
-    def __new__(mcs, name, base, attrs, default_descriptor=DefaultFied, dict_descriptor=Dct, **kws):
+    def __new__(mcs, name, base, attrs, **kws):
+        print(attrs, "\n", kws)
+        attrs |= dict(mmtype=name)
+        try:
+            attrs["__call__"] = CallBind(attrs["__call__"])
+        except:
+            attrs["__call__"] = ItemCall()
+        attrs['mcs'] = mcs
+        c = super().__new__(mcs, name, base, attrs, **kws)
 
-        # print(attrs, "\n", kws)
-        attrs["__default_fields__"] = dict()
-        annotates = attrs["__annotations__"] if "__annotations__" in attrs.keys() else dict()
-        attrs["__annotations__"] = annotates
-        default_keys = list(annotates.keys())
-        [attrs["__default_fields__"].update({k: None}) for k in default_keys]
+        # Defaultdict
+        d = DescTable()
+        d.__set_name__(c, "__defaultdict__")
+        c.__defaultdict__ = d
 
         for k, v in attrs.items():
-            seg = not isinstance(v, function_type), not isinstance(v, property), not (k[:2] == "__"), not (
-                    k[:1] == "_" and not k[:2] == "__")
-            if all(seg):
-                # print(k)
-                attrs["__default_fields__"][k] = v
-                default_keys.append(k)
-        for k in default_keys:
-            attrs[k] = default_descriptor()
-        attrs["__default_keys__"] = default_keys
-        kws |= attrs
-        c = super().__new__(mcs, name, base, kws)
-        c._table = dict()
-        mcs.tables[name] = c._table
+            if inspect.ismethod(v) and not (k in c.exclude):
+                c.__defaultdict__[k] = v
 
-        post_call = copy.deepcopy(c.__call__)
-        post_init = copy.deepcopy(c.__init__)
+            else:
+                if (k[0] != "_") and not (k in c.exclude):
+                    try:
+                        if (k in c.__annotations__.keys()) and (v is None):
 
-        def init(slf, *args, **kwargs):
-            slf.dtype = slf.__class__.__name__
+                            c.__defaultdict__[k] = c.__annotations__[k]
+                        else:
+                            c.__defaultdict__[k] = v
+                    except:
+                        pass
 
-            slf.default_fields = copy.deepcopy(slf.__class__.__default_fields__)
-            post_init(slf, *args, **kwargs)
+                else:
+                    pass
 
-        def call(slf, *args, **kwargs):
-            # print(args)
-            argkeys = list(default_keys)[
-                      :len(default_keys) if len(default_keys) < len(args) else len(args)]
-            kwargs |= dict(zip(argkeys, args))
-
-            return post_call(slf, **kwargs)
-
-        c.__call__ = call
-        c.__init__ = init
-        c.dtype = name
-        c.dct = dict_descriptor()
         mcs.types[name] = c
-        c.mcs = mcs
         return c
 
 
@@ -233,34 +419,22 @@ class BufferDescriptor(dict):
         instance.__class__.table[instance.uid] = value
 
 
-STORAGE = os.getenv("STORAGE")
-BUCKET = os.getenv("BUCKET")
-
-
 class RemoteType(type):
 
     @classmethod
-    def __prepare__(metacls, name, bases, bucket=BUCKET, prefix=None, client=S3Client,
-                    default_descriptor=HookDescriptor, storage=STORAGE, **kws):
-
+    def __prepare__(metacls, name, bases, prefix=None, client=S3Client, default_descriptor=HookDescriptor, **kws):
         dct = super(RemoteType, metacls).__prepare__(name, bases)
-        # print(dct)
+        print(dct)
 
         _client = client(**kws)
         kws["prefix"] = prefix
-        kws["bucket"] = bucket
-        kws["storage"] = storage
-        kws["default_descriptor"] = default_descriptor
-        kws["client"] = _client
-        table = _client.table(Prefix=prefix)
 
+        table = _client.table(Prefix=prefix)
         kws["__client__"] = _client
         kws.update(dct)
-        # print(table.Key)
+        print(table.Key)
         for k in table.Key:
-
-            ky = k.replace(prefix, '').replace("/", '_').replace(".", '__')
-
+            ky = k.replace(prefix, '')
             if not ky == '':
                 kws[ky] = default_descriptor()
             else:
@@ -269,7 +443,7 @@ class RemoteType(type):
 
     def __new__(mcs, classname, bases, dct, **kwds):
 
-        # print(classname, bases, dct)
+        print(classname, bases, dct)
         return type(classname, bases, dct)
 
 

@@ -1,6 +1,14 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+import numpy as np
 
 from mm.baseitems import Item
+
+
+def args_flatten(arg, *args):
+    arr = np.asarray((arg,)).flatten()
+    for barr in args:
+        arr = np.concatenate([arr, np.asarray((barr,)).flatten()])
+    return arr
 
 
 class ReplaceMapping:

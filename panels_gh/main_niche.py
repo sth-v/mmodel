@@ -13,18 +13,12 @@ except:
 
 import Rhino.Geometry as rh
 import math
-def get_plane(surf, edge, edge_point):
-    point_surf = surf.Faces[0].ClosestPoint(edge_point)
-    eval_surf = surf.Faces[0].FrameAt(point_surf[1], point_surf[2])[1]
-    point_edge = edge.ClosestPoint(edge_point)
-    eval_edge = edge.FrameAt(point_edge[1])[1]
-    frame = rh.Plane(eval_surf.Origin, eval_edge.XAxis, eval_surf.ZAxis)
-    return frame
+import copy
 
 def angle_ofs(angle, side, met_left):
-    ang = math.radians(90/2)
+    ang = math.radians(90 / 2)
     rad = ((side / 2) / math.cos(ang)) + met_left
-    return rad / math.tan(math.radians(angle/2))
+    return rad / math.tan(math.radians(angle / 2))
 
 
 def right_angle_ofs(side, met_left):
@@ -32,61 +26,87 @@ def right_angle_ofs(side, met_left):
     rad = ((side / 2) / math.cos(ang)) + met_left
     return rad
 
+
 def niche_offset(angle, side, met_left):
     d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
     return d * math.tan(math.radians(angle))
 
 
+class BendSide(object):
 
-class BendSide:
+
     angle = 90
     side = 0.3
     met_left = 0.5
     side_offset = 0.5 + right_angle_ofs(side, met_left)
     otgib = otgib_niche
 
+    def __init__(self, edge, base_surf, type):
+        object.__init__(self)
+        self.base_surf = base_surf # type: rh.Brep
+        self.edge = self.curve_offset(edge)
+        self.type = type
+
     @property
     def eval_frame(self):
-        point_surf = self.base_surf.Faces[0].ClosestPoint(self.edge.PointAtEnd)
-        eval_surf = self.base_surf.Faces[0].FrameAt(point_surf[1], point_surf[2])[1]
-        point_edge = self.edge.ClosestPoint(self.edge.PointAtEnd)
-        eval_edge = self.edge.FrameAt(point_edge[1])[1]
-        frame = rh.Plane(eval_surf.Origin, eval_edge.XAxis, eval_surf.ZAxis)
+        t=0.0001
+        ptt=self.edge.PointAt(self.edge.NormalizedLengthParameter(t)[1])
+
+        r2=self.base_surf.Edges[1].ToNurbsCurve()
+        ptt2=r2.PointAt(r2.ClosestPoint(ptt)[1])
+        print ptt2
+        vec=rh.Vector3d(ptt2.X-ptt.X,ptt2.Y-ptt.Y,ptt2.Z-ptt.Z)
+
+        xvec=rh.Vector3d.CrossProduct(self.edge.TangentAt(self.edge.NormalizedLengthParameter(t)[1]),vec)
+
+        frame = rh.Plane(self.edge.PointAt(self.edge.NormalizedLengthParameter(t)[1]), vec, xvec )
 
         if self.type == 0:
-            self._eval_frame = rh.Plane(frame.Origin, frame.ZAxis, frame.YAxis)
-        else:
-            self._eval_frame = rh.Plane(frame.Origin, frame.ZAxis, -frame.YAxis)
-        return self._eval_frame
 
+            fr = copy.deepcopy(frame)
+            fr.Flip()
+            fr.Rotate(math.pi * 0.5, frame.Normal)
+            self._eval_frame = fr
+        else:
+            fr = copy.deepcopy(frame)
+
+            fr.Rotate(math.pi * 1, frame.Normal)
+            self._eval_frame = fr
+
+        return self._eval_frame
 
     @property
     def surf_otgib(self):
         if self.otgib is not None:
             otg = self.transpose_otgib()
-            extr = rh.SweepOneRail()
-            extr = extr.PerformSweep(self.edge, [otg])[0]
+
+            swp=rh.SweepOneRail()
+            extr, = swp.PerformSweep(self.edge, otg)
+
             self._surf_otgib = extr.CapPlanarHoles(0.1)
         else:
             self._surf_otgib = None
         return self._surf_otgib
 
-    def __init__(self, edge, base_surf, type):
-        self.base_surf = base_surf
-        self.edge = self.curve_offset(edge)
-        self.type = type
-
     def curve_offset(self, curve):
+        # type: (rh.Curve) -> rh.NurbsCurve
         if self.side_offset is not None:
-            crv = curve.OffsetOnSurface(self.base_surf.Faces[0], self.side_offset, 0.01)
-            return crv[0]
+            nrb = curve.ToNurbsCurve()
+            nrb.Reparameterize(1.0)
+            crv = nrb.OffsetOnSurface(self.base_surf.Faces[0], self.side_offset, 0.01)
+            nrbc=crv[0].ToNurbsCurve()
+
+
+            return nrbc
         else:
-            return curve
+            nrb=curve.ToNurbsCurve()
+            nrb.Reparameterize(1.0)
+            return nrb
 
     def transpose_otgib(self):
 
         tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, self.eval_frame)
-        otg = self.otgib.Duplicate()
+        otg = copy.deepcopy(self.otgib)
         otg.Transform(tr)
         surf_otgib = rh.Brep.CreateContourCurves(otg, self.eval_frame)[0]
 
@@ -152,7 +172,7 @@ class Panel:
     def __init__(self, surface, type):
         self.surface = surface
         self.type = type
-        self.edges = self.surface.Curves3D
+        self.edges = self.surface.Edges
         self.side_types()
 
     def side_types(self):
@@ -178,23 +198,24 @@ class Panel:
             v.edge = trimed
 
 
-n_left=[]
-s_left=[]
+class Pnl(Panel):
+    def __init__(self, surface, type):
+        Panel.__init__(self, surface, type)
+
+
+n_left = []
+s_left = []
 n_right = []
 s_right = []
-b=[]
-a=[]
-
+n_left_edge=[]
+n_right_edge=[]
 for i in niche_left[0:3]:
     pan = Panel(i, 0)
     s_left.append(pan.surf_trimed)
     n_left.append(pan.niche_otgib)
-    b.append(pan.niche.eval_frame)
-    a.append(pan.niche.edge)
-
+    n_left_edge.append(pan.niche.eval_frame)
 for i in niche_right[0:3]:
     pan = Panel(i, 1)
     s_right.append(pan.surf_trimed)
     n_right.append(pan.niche_otgib)
-    b.append(pan.niche.eval_frame)
-    a.append(pan.niche.edge)
+    n_right_edge.append(pan.niche.edge)
