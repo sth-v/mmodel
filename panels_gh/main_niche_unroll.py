@@ -31,9 +31,12 @@ def niche_offset(angle, side, met_left):
     d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
     return d * math.tan(math.radians(angle))
 
+
+#так получается так как нижний отгиб короче
 def niche_shorten(angle, side, met_left):
-    d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
-    return d / math.cos(math.radians(angle))
+    #d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
+    #return d / math.cos(math.radians(angle))
+    return angle_ofs(angle, side, met_left) - 0.5 + 0.25
 
 
 class BendSide:
@@ -42,7 +45,7 @@ class BendSide:
     angle_niche = 45
     side_niche = 0.3
     met_left_niche = 0.5
-    length = 35 - niche_shorten(angle_niche, side_niche, met_left_niche)
+    length = 35
 
     @property
     def top_offset(self):
@@ -76,6 +79,7 @@ class Niche(BendSide):
     side_niche = 0.3
     met_left_niche = 0.5
     side_offset = niche_offset(angle_niche, side_niche, met_left_niche) + (angle_ofs(angle_niche, side_niche, met_left_niche)-right_angle_ofs(side_niche, met_left_niche)) + 0.5
+    length = 35 - niche_shorten(angle_niche, side_niche, met_left_niche)
 
     @property
     def top_part(self):
@@ -91,7 +95,7 @@ class Niche(BendSide):
 
 
 class Side(BendSide):
-    side_offset = 0.5
+    side_offset = 1.0
 
     @property
     def top_part(self):
@@ -121,18 +125,19 @@ class Panel:
 
     @property
     def fres(self):
-        self._fres = self.niche.fres
+        self._fres = [self.side[0].fres, self.niche.fres, self.side[1].fres]
         return self._fres
 
     @property
     def cut(self):
-        self._cut = [self.side[0].fres, self.niche.join, self.side[1].fres, self.bottom.fres]
+        self._cut = [self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres]
         return self._cut
 
-    def __init__(self, surface):
+    def __init__(self, surface, tip):
 
 
         self.surf = surface
+        self.type = tip
 
         self.unrol_surf = rh.Unroller(self.surf).PerformUnroll()[0][0]
         self.edges = self.unrol_surf.Curves3D
@@ -140,9 +145,14 @@ class Panel:
         self.side_types()
 
     def side_types(self):
-        self.niche = Niche(self.edges[3])
-        self.bottom = Bottom(self.edges[1])
-        self.side = [Side(self.edges[0], True), Side(self.edges[2], False)]
+        if self.type == 0:
+            self.niche = Niche(self.edges[2])
+            self.bottom = Bottom(self.edges[0])
+            self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
+        else:
+            self.niche = Niche(self.edges[0])
+            self.bottom = Bottom(self.edges[2])
+            self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
 
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
@@ -168,11 +178,16 @@ panel = []
 fres = []
 cut = []
 
-for p  in panels:
-    pan = Panel(p)
-    panel.append(pan)
-    fres.append(pan.fres)
-    cut.append(pan.cut)
+for p_r, p_l in zip(panels_right, panels_left):
+    pan_r = Panel(p_r, 0)
+    pan_l = Panel(p_l, 1)
+    panel.append(pan_r)
+    fres.append(pan_r.fres)
+    cut.append(pan_r.cut)
+    panel.append(pan_l)
+    fres.append(pan_l.fres)
+    cut.append(pan_l.cut)
+
 
 
 
