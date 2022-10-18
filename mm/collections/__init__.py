@@ -302,6 +302,7 @@ class Vector(BaseItem):
         return self.__array__()[i]
 
 
+
 class AbstractPropertyCollection:
     shape: tuple[int]
 
@@ -698,3 +699,18 @@ class _CD:
                 setattr(cls, name, MethodCollection(m))
                 d.append(cls.__dict__[name])
         return d
+
+
+class CollectionDescriptor:
+    grid: InitGrid
+
+    def __init__(self, function):
+        super().__init__()
+        self.function = function
+        self.name = function.__name__
+
+    def __get__(self, obj, type=None) -> object:
+        for i in self.grid.cellgrid:
+            for j in i:
+                self.function(obj, j)
+
