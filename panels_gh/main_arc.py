@@ -11,7 +11,9 @@ try:
 except:
     import rhinoscript as rs
 
-
+otgib_side=globals()['otgib_side']
+otgib_niche=globals()['otgib_niche']
+panels=globals()['panels']
 import ghpythonlib.treehelpers as th
 import Rhino.Geometry as rh
 import math
