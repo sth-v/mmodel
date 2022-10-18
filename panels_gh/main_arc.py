@@ -159,6 +159,7 @@ class Panel:
     @property
     def surf_otgib(self):
         self._surf_otgib = [self.niche.trim_otgib, self.side[0].trim_otgib, self.side[1].trim_otgib]
+        #self._surf_otgib = [self.niche.surf_otgib, self.side[0].surf_otgib, self.side[1].surf_otgib]
         return self._surf_otgib
 
 
@@ -200,19 +201,23 @@ o_left=[]
 s_left=[]
 o_right = []
 s_right = []
-pl=[]
-r =[]
+a=[]
+
+
 
 for i in panels[0:6:2]:
     pan = Panel(i, 0)
     s_left.append(pan.surf_top)
     o_left.append(pan.surf_otgib)
+    a.append(pan.niche.eval_frame)
 
 
 for i in panels[1:7:2]:
     pan = Panel(i, 1)
     s_right.append(pan.surf_top)
     o_right.append(pan.surf_otgib)
+    a.append(pan.niche.eval_frame)
+
 
 o_left = th.list_to_tree(o_left)
 o_right = th.list_to_tree(o_right)
