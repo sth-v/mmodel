@@ -154,7 +154,7 @@ class TransformableItem(Item):
 
 class FoldElement(TransformableItem):
     inner_parts_trim = 0
-    param = 0.5
+    param = 0.273
 
     @ParentFrame2D
     def parent_frame(self):

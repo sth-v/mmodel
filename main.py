@@ -79,6 +79,7 @@ class SimpleSegment(BaseModel):
     length: float
     radius: float
     angle: float
+    metal_width: float
     dtype: str = "BendSegment"
 
 
@@ -87,6 +88,7 @@ class MillingSegment(SimpleSegment):
     radius: float
     angle: float
     in_rad: float = 0.5
+    metal_width: float
     dtype: str = "BendSegmentFres"
 
 
@@ -94,6 +96,7 @@ class BendingSegment(SimpleSegment):
     length: float
     radius: float
     angle: float
+    metal_width: float
     dtype: str
     in_rad: Optional[float] = None
 
