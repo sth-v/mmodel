@@ -435,7 +435,7 @@ class GeomDataItem(DictableItem, GeometryItem):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class _Item(metaclass=MetaItem, encoder=ItemEncoder):
+'''class _Item(metaclass=MetaItem, encoder=ItemEncoder):
     __default_keys__ = dict()
 
     def __init__(self, *args, **kwargs):
@@ -475,4 +475,4 @@ class BaseItem(_Item, metaclass=MetaItem):
         super().__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        return super().__call__(*args, **kwargs)
+        return super().__call__(*args, **kwargs)'''

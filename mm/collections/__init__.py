@@ -11,8 +11,9 @@ from typing import Any, Callable, Generator, Iterable
 
 import numpy as np
 
-from mm.baseitems import ArgsItem, BaseItem, Item
-from mm.utils import args_flatten
+#from mm.baseitems import ArgsItem, BaseItem, Item
+#from mm.utils import args_flatten
+from mm.baseitems import Item
 
 
 def t(glb):
@@ -155,14 +156,14 @@ class BaseCollection(Item, Iterator):
         return f"<{self.dtype}({self.state} in {self.seq}) at {self.uid}>"
 
 
-class _ItemCollection(Iterator):
+'''class _ItemCollection(Iterator):
     def __next__(self):
         pass
 
     target = ArgsItem
 
     def __init__(self, *args, **kwargs):
-        ...
+        ...'''
 
 
 class _AbstractItemCollection(Iterator):
@@ -274,10 +275,10 @@ class AbstractItemCollection(_AttrHandlerCollection):
     {'ikw': {'x': 51, 'y': 1}, 'iar': (), '_uid': '0x11fc27880', 'x': 51, 'y': 1, 'version': '0x4d0x5b0x600x600x62'}
     {'ikw': {'x': 8, 'y': 3}, 'iar': (), '_uid': '0x11fc27e50', 'x': 8, 'y': 3, 'version': '0x4d0x5b0x600x600x62'}
     """
-    target = ArgsItem
+    #target = ArgsItem
 
 
-class Vector(BaseItem):
+'''class Vector(BaseItem):
     def __init__(self, arg, *args, **kwargs):
         super().__init__(*tuple(args_flatten(arg, *args).tolist()), **kwargs)
         self._i = -1
@@ -299,7 +300,7 @@ class Vector(BaseItem):
         return np.asarray(list(self.__defaultdict__.values))
 
     def __getitem__(self, i):
-        return self.__array__()[i]
+        return self.__array__()[i]'''
 
 
 
@@ -702,7 +703,7 @@ class _CD:
 
 
 class CollectionDescriptor:
-    grid: InitGrid
+    #grid: InitGrid
 
     def __init__(self, function):
         super().__init__()
