@@ -1,11 +1,11 @@
+from collections import namedtuple
+
 try:
     rs=__import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
 
-otgib_side=globals()['otgib_side']
-otgib_niche=globals()['otgib_niche']
-panels=globals()['panels']
+
 import ghpythonlib.treehelpers as th
 import Rhino.Geometry as rg
 import math
@@ -13,7 +13,7 @@ import copy
 import ghpythonlib.components as ghc
 R1=1.5
 W=11.5
-
+Pat=namedtuple("Pat", ["contour", "hole"])
 class TT:
 
     def __init__(self, pt, pt2, circle, w=15, hole=3.5):
@@ -77,18 +77,81 @@ class TT:
             rg.Circle(pt4, self.hole / 2).ToNurbsCurve(),
             rg.Circle(pt6, self.hole / 2).ToNurbsCurve(),
             rg.Circle(pt5, self.hole / 2).ToNurbsCurve(),
-            rg.Polyline([pt41, pt51, pt52, pt42, pt41]).ToNurbsCurve()]
+            rg.Polyline([pt41, pt51, pt52, pt42, pt41]).ToPolylineCurve()]
         ln3 = copy.deepcopy(ln0)
         ln2.Transform(self.mr)
         ln3.Transform(self.mr)
-        crvu = list(rg.Curve.CreateBooleanUnion(crv))
-        self.holes = copy.deepcopy(crvu)
-        self.contour = rg.Curve.JoinCurves([ln0.ToNurbsCurve(), ln1.ToNurbsCurve(),
+        #crvu = list(rg.Curve.CreateBooleanUnion(crv))
+        self.holes = copy.deepcopy(crv)
+        self.contour = [ln0.ToNurbsCurve(), ln1.ToNurbsCurve(),
                                             rg.Arc(ln1.To, self.circle.PointAt(-0.5), endPoint=ln2.To).ToNurbsCurve(),
-                                            ln2.ToNurbsCurve(), ln3.ToNurbsCurve()])[0]
+                                            ln2.ToNurbsCurve(), ln3.ToNurbsCurve()]
         print ln2
-        crvu.extend([ln0.ToNurbsCurve(), ln1.ToNurbsCurve(),
-                     rg.Arc(ln1.To, self.circle.PointAt(-0.5), endPoint=ln2.To).ToNurbsCurve(), ln2.ToNurbsCurve(),
-                     ln3.ToNurbsCurve()])
 
-        return crvu
+
+        return self.contour
+
+
+class Ptrn:
+    def __init__(self, itr):
+        self.itr = itr
+
+    def __getitem__(self, itm):
+        return self.itr.__getitem__(itm)
+
+    def __setitem__(self, itm, v):
+        self.itr.__setitem__(itm, v)
+
+    def __len__(self):
+        return len(self.itr)
+
+
+class Pattern:
+    def __init__(self, unit, modl=23, l=1000):
+        self.__unit = unit
+        self.name = "pattern_arc"
+        self.unit = copy.deepcopy(unit)
+
+        self.u=self.unit.ln
+        self.modl = modl
+        self.__l = l
+        self.ln = l // modl
+        print(self.ln)
+
+    def __iter__(self):
+        return self
+
+    @property
+    def trsf(self):
+        return rg.Transform.Translation(self.modl, 0, 0)
+
+    def mtr(self):
+        for i in self.u.contour:
+
+            i.Transform(self.trsf)
+        for j in self.u.hole:
+            j.Transform(self.trsf)
+
+        return Pat(*self.u)
+
+    def next(self):
+        if self.constrain():
+            self.ln -= 1
+            print(self.ln)
+            return copy.deepcopy(self.mtr())
+        else:
+            raise StopIteration
+
+    def constrain(self):
+
+        return abs(self.l - self.modl) > 20
+
+    def reload(self):
+
+        self.unit = copy.deepcopy(self.__unit)
+        self.u = self.unit.ln
+        self.ln = self.__l // self.modl
+        print(self.ln)
+
+
+
