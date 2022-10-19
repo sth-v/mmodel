@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'DictableItem', 'JsItem',
+__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'DictableItem',
            'DataviewInterface', 'Dataview', 'DataviewDescriptor', 'Metadata', 'ReprData', 'GeomConversionMap',
            'GeomDataItem']
 
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import base64
+import gzip
 import itertools
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Generator
@@ -72,7 +73,7 @@ import uuid
 
 class Identifiable(Versioned):
     def __init__(self, *args, **kwargs):
-        self._uuid = uuid.uuid4().hex
+        self._uuid = uuid.uuid4()
         super().__init__(*args, **kwargs)
 
     @property
@@ -216,7 +217,7 @@ class GeomConversionMap(DataviewDescriptor):
 
 
 class GeometryItem(Item):
-    geometries = GeomConversionMap()
+    data = GeomConversionMap()
 
     def to_rhino(self) -> Union[list[float], Generator]:
         ...
@@ -411,8 +412,11 @@ class DictableItem(FieldItem, ItemFormatter):
     def to_json(self, **kwargs):
         return self.encode(**kwargs)
 
-    def b64encode(self, **kwargs):
-        return base64.b64encode(self.encode(**kwargs).encode())
+    def b64encode(self):
+        return base64.b64encode(self.gzip_encode())
+
+    def gzip_encode(self):
+        return gzip.compress(self.encode().encode(), compresslevel=9)
 
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
@@ -424,14 +428,13 @@ class DictableItem(FieldItem, ItemFormatter):
         ...
 
 
-class JsItem(DictableItem):
-    schema_js = dict()
-
-
 class GeomDataItem(DictableItem, GeometryItem):
+    exclude = ["to_rhino", "to_compas", "to_occ"]
+    exclude.extend(DictableItem.exclude)
+
     def to_dict(self):
         dct = super().to_dict()
-        dct["geometries"] = self.geometries
+        dct["data"] = self.data.dict()["data"]
         return dct
 
 # New Style Classes

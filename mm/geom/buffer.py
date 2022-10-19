@@ -1,21 +1,39 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+from __future__ import annotations, with_statement
+
+import copy
 import typing
 from abc import abstractmethod
+from enum import Enum
 
 import compas.geometry as cg
 import numpy as np
 import pydantic
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeShell
+from OCC.Core.GC import *
 from OCC.Core.gp import gp_Pnt
 from rhino3dm import Point3d
 
-from mm.baseitems import GeomConversionMap
-from mm.baseitems import GeomDataItem, ReprData
+from mm.baseitems import GeomConversionMap, GeomDataItem, Metadata, ReprData
 
 
-class BufferGeometryGroup(pydantic.BaseModel):
-    count: int
-    start: int = 0
-    materialIndex: int = 0
+class BufferGeometryDataTypes(str, Enum):
+    geometries: str = "BufferGeometry"
+    object: str = "Object"
+
+
+class BufferGeometryMetadata(Metadata):
+    include = []
+    type: BufferGeometryDataTypes = BufferGeometryDataTypes.geometries
+    generator: str = "CxmGenerator"
+    version: float = 4.5
+
+    def __get_dict__(self, instance, owner):
+        md = super().__get_dict__(instance, owner)
+        md["type"] = self.type
+        md["generator"] = self.generator
+
+        return md
 
 
 class BufferGeometryProperty(pydantic.BaseModel):
@@ -36,20 +54,33 @@ class BufferGeometryUV(BufferGeometryProperty):
 
 
 class BufferGeometryBoundingSphere(pydantic.BaseModel):
-    center: list[float, float, float]
+    center: list[float, float, float] = [0, 0, 0]
     radius: float = 1.0
+
+
+class BufferGeometryGroup(pydantic.BaseModel):
+    start: int = 0
+    count: int = 1
+    materialIndex: int = 0
 
 
 class BufferGeometryData(pydantic.BaseModel):
     attributes: dict[str, BufferGeometryProperty]
-    boundingSphere: BufferGeometryBoundingSphere
-    groups: list[BufferGeometryGroup | None] = []
+    boundingSphere: BufferGeometryBoundingSphere = BufferGeometryBoundingSphere()
+
+    def __init__(self, **data: typing.Any):
+        super().__init__(**data)
 
 
 class BufferGeometryModel(pydantic.BaseModel):
     data: BufferGeometryData
     uuid: str
-    type: str = "BufferGeometry"
+    type: BufferGeometryDataTypes = BufferGeometryDataTypes.geometries
+
+    # children: list[pydantic.BaseModel | typing.Any | None] = []
+    def __init__(self, **data: typing.Any):
+        super().__init__(**data)
+        self.__class__.update_forward_refs(**data)
 
 
 class BufferPointMap(GeomConversionMap):
@@ -63,12 +94,13 @@ class BufferPointMap(GeomConversionMap):
             boundingSphere=BufferGeometryBoundingSphere(center=instance.array, radius=0.5)
         )
 
-        return BufferGeometryModel(data=data, uuid=instance.uuid, type='BufferGeometry')
+        return BufferGeometryModel(data=data)
 
 
 class BufferGeometryItem(GeomDataItem, typing.Sequence):
     representation = ReprData("array")
-    geometries = BufferPointMap()
+    data = BufferPointMap()
+    metadata = BufferGeometryMetadata(type=BufferGeometryDataTypes.geometries)
 
     def __getitem__(self, item):
         return self.array[item]
@@ -83,7 +115,7 @@ class BufferGeometryItem(GeomDataItem, typing.Sequence):
         return self.__array__().tolist()
 
     @property
-    def array(self) -> list[float]:
+    def array(self) -> list[float] | list[list[float]]:
         return self.__array__().tolist()
 
 
@@ -170,6 +202,29 @@ class BufferPoint(BufferGeometryItem):
     def to_rhino(self):
         return Point3d(self.x, self.y, self.z)
 
+    def distance(self, other: BufferGeometryItem | list[BufferGeometryItem]):
+        if isinstance(other, list):
+            return [self.to_occ().Distance(x.to_occ()) for x in other]
+        else:
+            return self.to_occ().Distance(other.to_occ())
+
+
+class BI(BufferGeometryItem):
+    def array(self) -> list[list[float]]:
+        a, b, c = self.__array__().shape
+
+        return self.__array__().reshape(a * b, 3).tolist()
+
+    @property
+    def centroid(self) -> BufferPoint:
+        rshp = self.__array__()
+        return BufferPoint(np.average(rshp[..., 0]), np.average(rshp[..., 1]), float(np.average(rshp[..., 2])))
+
+    @property
+    def bnd_sphere(self) -> BufferGeometryBoundingSphere:
+        return BufferGeometryBoundingSphere(center=self.centroid.array, radius=np.max(
+            np.array([self.centroid.distance(BufferPoint(*r)) for r in self.array])))
+
 
 class BufferFaceMap(GeomConversionMap):
     include = ["array"]
@@ -179,14 +234,46 @@ class BufferFaceMap(GeomConversionMap):
         data = BufferGeometryData(attributes=dict(
             position=BufferGeometryPosition(array=instance.array),
         ),
-            boundingSphere=BufferGeometryBoundingSphere(center=instance.array, radius=0.5)
+            boundingSphere=BufferGeometryBoundingSphere(center=instance.centroid.array, radius=0.5)
         )
 
         return BufferGeometryModel(data=data, uuid=instance.uuid, type='BufferGeometry')
 
 
+class BufferGmMap(GeomConversionMap):
+    include = []
+    exclude = ["vertices", 'args', 'kw', 'representation', 'aliases', 'fields', 'uid', '__array__', '_dtype']
+
+    def __get_dict__(self, instance, owner) -> BufferGeometryModel:
+        data = BufferGeometryData(attributes=dict(
+            position=BufferGeometryPosition(array=instance.array),
+        ),
+            boundingSphere=instance.bnd_sphere
+        )
+        return BufferGeometryModel(data=data, uuid=instance.uuid, type=BufferGeometryDataTypes.geometries)
+
+
+class BufferOCCMap(BufferGmMap):
+    include = []
+    exclude = ["to_compas", "to_rhino", "to_occ", "__array__", 'args', 'kw', 'representation', 'aliases', 'fields',
+               'uid', '__array__', '_dtype']
+
+    def __get_dict__(self, instance, owner) -> BufferGeometryModel:
+
+        if hasattr(instance, "__tree_js_convert_attrs__"):
+
+            dt = topo_converter(BRepBuilderAPI_MakeShell(instance.occ).Shell(), instance.__tree_js_convert_attrs__)
+
+        else:
+            dt = topo_converter(BRepBuilderAPI_MakeShell(instance.occ).Shell())
+        model = BufferGeometryModel.parse_obj(dt)
+        model.data.boundingSphere = instance.bnd_sphere
+
+        return model
+
+
 class BufferFace(BufferGeometryItem):
-    geometries = BufferPointMap()
+    geometries = BufferGmMap()
     representation = ReprData("array")
     vertices: list[BufferPoint] = [BufferPoint(0, 1, 0), BufferPoint(1, 0, 0), BufferPoint(0, 0, 1)]
 
@@ -207,3 +294,122 @@ class BufferFace(BufferGeometryItem):
         dct_ = super().to_dict()
         del dct_["vertices"]
         return dct_
+
+
+from mm.geom.utils import topo_converter, data_scheme
+
+
+class BufferGeometryOcc(BI):
+    __tree_js_convert_attrs__ = dict(
+        export_edges=True,
+        color=(0.65, 0.65, 0.7),
+        specular_color=(0.2, 0.2, 0.2),
+        shininess=0.9,
+        transparency=0.,
+        line_color=(0, 0., 0.),
+        line_width=1.,
+        mesh_quality=21,
+        deflection=0.01,
+        scheme=copy.deepcopy(data_scheme))
+    data = BufferOCCMap()
+
+    def to_dict(self):
+        dct = super().to_dict()
+        dct["metadata"].__setitem__("version", 4.5)
+        return dct
+
+
+class TrimmingCone(BufferGeometryOcc):
+    representation = ReprData("point_a", "point_b", "radius_a", "radius_b", "trim")
+
+    def __call__(self, point_a, point_b, radius_a, radius_b, *args, **kwargs):
+        super().__call__(*args, **kwargs)
+        self.point_a, self.point_b, self.radius_a, self.radius_b = point_a, point_b, radius_a, radius_b
+        if self._trim is None:
+            self.trim = self._occ().Bounds()
+
+    _trim = None
+    _radius_a = None
+    _radius_b = None
+    _point_a = None
+    _point_b = None
+
+    @property
+    def occ(self):
+        geoms = self._occ()
+        geoms.SetTrim(*self.trim)
+        return geoms
+
+    def _occ(self):
+        return GC_MakeTrimmedCone(gp_Pnt(*self.point_a), gp_Pnt(*self.point_b), self.radius_a,
+                                  self.radius_b).Value()
+
+    @property
+    def trim(self):
+        return self._trim
+
+    @trim.setter
+    def trim(self, trims):
+        self._trim = trims
+
+    @property
+    def point_b(self):
+        return self._point_b
+
+    @point_b.setter
+    def point_b(self, value):
+        self._point_b = value
+
+    @property
+    def point_a(self):
+        return self._point_a
+
+    @point_a.setter
+    def point_a(self, value):
+        self._point_a = value
+
+    @property
+    def radius_b(self):
+        return self._radius_b
+
+    @radius_b.setter
+    def radius_b(self, value):
+        self._radius_b = value
+
+    @property
+    def radius_a(self):
+        return self._radius_a
+
+    @radius_a.setter
+    def radius_a(self, value):
+        self._radius_a = value
+
+    @property
+    def bounds(self):
+        return self.occ.Bounds()
+
+    def __array__(self, nums=(8, 8), *args, **kw):
+        umin, umax, vmin, vmax = self.bounds
+        unum, vnum = nums
+        _u, _v = np.linspace(umin, umax, unum), np.linspace(vmin, vmax, vnum)
+        d = np.zeros(nums + (3,), dtype=float)
+
+        for i in range(unum):
+            for j in range(vnum):
+                pt = self.occ.Value(_u[i], _v[j])
+                d[i, j, :] = pt.X(), pt.Y(), pt.Z()
+
+        return d
+
+    @property
+    def array(self) -> list[list[float]]:
+        a, b, c = self.__array__().shape
+
+        return self.__array__().reshape(a * b, 3).tolist()
+
+
+if __name__ == "__main__":
+    tc = TrimmingCone([1, 2, 3], [12, 15, 8], 5, 7)
+    print(tc.data)
+    print(tc.to_dict())
+    print(tc.to_json(indent=2))
