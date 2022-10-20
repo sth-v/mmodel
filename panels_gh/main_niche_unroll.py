@@ -437,6 +437,7 @@ class NicheSide(object):
         line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
         return line
 
+#ptr = TT(globals()['x'], globals()['y'], globals()['circle'])
 
 niche_side = NicheSide
 back_niche = BackNiche
