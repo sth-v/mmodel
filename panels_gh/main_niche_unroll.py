@@ -18,8 +18,11 @@ import Rhino.Geometry as rh
 import math
 import sys
 import copy
-sys.path.extend([os.getenv("HOME") + "/mmodel/panels_gh", os.getenv("HOME") + "/mmodel/panels_gh/cogs"])
-from cogs import TT, Pattern
+if os.getenv("USER") == "sofyadobycina":
+    sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh", os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
+else:
+    sys.path.extend(
+        [os.getenv("HOME") + "/mmodel/panels_gh", os.getenv("HOME") + "/mmodel/panels_gh/cogs"])
 from functools import wraps
 
 
