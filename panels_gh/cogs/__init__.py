@@ -18,10 +18,10 @@ Pat = namedtuple("Pat", ["contour", "hole"])
 
 class TT:
 
-    def __init__(self, pt, pt2, circle, w=15, hole=3.5):
+    def __init__(self, pt, pt2, circle, w=6.672, hole=3.5):
         self.name = "arcpattern"
         self.w = w
-        self.fh = 9.872
+        self.fh = 5.872
         self._n = 0
         self._pt = pt
         self._pt2 = pt2
@@ -67,12 +67,12 @@ class TT:
         pt3.Transform(self.mr)
         pt6 = self.pt2 + rg.Point3d(0, -self.w, 0)
         pt4 = self.pt2 + rg.Point3d(0, -self.w - self.fh, 0)
-        pt5 = pt4 + rg.Point3d(0, -16 - self.w + self.fh, 0)
+        pt5 = pt4 + rg.Point3d(0, -19.067 - (7 - 6.672) + self.fh, 0)
         pt41 = pt4 + rg.Point3d(-self.hole / 2, 0, 0)
         pt42 = pt4 + rg.Point3d(self.hole / 2, 0, 0)
         pt51 = pt5 + rg.Point3d(-self.hole / 2, 0, 0)
         pt52 = pt5 + rg.Point3d(self.hole / 2, 0, 0)
-        print pt5
+
 
         crv = [
             rg.Circle(pt4, self.hole / 2).ToNurbsCurve(),
@@ -82,13 +82,13 @@ class TT:
         ln3 = copy.deepcopy(ln0)
         ln2.Transform(self.mr)
         ln3.Transform(self.mr)
-        # crvu = list(rg.Curve.CreateBooleanUnion(crv,0.01))
-        self.holes = copy.deepcopy(crv)
-        self.contour = [ln0.ToNurbsCurve(), ln1.ToNurbsCurve(),
-                        rg.Arc(ln1.To, self.circle.PointAt(-0.5), endPoint=ln2.To).ToNurbsCurve(),
-                        ln2.ToNurbsCurve(), ln3.ToNurbsCurve()]
+        self.holes = list(rg.Curve.CreateBooleanUnion(crv,0.01))
 
-        return self.holes
+        self.contour = rg.Curve.JoinCurves([ln0.ToNurbsCurve(), ln1.ToNurbsCurve(),
+                        rg.Arc(ln1.To, self.circle.PointAt(-0.5), endPoint=ln2.To).ToNurbsCurve(),
+                        ln2.ToNurbsCurve(), ln3.ToNurbsCurve()])
+
+        return Pat(self.contour,self.holes)
 
 
 class Ptrn:
@@ -111,11 +111,11 @@ class Pattern:
         self.name = "pattern_arc"
         self.unit = copy.deepcopy(unit)
 
-        self.u = self.unit.ln
+        self.u = self.unit
         self.modl = modl
         self.__l = l
         self.ln = l // modl
-        print(self.ln)
+
         self.hole = []
         self.contour = []
 
@@ -129,20 +129,21 @@ class Pattern:
     def mtr(self):
         contour=[]
         hole=[]
+
         contour.append(self.u.contour)
         hole.append(self.u.hole)
-        for i in self.u.contour:
+        u=copy.deepcopy(self.u)
+        for i in u.contour:
             i.Transform(self.trsf)
 
-        for j in self.u.hole:
+        for j in u.holes:
             j.Transform(self.trsf)
-
-        return self.u.hole
-
+        self.u=u
+        return u
     def next(self):
         if self.constrain():
             self.ln -= 1
-            print(self.u)
+
             self.mtr()
             return self.u
         else:
@@ -156,6 +157,6 @@ class Pattern:
         self.hole = []
         self.contour = []
         self.unit = copy.deepcopy(self.__unit)
-        self.u = self.unit.ln
+        self.u = self.unit
         self.ln = self.__l // self.modl
-        print(self.ln)
+

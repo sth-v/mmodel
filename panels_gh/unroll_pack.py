@@ -6,19 +6,38 @@
         a: The a output variable"""
 
 __author__ = "sofyadobycina"
+
+
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
 import sys
+import imp
 import os
+import sys
+if os.getenv("USER") == "sofyadobycina":
+    PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
+    sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
+                     os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
+else:
+    PWD = os.getenv("HOME") + "/mmodel/panels_gh"
+    sys.path.extend(
+        [os.getenv("HOME") + "/mmodel/panels_gh", os.getenv("HOME") + "/mmodel/panels_gh/cogs"])
 
+cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs", path=[PWD])
+cogs = imp.load_module("cogs", cogsfile, PWD, (cogssuffix, cogsmode, cogstype))
 #sys.path.extend(["/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh"])
 import ghpythonlib.treehelpers as th
 import Rhino.Geometry as rh
 import math
 
 
+
+
+TT=cogs.TT
+Pattern=cogs.Pattern
 Panel = panel
 NicheSide = niche_side
 BackNiche = back_niche
@@ -84,12 +103,15 @@ class UnrollPack:
 
 
 
-    def __init__(self, panel_r, panel_l, niche_r, niche_l, ribs, niche_b):
+    def __init__(self, x, y, circle, panel_r, panel_l, niche_r, niche_l, ribs, niche_b):
         self.panel_r = Panel(panel_r, 0)
         self.panel_l = Panel(panel_l, 1)
 
+        cog = TT(x, y, circle)
         self.niche_r = NicheSide(niche_r, 0, ribs, niche_b)
         self.niche_l = NicheSide(niche_l, 1, ribs, niche_b)
+        self.niche_l.niche.cg=cog
+        self.niche_r.niche.cg = cog
 
         self.niche_b = BackNiche(niche_b)
         self.ribs = Ribs(ribs)
@@ -100,7 +122,7 @@ pack_unrolls = []
 a =[]
 b=[]
 for i in unroll_elems:
-    p = UnrollPack(*i)
+    p = UnrollPack(x, y, circle, *i)
     packs.append(p)
     pack_unrolls.append(p.all)
 
