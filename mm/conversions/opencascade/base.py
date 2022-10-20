@@ -1,4 +1,5 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+import OCC.Core.GeomConvert as gc
 from OCC.Core.BRepBuilderAPI import *
 from OCC.Core.BRepFill import *
 from OCC.Core.GC import *
@@ -6,6 +7,8 @@ from OCC.Core.gp import gp_Ax2, gp_Circ, gp_Dir, gp_Pnt
 from OCC.Display.SimpleGui import init_display
 
 from mm.baseitems import GeometryItem
+
+gg = gc.Convert_ConicToBSplineCurve()
 
 edge1 = BRepBuilderAPI_MakeEdge(gp_Pnt(0, 0, 0), gp_Pnt(0, 1, 0))
 arc = GC_MakeArcOfCircle(gp_Pnt(0, 1, 0), gp_Pnt(0.5, 1.5, 0), gp_Pnt(1, 1, 0))
@@ -82,7 +85,6 @@ class TrimmingCone(GeometryItem):
 
     def set_trim(self, a, b, c, d):
         self.occ.SetTrim(a, b, c, d)
-        GeomPlate_SequenceOfPointConstraint
 
     def show(self):
         dsp = display.DisplayShape(self.occ, update=True)

@@ -35,15 +35,13 @@ def right_angle_ofs(side, met_left):
     rad = ((side / 2) / math.cos(ang)) + met_left
     return rad
 
-
 def niche_offset(angle, side, met_left):
     d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
     return d * math.tan(math.radians(angle))
 
 
+
 class BendSide(object):
-
-
     angle = 90
     side = 0.3
     met_left = 0.5
