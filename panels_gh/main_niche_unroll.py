@@ -7,6 +7,8 @@
 
 __author__ = "sofyadobycina"
 
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 import os
 from types import ListType
 
@@ -42,7 +44,6 @@ def niche_offset(angle, side, met_left):
     return d * math.tan(math.radians(angle))
 
 
-# так получается так как нижний отгиб короче
 def niche_shorten(angle, side, met_left):
     # d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
     # return d / math.cos(math.radians(angle))
@@ -275,8 +276,9 @@ class Panel(object):
 panel = []
 fres = []
 cut = []
-ptr = TT(x, y, circle)
-for p_r, p_l in zip(panels_right, panels_left):
+"""
+ptr = TT(globals()['x'], globals()['y'], globals()['circle'])
+for p_r, p_l in zip(globals()['panels_right'], globals()['panels_left']):
     pan_r = Panel(p_r, 0)
     pan_l = Panel(p_l, 1)
     pan_r.niche._cg= copy.deepcopy(ptr)
@@ -289,4 +291,4 @@ for p_r, p_l in zip(panels_right, panels_left):
     cut.append(pan_l.cut)
 
 fres = th.list_to_tree(fres)
-cut = th.list_to_tree(cut)
+cut = th.list_to_tree(cut)"""
