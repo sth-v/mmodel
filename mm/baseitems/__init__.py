@@ -82,7 +82,7 @@ class Identifiable(Versioned):
 
     @property
     def uuid(self):
-        return self._uuid
+        return str(self._uuid)
 
     @uuid.setter
     def uuid(self, v):
@@ -434,7 +434,7 @@ class GeomDataItem(DictableItem, GeometryItem):
 
     def to_dict(self):
         dct = super().to_dict()
-        dct["data"] = self.data.dict()["data"]
+        dct["data"] = self.data["data"]
         return dct
 
 # New Style Classes

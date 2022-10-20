@@ -1,4 +1,5 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+import os
 import unittest
 from unittest import TestCase
 
@@ -17,3 +18,7 @@ class TestTrimmingCone(TestCase):
 
     def test_to_dict(self):
         self.assertIsNotNone(self.tc.to_dict())
+
+    def test_write(self):
+        with open(f"{os.getenv('HOME')}/mmodel/mm/tests/{self.__class__.__name__}.json", "w") as f:
+            f.write(self.tc.to_json())

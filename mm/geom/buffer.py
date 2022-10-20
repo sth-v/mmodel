@@ -12,9 +12,10 @@ import pydantic
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeShell
 from OCC.Core.GC import *
 from OCC.Core.gp import gp_Pnt
+from pydantic import BaseModel
 from rhino3dm import Point3d
 
-from mm.baseitems import GeomConversionMap, GeomDataItem, Metadata, ReprData
+from mm.baseitems import GeomConversionMap, GeomDataItem, ReprData
 
 
 class BufferGeometryDataTypes(str, Enum):
@@ -22,18 +23,10 @@ class BufferGeometryDataTypes(str, Enum):
     object: str = "Object"
 
 
-class BufferGeometryMetadata(Metadata):
-    include = []
+class BufferGeometryMetadata(pydantic.BaseModel):
     type: BufferGeometryDataTypes = BufferGeometryDataTypes.geometries
     generator: str = "CxmGenerator"
     version: float = 4.5
-
-    def __get_dict__(self, instance, owner):
-        md = super().__get_dict__(instance, owner)
-        md["type"] = self.type
-        md["generator"] = self.generator
-
-        return md
 
 
 class BufferGeometryProperty(pydantic.BaseModel):
@@ -72,15 +65,16 @@ class BufferGeometryData(pydantic.BaseModel):
         super().__init__(**data)
 
 
-class BufferGeometryModel(pydantic.BaseModel):
+class BufferGeometrySimple(BaseModel):
     data: BufferGeometryData
     uuid: str
-    type: BufferGeometryDataTypes = BufferGeometryDataTypes.geometries
+    type: BufferGeometryDataTypes
+
+
+class BufferGeometryModel(BufferGeometrySimple):
+    metadata: BufferGeometryMetadata
 
     # children: list[pydantic.BaseModel | typing.Any | None] = []
-    def __init__(self, **data: typing.Any):
-        super().__init__(**data)
-        self.__class__.update_forward_refs(**data)
 
 
 class BufferPointMap(GeomConversionMap):
@@ -100,7 +94,6 @@ class BufferPointMap(GeomConversionMap):
 class BufferGeometryItem(GeomDataItem, typing.Sequence):
     representation = ReprData("array")
     data = BufferPointMap()
-    metadata = BufferGeometryMetadata(type=BufferGeometryDataTypes.geometries)
 
     def __getitem__(self, item):
         return self.array[item]
@@ -210,6 +203,7 @@ class BufferPoint(BufferGeometryItem):
 
 
 class BI(BufferGeometryItem):
+
     def array(self) -> list[list[float]]:
         a, b, c = self.__array__().shape
 
@@ -236,21 +230,26 @@ class BufferFaceMap(GeomConversionMap):
         ),
             boundingSphere=BufferGeometryBoundingSphere(center=instance.centroid.array, radius=0.5)
         )
+        BufferGeometryModel.update_forward_refs(data=data)
+        instance._pydantic = BufferGeometryModel(uuid=str(instance.uuid), type='BufferGeometry')
+        instance._pydantic.data = data
+        return instance._pydantic.dict()
 
-        return BufferGeometryModel(data=data, uuid=instance.uuid, type='BufferGeometry')
 
-
-class BufferGmMap(GeomConversionMap):
+class BufferGmMap(BufferFaceMap):
     include = []
     exclude = ["vertices", 'args', 'kw', 'representation', 'aliases', 'fields', 'uid', '__array__', '_dtype']
 
-    def __get_dict__(self, instance, owner) -> BufferGeometryModel:
+    def __get_dict__(self, instance, owner) -> dict:
         data = BufferGeometryData(attributes=dict(
             position=BufferGeometryPosition(array=instance.array),
         ),
             boundingSphere=instance.bnd_sphere
         )
-        return BufferGeometryModel(data=data, uuid=instance.uuid, type=BufferGeometryDataTypes.geometries)
+        BufferGeometryModel.update_forward_refs(data=data)
+        instance._pydantic = BufferGeometryModel(uuid=str(instance.uuid), type='BufferGeometry')
+
+        return instance._pydantic.dict()
 
 
 class BufferOCCMap(BufferGmMap):
@@ -258,7 +257,7 @@ class BufferOCCMap(BufferGmMap):
     exclude = ["to_compas", "to_rhino", "to_occ", "__array__", 'args', 'kw', 'representation', 'aliases', 'fields',
                'uid', '__array__', '_dtype']
 
-    def __get_dict__(self, instance, owner) -> BufferGeometryModel:
+    def __get_dict__(self, instance, owner) -> dict:
 
         if hasattr(instance, "__tree_js_convert_attrs__"):
 
@@ -266,15 +265,18 @@ class BufferOCCMap(BufferGmMap):
 
         else:
             dt = topo_converter(BRepBuilderAPI_MakeShell(instance.occ).Shell())
-        model = BufferGeometryModel.parse_obj(dt)
-        model.data.boundingSphere = instance.bnd_sphere
+        instance._pydantic = BufferGeometryModel(metadata=BufferGeometryMetadata(**dt["metadata"]),
+                                                 uuid=dt['uuid'],
+                                                 data=dt["data"], type=BufferGeometryDataTypes.geometries)
 
-        return model
+        instance._pydantic.data.boundingSphere = instance.bnd_sphere
+        instance._dt = dt
+        return instance._pydantic.dict()
 
 
 class BufferFace(BufferGeometryItem):
-    geometries = BufferGmMap()
-    representation = ReprData("array")
+    data = BufferGmMap()
+    reparesentation = ReprData("array")
     vertices: list[BufferPoint] = [BufferPoint(0, 1, 0), BufferPoint(1, 0, 0), BufferPoint(0, 0, 1)]
 
     def __contains__(self, item):
@@ -314,9 +316,54 @@ class BufferGeometryOcc(BI):
     data = BufferOCCMap()
 
     def to_dict(self):
-        dct = super().to_dict()
-        dct["metadata"].__setitem__("version", 4.5)
-        return dct
+        return self.data
+
+
+from mm.geom.mat import TreeJsPhongMaterial
+
+
+class BufferGeometryObjProperty:
+    __dct__ = {}
+    names = {"uuid": "uuid",
+
+             "geometry": "geometries",
+             "material": "materials"}
+
+    def __set_name__(self, owner, name):
+        self.name = '_' + name
+        self.__ps = self.names[name]
+
+    def __get__(self, inst, own):
+        return inst.__dict__[self.__ps].uuid
+
+
+class Prop(BufferGeometryObjProperty):
+    def __set_name__(self, owner, name):
+        self.name = name
+        self.__ps = "_" + self.name
+
+    def __get__(self, inst, own):
+        return inst.__dict__[self.__ps]
+
+    def __set__(self, inst, uu):
+        inst.__dict__[self.__ps] = uu
+
+
+def ObjProperty(owner, name) -> BufferGeometryObjProperty | Prop:
+    if name in BufferGeometryObjProperty.names.keys():
+        setattr(owner, name, BufferGeometryObjProperty())
+
+    else:
+        setattr(owner, name, Prop())
+    return getattr(owner, name)
+
+
+class BufferGeometryObject(pydantic.BaseModel):
+    geometries: list[BufferGeometrySimple]
+    materials: list[TreeJsPhongMaterial]
+    object: typing.Any
+    metadata: BufferGeometryMetadata = BufferGeometryMetadata(
+        **{"version": 4.5, "type": "Object", "generator": "Object3D.toJSON"})
 
 
 class TrimmingCone(BufferGeometryOcc):
