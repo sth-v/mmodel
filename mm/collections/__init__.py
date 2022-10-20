@@ -259,7 +259,7 @@ class AbstractItemCollection(_AttrHandlerCollection):
     >>>list(next(t_collection))[0].ikw
     Out[10]: {'x': 4, 'y': 2}
     >>>for o in t_collection:
-    ....   # print(list(o)[0].__dict__)
+    ....   print(list(o)[0].__dict__)
     {'ikw': {'x': 1, 'y': 11}, 'iar': (), '_uid': '0x12a5ab040', 'x': 1, 'y': 11, 'version': '0x4d0x5b0x600x600x62'}
     {'ikw': {'x': 2, 'y': 45}, 'iar': (), '_uid': '0x12a5ab430', 'x': 2, 'y': 45, 'version': '0x4d0x5b0x600x600x62'}
     {'ikw': {'x': 33, 'y': 3}, 'iar': (), '_uid': '0x12a5ab2b0', 'x': 33, 'y': 3, 'version': '0x4d0x5b0x600x600x62'}

@@ -10,21 +10,24 @@ try:
     rs = __import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
-
+import ghpythonlib.treehelpers as th
 import Rhino.Geometry as rh
 import math
-def get_plane(surf, edge, edge_point):
-    point_surf = surf.Faces[0].ClosestPoint(edge_point)
-    eval_surf = surf.Faces[0].FrameAt(point_surf[1], point_surf[2])[1]
-    point_edge = edge.ClosestPoint(edge_point)
-    eval_edge = edge.FrameAt(point_edge[1])[1]
-    frame = rh.Plane(eval_surf.Origin, eval_edge.XAxis, eval_surf.ZAxis)
+import copy
+
+def plane(edge, target, param, param_val):
+
+    ptt2 = edge.PointAt(edge.ClosestPoint(param)[1])
+    vec = rh.Vector3d(ptt2.X - param.X, ptt2.Y - param.Y, ptt2.Z - param.Z)
+
+    xvec = rh.Vector3d.CrossProduct(target.TangentAt(target.NormalizedLengthParameter(param_val)[1]), vec)
+    frame = rh.Plane(param, vec, xvec)
     return frame
 
 def angle_ofs(angle, side, met_left):
-    ang = math.radians(90/2)
+    ang = math.radians(90 / 2)
     rad = ((side / 2) / math.cos(ang)) + met_left
-    return rad / math.tan(math.radians(angle/2))
+    return rad / math.tan(math.radians(angle / 2))
 
 
 def right_angle_ofs(side, met_left):
@@ -38,55 +41,79 @@ def niche_offset(angle, side, met_left):
 
 
 
-class BendSide:
+class BendSide(object):
     angle = 90
     side = 0.3
     met_left = 0.5
     side_offset = 0.5 + right_angle_ofs(side, met_left)
     otgib = otgib_niche
 
+    def __init__(self, edge, base_surf, type):
+        object.__init__(self)
+        self.base_surf = base_surf # type: rh.Brep
+        self.edge = self.curve_offset(edge)
+        self.type = type
+
     @property
     def eval_frame(self):
-        point_surf = self.base_surf.Faces[0].ClosestPoint(self.edge.PointAtEnd)
-        eval_surf = self.base_surf.Faces[0].FrameAt(point_surf[1], point_surf[2])[1]
-        point_edge = self.edge.ClosestPoint(self.edge.PointAtEnd)
-        eval_edge = self.edge.FrameAt(point_edge[1])[1]
-        frame = rh.Plane(eval_surf.Origin, eval_edge.XAxis, eval_surf.ZAxis)
+        t=1.0000
+        ptt=self.edge.PointAt(self.edge.NormalizedLengthParameter(t)[1])
+
+        r2=self.base_surf.Edges[1].ToNurbsCurve()
+        ptt2=r2.PointAt(r2.ClosestPoint(ptt)[1])
+        vec=rh.Vector3d(ptt2.X-ptt.X,ptt2.Y-ptt.Y,ptt2.Z-ptt.Z)
+
+        xvec=rh.Vector3d.CrossProduct(self.edge.TangentAt(self.edge.NormalizedLengthParameter(t)[1]),vec)
+
+        frame = rh.Plane(self.edge.PointAt(self.edge.NormalizedLengthParameter(t)[1]), vec, xvec )
 
         if self.type == 0:
-            self._eval_frame = rh.Plane(frame.Origin, frame.ZAxis, frame.YAxis)
-        else:
-            self._eval_frame = rh.Plane(frame.Origin, frame.ZAxis, -frame.YAxis)
-        return self._eval_frame
 
+            fr = copy.deepcopy(frame)
+            fr.Flip()
+            fr.Rotate(math.pi * 0.5, frame.Normal)
+            self._eval_frame = fr
+        else:
+            fr = copy.deepcopy(frame)
+
+            fr.Rotate(math.pi * 1, frame.Normal)
+            self._eval_frame = fr
+
+        return self._eval_frame
 
     @property
     def surf_otgib(self):
         if self.otgib is not None:
             otg = self.transpose_otgib()
-            extr = rh.SweepOneRail()
-            extr = extr.PerformSweep(self.edge, [otg])[0]
+
+            swp=rh.SweepOneRail()
+            self.edge.Reverse()
+            extr, = swp.PerformSweep(self.edge, otg)
+
             self._surf_otgib = extr.CapPlanarHoles(0.1)
         else:
             self._surf_otgib = None
         return self._surf_otgib
 
-    def __init__(self, edge, base_surf, type):
-        self.base_surf = base_surf
-        self.edge = self.curve_offset(edge)
-        self.type = type
-
     def curve_offset(self, curve):
+        # type: (rh.Curve) -> rh.NurbsCurve
         if self.side_offset is not None:
-            crv = curve.OffsetOnSurface(self.base_surf.Faces[0], self.side_offset, 0.01)
-            return crv[0]
+            nrb = curve.ToNurbsCurve()
+            nrb.Reparameterize(1.0)
+            crv = nrb.OffsetOnSurface(self.base_surf.Faces[0], self.side_offset, 0.01)
+            nrbc=crv[0].ToNurbsCurve()
+
+
+            return nrbc
         else:
-            return curve
+            nrb=curve.ToNurbsCurve()
+            nrb.Reparameterize(1.0)
+            return nrb
 
     def transpose_otgib(self):
 
         tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, self.eval_frame)
-        otg = self.otgib.Duplicate()
+        otg = copy.deepcopy(self.otgib)
         otg.Transform(tr)
         surf_otgib = rh.Brep.CreateContourCurves(otg, self.eval_frame)[0]
 
@@ -102,21 +129,34 @@ class Niche(BendSide):
 
     @property
     def trim_otgib(self):
-        frame_one = get_plane(self.base_surf, self.edge, self.edge.PointAtStart)
-        frame_one = rh.Plane(frame_one.Origin, frame_one.YAxis, frame_one.XAxis)
-        tr = rh.Transform.Rotation(math.radians(60), frame_one.XAxis, frame_one.Origin)
-        frame_one.Transform(tr)
-        trim_planes = self.surf_otgib.Trim(frame_one, 0.1)[0]
+        param_st = self.edge.PointAt(self.edge.NormalizedLengthParameter(0.0001)[1])
+        param_e = self.edge.PointAt(self.edge.NormalizedLengthParameter(0.9999)[1])
 
-        frame_two = get_plane(self.base_surf, self.edge, self.edge.PointAtEnd)
-        frame_two = rh.Plane(frame_two.Origin, frame_two.YAxis, frame_two.XAxis)
-        tr = rh.Transform.Rotation(math.radians(120), frame_two.XAxis, frame_two.Origin)
-        frame_two.Transform(tr)
-        #trim_otgib = trim_planes.Trim(frame_two, 0.1)[0]
-        #self._trim_otgib = trim_otgib.CapPlanarHoles(0.1)
-        self._trim_otgib=frame_two
+        r2 = self.base_surf.Edges[1].ToNurbsCurve()
+        one = rh.Curve.DuplicateCurve(self.edge)
+        frame_one = plane(r2, one, param_st, 0.0001)
+        frame_two = plane(r2, one, param_e, 0.9999)
+
+
+        if self.type == 1:
+            tr = rh.Transform.Rotation(math.radians(120), frame_one.XAxis, frame_one.Origin)
+            frame_one.Transform(tr)
+            tr = rh.Transform.Rotation(math.radians(60), frame_two.XAxis, frame_two.Origin)
+            frame_two.Transform(tr)
+        else:
+
+            tr = rh.Transform.Rotation(math.radians(120), -frame_one.XAxis, frame_one.Origin)
+            frame_one.Transform(tr)
+            tr = rh.Transform.Rotation(math.radians(60), -frame_two.XAxis, frame_two.Origin)
+            frame_two.Transform(tr)
+
+        trim_planes = self.surf_otgib.Trim(frame_one, 0.1)[0]
+        trim_otgib = trim_planes.Trim(frame_two, 0.1)[0]
+        self._trim_otgib = trim_otgib.CapPlanarHoles(0.1)
+
 
         return self._trim_otgib
+
     def __init__(self, edge, base_surf, type):
         BendSide.__init__(self, edge, base_surf, type)
 
@@ -130,18 +170,41 @@ class Bottom(BendSide):
 
 
 class Side(BendSide):
-    side_offset = 0.5
-    otgib = None
+    angle = 90
+    side = 0.3
+    met_left = 0.5
+    side_offset = 0.5 + right_angle_ofs(side, met_left)
+    otgib = otgib_side
+
+    @property
+    def trim_otgib(self):
+        param_st = self.edge.PointAt(self.edge.NormalizedLengthParameter(0.0001)[1])
+        param_e = self.edge.PointAt(self.edge.NormalizedLengthParameter(0.9999)[1])
+
+        r2 = self.base_surf.Edges[1].ToNurbsCurve()
+        if self.type == 0:
+            frame_one = plane(r2, self.edge, param_st, 0.0001)
+            #tr = rh.Transform.Rotation(math.radians(60), frame_one.XAxis, frame_one.Origin)
+            #frame_one.Transform(tr)
+            #trim_otgib = self.surf_otgib.Trim(frame_one, 0.1)[0]
+            #self._trim_otgib = trim_otgib.CapPlanarHoles(0.1)
+            self._trim_otgib = frame_one
+        else:
+            frame_two = plane(r2, self.edge, param_e, 0.9999)
+            #frame_two = rh.Plane(frame_two.Origin, frame_two.ZAxis, frame_two.YAxis)
+            #tr = rh.Transform.Rotation(math.radians(120), frame_two.XAxis, frame_two.Origin)
+            #frame_two.Transform(tr)
+            #trim_otgib = self.surf_otgib.Trim(frame_two, 0.1)[0]
+            #self._trim_otgib = trim_otgib.CapPlanarHoles(0.1)
+            self._trim_otgib = frame_two
+
+        return self._trim_otgib
 
     def __init__(self, edge, base_surf, type):
         BendSide.__init__(self, edge, base_surf, type)
 
 
 class Panel:
-    @property
-    def niche_otgib(self):
-        self._niche_otgib = self.niche.trim_otgib
-        return self._niche_otgib
 
     @property
     def surf_trimed(self):
@@ -152,8 +215,10 @@ class Panel:
     def __init__(self, surface, type):
         self.surface = surface
         self.type = type
-        self.edges = self.surface.Curves3D
+        self.edges = self.surface.Edges
         self.side_types()
+
+        self.niche_otgib = self.niche.trim_otgib
 
     def side_types(self):
 
@@ -178,23 +243,27 @@ class Panel:
             v.edge = trimed
 
 
-n_left=[]
-s_left=[]
+class Pnl(Panel):
+    def __init__(self, surface, type):
+        Panel.__init__(self, surface, type)
+
+
+n_left = []
+s_left = []
 n_right = []
 s_right = []
-b=[]
-a=[]
-
+n_left_edge=[]
+n_right_edge=[]
+b =[]
 for i in niche_left[0:3]:
     pan = Panel(i, 0)
     s_left.append(pan.surf_trimed)
     n_left.append(pan.niche_otgib)
-    b.append(pan.niche.eval_frame)
-    a.append(pan.niche.edge)
-
+    n_left_edge.append(pan.niche.eval_frame)
+    b.append(pan.side[0].trim_otgib)
 for i in niche_right[0:3]:
     pan = Panel(i, 1)
     s_right.append(pan.surf_trimed)
     n_right.append(pan.niche_otgib)
-    b.append(pan.niche.eval_frame)
-    a.append(pan.niche.edge)
+    n_right_edge.append(pan.niche.edge)
+    b.append(pan.side[0].trim_otgib)

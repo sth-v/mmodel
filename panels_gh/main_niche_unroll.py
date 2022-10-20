@@ -6,14 +6,10 @@
         a: The a output variable"""
 
 __author__ = "sofyadobycina"
-
-#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-
-import os
-from types import ListType
-
+import sys,os
+sys.path.extend([os.getenv("HOME") + "/mmodel/panels_gh"])
 try:
-    rs = __import__("rhinoscriptsyntax")
+    rs=__import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
 
@@ -22,9 +18,13 @@ import Rhino.Geometry as rh
 import math
 import sys
 import copy
-sys.path.extend([os.getenv("HOME") + "/mmodel/panels_gh", os.getenv("HOME") + "/mmodel/panels_gh/cogs"])
-from cogs import TT, Pattern
+if os.getenv("USER") == "sofyadobycina":
+    sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh", os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
+else:
+    sys.path.extend(
+        [os.getenv("HOME") + "/mmodel/panels_gh", os.getenv("HOME") + "/mmodel/panels_gh/cogs"])
 from functools import wraps
+
 
 
 def angle_ofs(angle, side, met_left):
@@ -42,6 +42,7 @@ def right_angle_ofs(side, met_left):
 def niche_offset(angle, side, met_left):
     d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
     return d * math.tan(math.radians(angle))
+
 
 
 def niche_shorten(angle, side, met_left):
@@ -105,7 +106,7 @@ class Niche(BendSide):
     side_niche = 0.3
     met_left_niche = 0.5
     side_offset = niche_offset(angle_niche, side_niche, met_left_niche) + (
-            angle_ofs(angle_niche, side_niche, met_left_niche) - right_angle_ofs(side_niche, met_left_niche)) + 0.5
+                angle_ofs(angle_niche, side_niche, met_left_niche) - right_angle_ofs(side_niche, met_left_niche)) + 0.5
     length = 35 - niche_shorten(angle_niche, side_niche, met_left_niche)
 
     @property
@@ -214,6 +215,22 @@ class Side(BendSide):
         BendSide.__init__(self, curve)
         self.reverse = reverse
 
+class SideBackNiche(BendSide):
+    side_offset = 1.0
+
+    @property
+    def top_part(self):
+        p_one = rh.Curve.LengthParameter(self.fres, self.top_offset)
+        p_two = rh.Curve.LengthParameter(self.fres, self.fres.GetLength() - self.top_offset)
+        trimed = rh.Curve.Trim(self.fres, p_one[1], p_two[1])
+
+        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01,
+                                         rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._top_part[0]
+
+    def __init__(self, curve):
+        BendSide.__init__(self, curve)
+
 
 class Bottom(BendSide):
     side_offset = None
@@ -222,7 +239,101 @@ class Bottom(BendSide):
         BendSide.__init__(self, curve)
 
 
-class Panel(object):
+class Ribs:
+    def __init__(self, surf_list):
+        self.surf = surf_list
+
+        self.extend = []
+        for i in range(self.__len__()):
+            self.i = i
+            ext = self.extend_surf()
+            self.extend.append(ext)
+
+    def __len__(self):
+        return len(self.surf)
+
+    def extend_surf(self):
+        surf = self.surf[self.i]
+        interv = surf.Domain(1)
+        interv = rh.Interval(interv[0] - 50, interv[1] + 50)
+
+        surf.Extend(1, interv)
+        extr = rh.Surface.ToBrep(surf)
+
+        return extr
+
+
+class BackNiche:
+    @property
+    def fres(self):
+        self._fres = [self.side[0].fres, self.side[1].fres]
+        return self._fres
+
+    @property
+    def cut(self):
+        self._cut = [self.side[0].join, self.top.fres, self.side[1].join, self.bottom.fres]
+        return self._cut
+
+    def __init__(self, surf):
+        self.surf = surf
+        self.extend = self.extend_surf()
+
+        self.unrol_surf = rh.Unroller(self.surf).PerformUnroll()[0][0]
+
+        self.edges = self.unrol_surf.Curves3D
+        self.side_types()
+
+    def side_types(self):
+
+        self.top = Bottom(self.edges[1])
+        self.bottom = Bottom(self.edges[3])
+        self.side = [SideBackNiche(self.edges[0]), SideBackNiche(self.edges[2])]
+
+        self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+    def intersect(self):
+        for i, v in enumerate(self.side_types):
+            old = v.fres.Domain
+            v.fres = v.fres.Extend(rh.Interval(old[0]-15, old[1]+15))
+            param = []
+            for ind, val in enumerate(self.side_types):
+                if i != ind:
+                    old = val.fres.Domain
+                    new = val.fres.Extend(rh.Interval(old[0]-15, old[1]+15))
+                    inters = rs.CurveCurveIntersection(v.fres, new)
+                    if inters is not None:
+                        param.append(inters[0][5])
+            param = sorted(param)
+
+            trimed = rh.Curve.Trim(v.fres, param[0], param[1])
+            v.fres = trimed
+
+    def extend_surf(self):
+        surf = rh.Surface.Duplicate(self.surf)
+        interv = surf.Domain(0)
+        interv = rh.Interval(interv[0] - 50, interv[1] + 50)
+
+        surf.Extend(0, interv)
+        extr = rh.Surface.ToBrep(surf)
+
+        return extr
+
+
+class NicheSide(object):
+
+    @property
+    def mark_ribs(self):
+        self._mark_ribs = self.ribs_offset()
+        return self._mark_ribs
+
+    @property
+    def mark_back(self):
+        one = self.unrol[1][-1].LengthParameter(1)[1]
+        two = self.unrol[1][-1].LengthParameter(self.unrol[1][-1].GetLength() - 1)[1]
+        self._mark_back = self.unrol[1][-1].Trim(one, two)
+
+        return self._mark_back
 
     @property
     def fres(self):
@@ -234,15 +345,53 @@ class Panel(object):
         self._cut = [self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres]
         return self._cut
 
-    def __init__(self, surface, tip):
+    @property
+    def grav(self):
+        d = self.mark_ribs
+        d.append(self.mark_back)
+        self._grav = d
+        return self._grav
+
+
+
+    def __init__(self, surface, tip, rib, back):
         object.__init__(self)
+
         self.surf = surface
         self.type = tip
 
-        self.unrol_surf = rh.Unroller(self.surf).PerformUnroll()[0][0]
-        self.edges = self.unrol_surf.Curves3D
+        self.rebra = Ribs(rib)
+        self.back_side = BackNiche(back)
 
+        self.intersections = self.unroll_intersection()
+
+        unrol = rh.Unroller(self.surf)
+        unrol.AddFollowingGeometry(curves=self.intersections)
+        self.unrol = unrol.PerformUnroll()
+
+        self.unrol_surf = self.unrol[0][0]
+        self.edges = self.unrol_surf.Edges
         self.gen_side_types()
+
+
+    def ribs_offset(self):
+        r = self.unrol[1][0:len(self.unrol[1])-1]
+        ofset_rebra = []
+        for i in r:
+            if i.GetLength() > 10:
+                ofs_one = i.OffsetOnSurface(self.unrol_surf.Faces[0], 1.5, 0.1)
+                ofs_two = i.OffsetOnSurface(self.unrol_surf.Faces[0], -1.5, 0.1)
+                ofset_rebra.append(ofs_one[0])
+                ofset_rebra.append(ofs_two[0])
+        return ofset_rebra
+
+    def unroll_intersection(self):
+        r_inters = self.rebra_intersect()
+        b_inters = self.back_intersect()
+
+        r_inters.append(b_inters)
+        return r_inters
+
 
     def gen_side_types(self):
         if self.type == 0:
@@ -259,36 +408,37 @@ class Panel(object):
 
     def intersect(self):
         for i, v in enumerate(self.side_types):
+            old = v.fres.Domain
+            v.fres = v.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
             param = []
             for ind, val in enumerate(self.side_types):
                 if i != ind:
-                    inters = rs.CurveCurveIntersection(v.fres, val.fres)
+                    old = val.fres.Domain
+                    new = val.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
+                    inters = rs.CurveCurveIntersection(v.fres, new)
                     if inters is not None:
-                        print inters
-                        param.append(inters[0])
+                        param.append(inters[0][5])
+            param = sorted(param)
 
-            param.sort()
+            trimed = rh.Curve.Trim(v.fres, param[0], param[1])
+            v.fres = trimed
 
-            print param
-            v.fres =  rh.Curve.Trim(v.fres, *param)
+    def rebra_intersect(self):
+        intersect = []
+        for i in self.rebra.extend:
+            inters = rs.IntersectBreps(self.surf, i, 0.1)
+            line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
+            intersect.append(line)
 
+        return intersect
 
-panel = []
-fres = []
-cut = []
-"""
-ptr = TT(globals()['x'], globals()['y'], globals()['circle'])
-for p_r, p_l in zip(globals()['panels_right'], globals()['panels_left']):
-    pan_r = Panel(p_r, 0)
-    pan_l = Panel(p_l, 1)
-    pan_r.niche._cg= copy.deepcopy(ptr)
-    pan_l.niche._cg = copy.deepcopy(ptr)
-    panel.append(pan_r)
-    fres.append(pan_r.fres)
-    cut.append(pan_r.cut)
-    panel.append(pan_l)
-    fres.append(pan_l.fres)
-    cut.append(pan_l.cut)
+    def back_intersect(self):
+        inters = rs.IntersectBreps(self.surf, self.back_side.extend, 0.1)
+        line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
+        return line
 
-fres = th.list_to_tree(fres)
-cut = th.list_to_tree(cut)"""
+#ptr = TT(globals()['x'], globals()['y'], globals()['circle'])
+
+niche_side = NicheSide
+back_niche = BackNiche
+ribs = Ribs
