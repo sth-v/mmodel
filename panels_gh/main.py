@@ -139,20 +139,4 @@ class Panel:
             trimed = rh.Curve.Trim(v.fres, param[0], param[1])
             v.fres = trimed
 
-if __name__=="__main__":
-    panel = []
-    fres = []
-    cut = []
-
-
-    def main(panels, tip):
-        for p, t in zip(panels, tip):
-            print(panels, tip)
-            pan = Panel(p, t)
-            panel.append(pan)
-            fres.append(pan.fres)
-            cut.append(pan.cut)
-    main(globals()['panels'], globals()['tip'])
-
-    fres = th.list_to_tree(fres)
-    cut = th.list_to_tree(cut)
+panel = Panel

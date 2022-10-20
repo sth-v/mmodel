@@ -6,6 +6,8 @@
         a: The a output variable"""
 
 __author__ = "sofyadobycina"
+import sys,os
+sys.path.extend([os.getenv("HOME") + "/mmodel/panels_gh"])
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -33,7 +35,7 @@ def niche_offset(angle, side, met_left):
     return d * math.tan(math.radians(angle))
 
 
-# так получается так как нижний отгиб короче
+
 def niche_shorten(angle, side, met_left):
     # d = angle_ofs(angle, side, met_left) - right_angle_ofs(side, met_left)
     # return d / math.cos(math.radians(angle))
@@ -118,6 +120,22 @@ class Side(BendSide):
         BendSide.__init__(self, curve)
         self.reverse = reverse
 
+class SideBackNiche(BendSide):
+    side_offset = 1.0
+
+    @property
+    def top_part(self):
+        p_one = rh.Curve.LengthParameter(self.fres, self.top_offset)
+        p_two = rh.Curve.LengthParameter(self.fres, self.fres.GetLength() - self.top_offset)
+        trimed = rh.Curve.Trim(self.fres, p_one[1], p_two[1])
+
+        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01,
+                                         rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._top_part[0]
+
+    def __init__(self, curve):
+        BendSide.__init__(self, curve)
+
 
 class Bottom(BendSide):
     side_offset = None
@@ -150,7 +168,17 @@ class Ribs:
         return extr
 
 
-class BackSurface:
+class BackNiche:
+    @property
+    def fres(self):
+        self._fres = [self.side[0].fres, self.side[1].fres]
+        return self._fres
+
+    @property
+    def cut(self):
+        self._cut = [self.side[0].join, self.top.fres, self.side[1].join, self.bottom.fres]
+        return self._cut
+
     def __init__(self, surf):
         self.surf = surf
         self.extend = self.extend_surf()
@@ -162,19 +190,23 @@ class BackSurface:
 
     def side_types(self):
 
-        self.top = Niche(self.edges[0])
-        self.bottom = Bottom(self.edges[2])
-        self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
+        self.top = Bottom(self.edges[1])
+        self.bottom = Bottom(self.edges[3])
+        self.side = [SideBackNiche(self.edges[0]), SideBackNiche(self.edges[2])]
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
-        #self.intersect()
+        self.intersect()
 
     def intersect(self):
         for i, v in enumerate(self.side_types):
+            old = v.fres.Domain
+            v.fres = v.fres.Extend(rh.Interval(old[0]-15, old[1]+15))
             param = []
             for ind, val in enumerate(self.side_types):
                 if i != ind:
-                    inters = rs.CurveCurveIntersection(v.fres, val.fres)
+                    old = val.fres.Domain
+                    new = val.fres.Extend(rh.Interval(old[0]-15, old[1]+15))
+                    inters = rs.CurveCurveIntersection(v.fres, new)
                     if inters is not None:
                         param.append(inters[0][5])
             param = sorted(param)
@@ -183,7 +215,7 @@ class BackSurface:
             v.fres = trimed
 
     def extend_surf(self):
-        surf = self.surf
+        surf = rh.Surface.Duplicate(self.surf)
         interv = surf.Domain(0)
         interv = rh.Interval(interv[0] - 50, interv[1] + 50)
 
@@ -225,7 +257,7 @@ class NicheSide:
         self.type = tip
 
         self.rebra = Ribs(rib)
-        self.back_side = BackSurface(back)
+        self.back_side = BackNiche(back)
 
         self.intersections = self.unroll_intersection()
 
@@ -234,7 +266,7 @@ class NicheSide:
         self.unrol = unrol.PerformUnroll()
 
         self.unrol_surf = self.unrol[0][0]
-        self.edges = self.unrol_surf.Curves3D
+        self.edges = self.unrol_surf.Edges
         self.side_types()
 
 
@@ -271,10 +303,14 @@ class NicheSide:
 
     def intersect(self):
         for i, v in enumerate(self.side_types):
+            old = v.fres.Domain
+            v.fres = v.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
             param = []
             for ind, val in enumerate(self.side_types):
                 if i != ind:
-                    inters = rs.CurveCurveIntersection(v.fres, val.fres)
+                    old = val.fres.Domain
+                    new = val.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
+                    inters = rs.CurveCurveIntersection(v.fres, new)
                     if inters is not None:
                         param.append(inters[0][5])
             param = sorted(param)
@@ -297,26 +333,6 @@ class NicheSide:
         return line
 
 
-
-panel = []
-fres = []
-cut = []
-b = []
-a=[]
-for p_r, p_l in zip(panels_right, panels_left):
-    pan_r = NicheSide(p_r, 0, rebra, back_side)
-    pan_l = NicheSide(p_l, 1, rebra, back_side)
-    panel.append(pan_r)
-    fres.append(pan_r.fres)
-    cut.append(pan_r.cut)
-    panel.append(pan_l)
-    fres.append(pan_l.fres)
-    cut.append(pan_l.cut)
-    b.append(pan_r.mark_ribs)
-    a.append(pan_r.mark_back)
-    # b.append(pan_l.unrol_surf)
-
-fres = th.list_to_tree(fres)
-cut = th.list_to_tree(cut)
-b = th.list_to_tree(b)
-a = th.list_to_tree(a)
+niche_side = NicheSide
+back_niche = BackNiche
+ribs = Ribs
