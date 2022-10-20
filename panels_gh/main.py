@@ -113,7 +113,7 @@ class Panel:
 
     def side_types(self):
 
-        if self.type == 0:
+        if self.type == 0 or self.type == 1:
             self.niche = Niche(self.edges[0])
             self.schov = Schov(self.edges[2])
             self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
