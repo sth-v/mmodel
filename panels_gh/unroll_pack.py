@@ -53,12 +53,21 @@ class UnrollPack:
         return self.niche_r.fres
 
     @property
+    def niche_r_grav(self):
+        return self.niche_r.grav
+
+
+    @property
     def niche_l_cut(self):
         return self.niche_l.cut
 
     @property
     def niche_l_fres(self):
         return self.niche_l.fres
+
+    @property
+    def niche_l_grav(self):
+        return self.niche_l.grav
 
     @property
     def niche_b_cut(self):
@@ -70,8 +79,8 @@ class UnrollPack:
 
     @property
     def all(self):
-        return [[self.panel_r_cut, self.panel_r_fres], [self.panel_l_cut, self.panel_l_fres], [self.niche_r_cut, self.niche_r_fres],
-                [self.niche_l_cut, self.niche_l_fres], [self.niche_b_cut, self.niche_b_fres]]
+        return [[self.panel_r_cut, self.panel_r_fres], [self.panel_l_cut, self.panel_l_fres], [self.niche_r_cut, self.niche_r_fres, self.niche_r_grav],
+                [self.niche_l_cut, self.niche_l_fres, self.niche_l_grav], [self.niche_b_cut, self.niche_b_fres]]
 
 
 

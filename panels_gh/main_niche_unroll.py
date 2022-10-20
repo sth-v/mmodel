@@ -228,16 +228,6 @@ class BackNiche:
 class NicheSide:
 
     @property
-    def fres(self):
-        self._fres = [self.side[0].fres, self.niche.fres, self.side[1].fres]
-        return self._fres
-
-    @property
-    def cut(self):
-        self._cut = [self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres]
-        return self._cut
-
-    @property
     def mark_ribs(self):
         self._mark_ribs = self.ribs_offset()
         return self._mark_ribs
@@ -249,6 +239,23 @@ class NicheSide:
         self._mark_back = self.unrol[1][-1].Trim(one, two)
 
         return self._mark_back
+
+    @property
+    def fres(self):
+        self._fres = [self.side[0].fres, self.niche.fres, self.side[1].fres]
+        return self._fres
+
+    @property
+    def cut(self):
+        self._cut = [self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres]
+        return self._cut
+
+    @property
+    def grav(self):
+        d = self.mark_ribs
+        d.append(self.mark_back)
+        self._grav = d
+        return self._grav
 
 
     def __init__(self, surface, tip, rib, back):
@@ -277,7 +284,8 @@ class NicheSide:
             if i.GetLength() > 10:
                 ofs_one = i.OffsetOnSurface(self.unrol_surf.Faces[0], 1.5, 0.1)
                 ofs_two = i.OffsetOnSurface(self.unrol_surf.Faces[0], -1.5, 0.1)
-                ofset_rebra.append([ofs_one[0], ofs_two[0]])
+                ofset_rebra.append(ofs_one[0])
+                ofset_rebra.append(ofs_two[0])
         return ofset_rebra
 
     def unroll_intersection(self):
