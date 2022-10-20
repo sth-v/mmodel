@@ -95,24 +95,30 @@ class UnrollPack:
                 [self.niche_r_cut, self.niche_r_fres, self.niche_r_grav],
                 [self.niche_l_cut, self.niche_l_fres, self.niche_l_grav], [self.niche_b_cut, self.niche_b_fres]]
 
-    def __init__(self, x, y, circle, panel_r, panel_l, niche_r, niche_l, ribs, niche_b):
+
+
+
+
+    def __init__(self, x, y, circle, panel_r, panel_l, niche_r, niche_l, r, n_b):
+
         self.panel_r = Panel(panel_r, 0)
         self.panel_l = Panel(panel_l, 1)
 
         cog = TT(x, y, circle)
 
-        self.niche_r = NicheSide(niche_r, 0, ribs, niche_b)
-        self.niche_l = NicheSide(niche_l, 1, ribs, niche_b)
-
-        self.niche_l.niche.cg = cog
+        self.niche_r = NicheSide(niche_r, 0, r, n_b)
+        self.niche_l = NicheSide(niche_l, 1, r, n_b)
+        
+        self.niche_l.niche.cg=cog
         self.niche_l.niche.generate_cogs()
+
         self.niche_r.niche.cg = cog
         self.niche_r.niche.generate_cogs()
+        
         self.niche_b = BackNiche(niche_b)
-        self.ribs = Ribs(ribs)
 
-        self.niche_b = BackNiche(niche_b)
-        self.ribs = Ribs(ribs)
+        self.niche_b = BackNiche(n_b)
+        self.ribs = Ribs(r)
 
 
 packs = []
@@ -123,5 +129,6 @@ for i in unroll_elems:
     p = UnrollPack(x, y, circle, *i)
     packs.append(p)
     pack_unrolls.append(p.all)
+    a.append(p.niche_r)
 
 pack_unrolls = th.list_to_tree(pack_unrolls)

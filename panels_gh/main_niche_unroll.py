@@ -398,8 +398,7 @@ class NicheSide(object):
 
     @property
     def cut(self):
-        self._cut = [self.side[0].join, self.niche.cogs, self.side[1].join, self.bottom.fres]
-        self._cut.extend(self.niche.join_region)
+        self._cut = [self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres]
         return self._cut
 
     @property
@@ -447,13 +446,13 @@ class NicheSide(object):
         return r_inters
 
     def gen_side_types(self):
-        if self.type == 0:
-            self.niche = Niche(self.edges[2])
-            self.bottom = Bottom(self.edges[0])
-            self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
-        else:
+        if self.type == 0 or self.type == 1:
             self.niche = Niche(self.edges[0])
             self.bottom = Bottom(self.edges[2])
+            self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
+        else:
+            self.niche = Niche(self.edges[2])
+            self.bottom = Bottom(self.edges[0])
             self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
