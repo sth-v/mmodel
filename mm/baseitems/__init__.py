@@ -1,24 +1,21 @@
 from __future__ import annotations
 
-__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'DictableItem', 'JsItem',
-           'DataviewInterface', 'Dataview', 'DataviewDescriptor', 'Metadata', 'ReprData', 'GeomConversionMap']
+__all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'DictableItem',
+           'DataviewInterface', 'Dataview', 'DataviewDescriptor', 'Metadata', 'ReprData', 'GeomConversionMap',
+           'GeomDataItem']
 
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import base64
+import gzip
 import itertools
-import json
 from abc import ABCMeta, abstractmethod
 from collections.abc import Callable, Generator
 from typing import Any, Union
 
-import compas
-import compas.geometry
 import numpy as np
-import pandas as pd
+import pydantic
 
-from connectors.gzjson import gzip_encoder
-from mm.meta import ItemEncoder, MetaItem
 from vcs.utils import HashVersion
 
 
@@ -76,7 +73,7 @@ import uuid
 
 class Identifiable(Versioned):
     def __init__(self, *args, **kwargs):
-        self._uuid = uuid.uuid4().hex
+        self._uuid = uuid.uuid4()
         super().__init__(*args, **kwargs)
 
     @property
@@ -85,7 +82,7 @@ class Identifiable(Versioned):
 
     @property
     def uuid(self):
-        return self._uuid
+        return str(self._uuid)
 
     @uuid.setter
     def uuid(self, v):
@@ -184,6 +181,23 @@ class ItemFormatter:
         return f"< {self.__format__()} at {hex(id(self))} >"
 
 
+from json import JSONEncoder
+
+
+class ItemEncoder(JSONEncoder):
+
+    def default(self, o):
+        try:
+            if isinstance(o, pydantic.BaseModel):
+                return o.dict()
+            else:
+                return o.to_dict()
+
+        except:
+            raise TypeError(f'Object of type {o.__class__.__name__} '
+                            f'is not JSON serializable')
+
+
 class Item(Identifiable, ItemFormatter):
     metadata = Metadata()
     representation = ReprData("version", "uid", "dtype")
@@ -200,18 +214,6 @@ class GeomConversionMap(DataviewDescriptor):
     replace = {
 
     }
-
-    def __get_dict__(self, instance, owner):
-        get_dict = {}
-        for k in self.include:
-            v = getattr(instance, k)
-            if callable(v):
-                val = list(getattr(owner, k)(v)) if isinstance(getattr(owner, k)(v), Generator) else getattr(owner, k)(
-                    v)
-            else:
-                val = getattr(owner, k)
-            get_dict[self.replace[k] if k in self.replace.keys() else k] = val
-        return get_dict
 
 
 class GeometryItem(Item):
@@ -343,8 +345,8 @@ class DictableItem(FieldItem, ItemFormatter):
     fields = []
 
     representation = ReprData("uid", "version")
-    exclude = ('args', 'kw', 'representation', 'aliases', "fields", "uid", "__array__")
-    metadata = Metadata(include=["uid", "uuid", "dtype", "version", "custom_fields", "base_fields"])
+    exclude = ('args', 'kw', 'representation', 'aliases', "fields", "uid", "__array__", "_dtype")
+    metadata = Metadata(include=["uuid", "dtype", "version", "custom_fields", "base_fields"])
 
     def __hash__(self):
         st = ""
@@ -400,18 +402,21 @@ class DictableItem(FieldItem, ItemFormatter):
         return st
 
     def encode(self, **kwargs):
-        return compas.json_dumps(self.to_dict(), **kwargs)
+        return ItemEncoder(**kwargs).encode(self)
 
     def to_data(self):
         data = self.to_dict()
         data |= {"guid": self.uuid}
         return data
 
-    def to_json(self):
-        return self.encode()
+    def to_json(self, **kwargs):
+        return self.encode(**kwargs)
 
-    def b64encode(self, **kwargs):
-        return base64.b64encode(self.encode(**kwargs).encode())
+    def b64encode(self):
+        return base64.b64encode(self.gzip_encode())
+
+    def gzip_encode(self):
+        return gzip.compress(self.encode().encode(), compresslevel=9)
 
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
@@ -419,60 +424,18 @@ class DictableItem(FieldItem, ItemFormatter):
     def to_compas(self):
         ...
 
-
-class JsItem(DictableItem):
-    schema_js = dict()
+    def to_occ(self):
+        ...
 
 
 class GeomDataItem(DictableItem, GeometryItem):
+    exclude = ["to_rhino", "to_compas", "to_occ"]
+    exclude.extend(DictableItem.exclude)
+
     def to_dict(self):
         dct = super().to_dict()
-        dct["data"] = self.data
+        dct["data"] = self.data["data"]
         return dct
-
 
 # New Style Classes
 # ----------------------------------------------------------------------------------------------------------------------
-
-
-class _Item(metaclass=MetaItem, encoder=ItemEncoder):
-    __default_keys__ = dict()
-
-    def __init__(self, *args, **kwargs):
-        self.version = 0
-
-        super().__init__()
-        self.encoder = self.__class__.encoder
-        self.__call__(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-        self.version += 1
-        return self
-
-    @property
-    def series(self):
-        data = dict()
-        data |= self.default_fields
-        data |= self.dct["metadata"]
-        return pd.Series(data)
-
-    @property
-    def uid(self):
-        return hex(id(self))
-
-    def dumps(self, use_gzip=True, **kwargs):
-        if use_gzip:
-            return gzip_encoder(json.dumps(self, cls=self.encoder, **kwargs))
-        else:
-            return json.dumps(self, cls=self.encoder, indent=3, **kwargs)
-
-
-class BaseItem(_Item, metaclass=MetaItem):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs):
-        return super().__call__(*args, **kwargs)

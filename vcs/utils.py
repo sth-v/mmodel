@@ -2,12 +2,11 @@ from __future__ import annotations
 
 __all__ = ["Timer", "HashVersion", "HashNode", "Version", "HashVerDec", "HexTimer"]
 
-import copy
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 import json
 import time
-from abc import abstractmethod
 from datetime import date
-from typing import Any
 
 import numpy as np
 
@@ -152,9 +151,8 @@ class HashVersion(HexTimer):
     def __call__(self):
         return self._val
 
-
     def __hex__(self):
-        return "".join(map(lambda y: hex(y), self.key - np.asarray(self.val, dtype=np.int)))
+        return "".join(map(lambda y: hex(y), self.key - np.asarray(self.val, dtype=int)))
 
     def __hash__(self):
         return self.__hex__()
@@ -181,6 +179,8 @@ class HashVersion(HexTimer):
 
     def to_json(self):
         return json.dumps(self._dct())
+
+
 class Vector(list):
     def __new__(cls, follow=None, **kwargs):
 
@@ -227,11 +227,9 @@ class Vector(list):
         vl = []
         keys = []
         for key in set(tuple(self.keys) + tuple(other.keys)):
-            vl.append(self.cls(**{key:[self.dct[key], other.dct[key]]}))
+            vl.append(self.cls(**{key: [self.dct[key], other.dct[key]]}))
             keys.append(key)
         return self.cls(**dict(zip(list(keys), vl)))
-
-
 
 
 """
