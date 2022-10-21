@@ -37,7 +37,6 @@ cogs = imp.load_module("cogs", cogsfile, cogsfilename, (cogssuffix, cogsmode, co
 from functools import wraps
 
 cogs.__init__("cogs", "generic nodule")
-print cogs
 from cogs import Pattern, TT
 
 reload(cogs)
@@ -180,13 +179,11 @@ class Niche(BendSide):
                                                         0.01)
             bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
                                                         0.01)
-            print aa, bb
             if bb == aa == rh.RegionContainment.BInsideA:
                 self.hls.extend(h)
                 cnt.append(ii.contour)
-                print "cul"
             else:
-                print "аагсл"
+                pass
         _cogs.extend(self.hls[2:-2])
         ccnt = cnt[0:-1]
         for cc in ccnt:
@@ -393,12 +390,12 @@ class NicheSide(object):
 
     @property
     def fres(self):
-        self._fres = [self.side[0].fres, self.niche.fres, self.side[1].fres]
+        self._fres = [self.surf, self.side[0].fres, self.niche.fres, self.side[1].fres]
         return self._fres
 
     @property
     def cut(self):
-        self._cut = [self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres]
+        self._cut = [self.side[0].join, self.niche.join_region, self.niche.join, self.side[1].join, self.bottom.fres]
         return self._cut
 
     @property
@@ -446,13 +443,13 @@ class NicheSide(object):
         return r_inters
 
     def gen_side_types(self):
-        if self.type == 0 or self.type == 1:
-            self.niche = Niche(self.edges[0])
-            self.bottom = Bottom(self.edges[2])
-            self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
-        else:
+        if self.type == 0 :
             self.niche = Niche(self.edges[2])
             self.bottom = Bottom(self.edges[0])
+            self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
+        else:
+            self.niche = Niche(self.edges[0])
+            self.bottom = Bottom(self.edges[2])
             self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]

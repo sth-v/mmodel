@@ -103,8 +103,13 @@ class UnrollPack:
 
         self.panel_r = Panel(panel_r, 0)
         self.panel_l = Panel(panel_l, 1)
-
         cog = TT(x, y, circle)
+
+        self.panel_r.niche.cg = cog
+        self.panel_r.niche.generate_cogs()
+
+        self.panel_l.niche.cg = cog
+        self.panel_l.niche.generate_cogs()
 
         self.niche_r = NicheSide(niche_r, 0, r, n_b)
         self.niche_l = NicheSide(niche_l, 1, r, n_b)
@@ -115,7 +120,7 @@ class UnrollPack:
         self.niche_r.niche.cg = cog
         self.niche_r.niche.generate_cogs()
         
-        self.niche_b = BackNiche(niche_b)
+        self.niche_b = BackNiche(n_b)
 
         self.niche_b = BackNiche(n_b)
         self.ribs = Ribs(r)
