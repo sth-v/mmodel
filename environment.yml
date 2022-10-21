@@ -5,7 +5,7 @@ channels:
 dependencies:
   - python=3.10.4
   - pip
-  - attrs=22.1.0
+  - attrs
   - compas
   - conda-package-handling
   - cython
