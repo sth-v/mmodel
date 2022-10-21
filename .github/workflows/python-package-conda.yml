@@ -20,4 +20,4 @@ jobs:
 
     - name: Conda version
       run: |
-        conda version
+        conda --version
