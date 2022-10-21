@@ -20,4 +20,5 @@ jobs:
 
     - name: Conda version
       run: |
-        conda --version
+        conda env update --file environment.yml
+
