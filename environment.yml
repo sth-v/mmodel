@@ -1,35 +1,23 @@
-name: base
 channels:
-
   - conda-forge
   - orbingol
-  - default
   - open3d-admin
 dependencies:
-  - aom=3.4.0
+  - python=3.10.4
+  - pip
   - attrs=22.1.0
-  - colorama=0.4.5
-  - compas=1.16.0
-  - compas_view2=0.8.0
-  - conda-package-handling=1.8.1
-  - cython=0.29.32
-  - flask=2.0.3
-  - geomdl=5.3.1
-  - jsoncpp=1.9.5
-  - jsonschema=4.16.0
-
-  - numpy=1.23.3
-  - occt=7.6.2
-  - pythonocc-core=7.6.2
-  - schema=0.7.5
+  - compas
+  - conda-package-handling
+  - cython
+  - flask
+  - geomdl
+  - numpy
+  - pythonocc-core
   - scipy=1.8.1
-  - setuptools=65.2.0
-  - shapely=1.8.4
-  - typing_extensions=4.3.0
-  - tzdata=2022c
-  - unicodedata2=14.0.0
-  - werkzeug=2.0.3
-  - wheel=0.37.1
+  - setuptools
+  - shapely
+  - tzdata
+  - wheel
   - pip:
       - boto3==1.24.80
       - botocore==1.27.80
@@ -73,4 +61,4 @@ dependencies:
       - watchfiles==0.17.0
       - wcwidth==0.2.5
       - websockets==10.3
-prefix: $CONDA
+prefix: $CONDA_PREFIX
