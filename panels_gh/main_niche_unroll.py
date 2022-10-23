@@ -10,6 +10,7 @@ __author__ = "sofyadobycina"
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import os
+import types
 
 try:
     rs = __import__("rhinoscriptsyntax")
@@ -19,16 +20,27 @@ except:
 import Rhino.Geometry as rh
 import math
 import sys
+import imp
 
 if os.getenv("USER") == "sofyadobycina":
+    PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
     sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
                      os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
 else:
+    PWD = os.getenv("HOME") + "/mmodel/panels_gh"
     sys.path.extend(
         [os.getenv("HOME") + "/mmodel/panels_gh", os.getenv("HOME") + "/mmodel/panels_gh/cogs"])
+
+cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs", path=[PWD])
+# print cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype)
+cogs = imp.load_module("cogs", cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype))
 from functools import wraps
 
-from cogs import Pattern
+cogs.__init__("cogs", "generic nodule")
+print cogs
+from cogs import Pattern, TT
+
+reload(cogs)
 
 
 def angle_ofs(angle, side, met_left):
@@ -57,9 +69,15 @@ def niche_shorten(angle, side, met_left):
 def morph_decore(fun):
     @wraps(fun)
     def wrp(slf, *args, **kwargs):
-        geom = fun(slf, *args, **kwargs)
-        for g in geom:
-            slf.otgib_morph.Morph(g)
+        geom = fun(*args, **kwargs)
+        try:
+            for g in geom:
+                if slf.otgib_morph.Morph(g):
+                    continue
+        except:
+            slf.otgib_morph.Morph(geom)
+            return
+
         return geom
 
     return wrp
@@ -124,19 +142,18 @@ class Niche(BendSide):
 
     def __init__(self, curve):
         BendSide.__init__(self, curve)
+        self.hls = None
+        self._cogs = None
+        self._join_brep = None
 
     @property
     def bend_axis(self):
         # type: () -> rh.Line
-
         return rh.Line(self.join.PointAtStart, self.join.PointAtEnd)
 
     @property
     def join_cp(self):
-        crv = rh.Curve.JoinCurves([self.join, self.bend_axis.ToNurbsCurve()])[0]
-        crv.MakeClosed(0.1)
-        if not crv.IsClosed:
-            raise Exception("Not Closed join")
+        crv = self.bend_surf
         return crv
 
     @property
@@ -147,21 +164,37 @@ class Niche(BendSide):
 
     @property
     def cogs(self):
-        # type: () -> [ListType, rh.Curve]
-
-        self.generate_cogs()
-        print self._cogs
         return self._cogs
 
     def generate_cogs(self):
         _cogs = []
         cu = self.cogs_unit
-        print cu
+        br = self.join_cp.ToBrep()
+        cr3d = list(br.Curves3D)
+        self.hls = []
+        cnt = []
         for ii in cu:
-            print ii
 
-            _cogs.extend(rh.Curve.JoinCurves(ii))
+            h = self.choles(self, ii)
+            aa = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[0], rh.Plane.WorldXY,
+                                                        0.01)
+            bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
+                                                        0.01)
+            print aa, bb
+            if bb == aa == rh.RegionContainment.BInsideA:
+                self.hls.extend(h)
+                cnt.append(ii.contour)
+                print "cul"
+            else:
+                print "аагсл"
+        _cogs.extend(self.hls[2:-2])
+        ccnt = cnt[0:-1]
+        for cc in ccnt:
+            self.otgib_morph.Morph(cc)
 
+        self._join_brep = br.Faces[0].Split(ccnt, 0.01).GetRegions()[0]
+
+        _cogs.extend(list(self._join_brep.Brep.Faces)[-1].Brep.Edges)
         self._cogs = _cogs
 
     @property
@@ -180,19 +213,41 @@ class Niche(BendSide):
         return self._morph
 
     @morph_decore
-    def mcogs(self):
-        return self.cogs
+    def choles(self, geoms):
+        # type: (TT) -> types.ListType[ rh.Curve]
+        return geoms.hole
+
+    @morph_decore
+    def ccontour(self, geoms):
+        return geoms.contour
 
     @property
     def join_region(self):
-        # type: () -> rh.BrepRegion
-        cg = self.mcogs()
-        print cg
-        cg.append(self.join_cp)
+        # type: () -> rh.CurveBooleanRegions
 
-        brep_regions = rh.Curve.CreateBooleanRegions(cg, rh.Plane.WorldXY, True, 0.01)
+        # j = rh.Brep.JoinBreps(rh.Brep.CreatePlanarBreps(cg, 0.1), 0.1)
 
-        return brep_regions
+        # brps = self.join_cp.Split(j, 0.1)
+
+        # brep_regions = brps
+        l = list(self._join_brep.Brep.Faces)
+        l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
+        trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
+
+        tt = []
+
+        tt.append(trg)
+        tt.extend(self.hls[2:-2])
+
+        return tt
+
+    @property
+    def cg(self):
+        return self._cg
+
+    @cg.setter
+    def cg(self, v):
+        self._cg = v
 
 
 class Side(BendSide):
@@ -343,7 +398,8 @@ class NicheSide(object):
 
     @property
     def cut(self):
-        self._cut = [self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres]
+        self._cut = [self.side[0].join, self.niche.cogs, self.side[1].join, self.bottom.fres]
+        self._cut.extend(self.niche.join_region)
         return self._cut
 
     @property

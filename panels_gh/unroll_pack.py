@@ -7,19 +7,15 @@
 
 __author__ = "sofyadobycina"
 
-#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-
-
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import imp
 import os
 import sys
-
-import ghpythonlib.treehelpers as th
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -32,7 +28,11 @@ else:
 
 cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs", path=[PWD])
 cogs = imp.load_module("cogs", cogsfile, PWD, (cogssuffix, cogsmode, cogstype))
+# sys.path.extend(["/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh"])
+import ghpythonlib.treehelpers as th
 
+TT = cogs.TT
+Pattern = cogs.Pattern
 Panel = panel
 NicheSide = niche_side
 BackNiche = back_niche
@@ -95,13 +95,22 @@ class UnrollPack:
                 [self.niche_r_cut, self.niche_r_fres, self.niche_r_grav],
                 [self.niche_l_cut, self.niche_l_fres, self.niche_l_grav], [self.niche_b_cut, self.niche_b_fres]]
 
-    def __init__(self, panel_r, panel_l, niche_r, niche_l, ribs, niche_b, x, y, circle):
+    def __init__(self, x, y, circle, panel_r, panel_l, niche_r, niche_l, ribs, niche_b):
         self.panel_r = Panel(panel_r, 0)
         self.panel_l = Panel(panel_l, 1)
 
+        cog = TT(x, y, circle)
+
         self.niche_r = NicheSide(niche_r, 0, ribs, niche_b)
         self.niche_l = NicheSide(niche_l, 1, ribs, niche_b)
-        self.niche_l.niche._cg = cogs.TT(x, y, z)
+
+        self.niche_l.niche.cg = cog
+        self.niche_l.niche.generate_cogs()
+        self.niche_r.niche.cg = cog
+        self.niche_r.niche.generate_cogs()
+        self.niche_b = BackNiche(niche_b)
+        self.ribs = Ribs(ribs)
+
         self.niche_b = BackNiche(niche_b)
         self.ribs = Ribs(ribs)
 
@@ -111,7 +120,7 @@ pack_unrolls = []
 a = []
 b = []
 for i in unroll_elems:
-    p = UnrollPack(*(tuple(i) + (globals()['x'], globals()['y'], globals()['circle'])))
+    p = UnrollPack(x, y, circle, *i)
     packs.append(p)
     pack_unrolls.append(p.all)
 
