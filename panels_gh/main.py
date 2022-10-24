@@ -192,6 +192,10 @@ class Niche(BendSide):
         l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
         trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
 
+        #dup = rh.Curve.DuplicateCurve(trg)
+        #v = dup.Explode()
+        #print(v, [i.LengthParameter() for i in v])
+
         tt = []
 
         tt.append(trg)
@@ -236,16 +240,38 @@ class Schov(BendSide):
 
 
 class Panel:
+    @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.schov.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        if self.type == 0:
+            fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[1])[1]
+            bound_plane = rh.Plane(b_r.Min, fr.XAxis, fr.YAxis)
+        else:
+            fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
+            bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
 
     @property
     def fres(self):
-        self._fres = [self.surf, self.side[0].fres, self.niche.fres, self.side[1].fres]
-        return self._fres
+        fres =rh.Curve.JoinCurves([self.side[0].fres, self.niche.fres, self.side[1].fres])[0]
+        fres.Transform(self.bound_plane)
+        return fres
 
     @property
     def cut(self):
-        self._cut = [self.side[0].join, self.niche.join_region, self.niche.join, self.side[1].join, self.schov.fres]
-        return self._cut
+        cut = []
+        side = [self.side[0].join, self.side[1].join, self.schov.fres]
+        reg = self.niche.join_region
+
+        for i in side:
+            i.Transform(self.bound_plane)
+            cut.append(i)
+        for i in reg:
+            i.Transform(self.bound_plane)
+            cut.append(i)
+        return cut
 
     def __init__(self, surface, type):
 
@@ -285,5 +311,6 @@ class Panel:
 
             trimed = rh.Curve.Trim(v.fres, param[0], param[1])
             v.fres = trimed
+
 
 panel = Panel

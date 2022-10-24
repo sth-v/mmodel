@@ -376,6 +376,19 @@ class BackNiche:
 class NicheSide(object):
 
     @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        if self.type == 0:
+            fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[1])[1]
+            bound_plane = rh.Plane(b_r.Min, fr.XAxis, fr.YAxis)
+        else:
+            fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
+            bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    @property
     def mark_ribs(self):
         self._mark_ribs = self.ribs_offset()
         return self._mark_ribs
@@ -390,13 +403,23 @@ class NicheSide(object):
 
     @property
     def fres(self):
-        self._fres = [self.surf, self.side[0].fres, self.niche.fres, self.side[1].fres]
-        return self._fres
+        fres = rh.Curve.JoinCurves([self.side[0].fres, self.niche.fres, self.side[1].fres])
+        fres.Transform(self.bound_plane)
+        return fres
 
     @property
     def cut(self):
-        self._cut = [self.side[0].join, self.niche.join_region, self.niche.join, self.side[1].join, self.bottom.fres]
-        return self._cut
+        cut = []
+        side = [self.side[0].join, self.side[1].join, self.bottom.fres]
+        reg = self.niche.join_region
+
+        for i in side:
+            i.Transform(self.bound_plane)
+            cut.append(i)
+        for i in reg:
+            i.Transform(self.bound_plane)
+            cut.append(i)
+        return cut
 
     @property
     def grav(self):
@@ -485,6 +508,15 @@ class NicheSide(object):
         inters = rs.IntersectBreps(self.surf, self.back_side.extend, 0.1)
         line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
         return line
+
+    def bound_rec(self):
+        if self.type == 0:
+            fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
+        else:
+            fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[1])[1]
+        b_r = self.cut.GetBoundingBox(rh.Plane.WorldXY)
+        return b_r
+
 
 
 # ptr = TT(globals()['x'], globals()['y'], globals()['circle'])

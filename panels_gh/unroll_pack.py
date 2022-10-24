@@ -134,6 +134,6 @@ for i in unroll_elems:
     p = UnrollPack(x, y, circle, *i)
     packs.append(p)
     pack_unrolls.append(p.all)
-    a.append(p.niche_r)
+    a =[p.niche_l, p.panel_r]
 
 pack_unrolls = th.list_to_tree(pack_unrolls)
