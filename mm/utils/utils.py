@@ -89,13 +89,13 @@ class DotView(Item, ReplaceMapping):
         for k, v in dct.items():
 
             if isinstance(v, dict):
-                new_item = type(k, (DotView,), v)
+                new_item = cls()
 
-                obj.__call__(**{new_item.replace(k): new_item})
+                obj.__call__(**{cls.replace(k): new_item})
 
                 cls.do_traverse(new_item, v)
             else:
-                obj.update(**{cls.replace(k): v})
+                obj.__call__(**{cls.replace(k): v})
 
 
 class TraverseDict(dict):

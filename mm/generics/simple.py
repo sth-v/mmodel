@@ -1,7 +1,15 @@
+<<<<<<< HEAD
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 from typing import TypeVar, Generic, Any
 
 from mm.baseitems import Item, Base, Identifiable
+=======
+from typing import TypeVar, Generic, Any
+
+import numpy as np
+
+from mmodel.mm.baseitems import Item, Base, Identifiable
+>>>>>>> df40bce (Update README.md)
 
 SP = TypeVar("SP")  # descriptor
 KT = TypeVar("KT")
