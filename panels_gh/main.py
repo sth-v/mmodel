@@ -254,28 +254,43 @@ class Panel:
         return tr
 
     @property
+    def top_parts(self):
+        top = [self.side[0].top_part.DuplicateCurve(), self.niche.top_part.DuplicateCurve(),
+                self.side[1].top_part.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in top]
+        return top
+
+    @property
     def fres(self):
-        fres =rh.Curve.JoinCurves([self.side[0].fres, self.niche.fres, self.side[1].fres])[0]
-        fres.Transform(self.bound_plane)
+        fres = [self.side[0].fres.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
+                self.side[1].fres.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in fres]
         return fres
 
     @property
     def cut(self):
-        cut = []
-        side = [self.side[0].join, self.side[1].join, self.schov.fres]
+        side = rh.Curve.JoinCurves([self.side[0].join, self.side[1].join, self.schov.fres])[0]
+        side.Transform(self.bound_plane)
+
+        cut = [side]
+
         reg = self.niche.join_region
 
-        for i in side:
-            i.Transform(self.bound_plane)
-            cut.append(i)
         for i in reg:
-            i.Transform(self.bound_plane)
-            cut.append(i)
+            ii = i.DuplicateCurve()
+            ii.Transform(self.bound_plane)
+            cut.append(ii)
         return cut
+
+    @property
+    def unroll_dict(self):
+        unroll_dict = {'cut': self.cut, 'fres': [self.fres]}
+        return unroll_dict
 
     def __init__(self, surface, type):
 
         self.type = type
+        self.marker = "P-R-10-57-"
 
         self.surf = surface
 

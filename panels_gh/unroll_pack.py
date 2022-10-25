@@ -42,60 +42,12 @@ Ribs = ribs
 class UnrollPack:
 
     @property
-    def panel_r_cut(self):
-        return self.panel_r.cut
-
-    @property
-    def panel_r_fres(self):
-        return self.panel_r.fres
-
-    @property
-    def panel_l_cut(self):
-        return self.panel_l.cut
-
-    @property
-    def panel_l_fres(self):
-        return self.panel_l.fres
-
-    @property
-    def niche_r_cut(self):
-        return self.niche_r.cut
-
-    @property
-    def niche_r_fres(self):
-        return self.niche_r.fres
-
-    @property
-    def niche_r_grav(self):
-        return self.niche_r.grav
-
-    @property
-    def niche_l_cut(self):
-        return self.niche_l.cut
-
-    @property
-    def niche_l_fres(self):
-        return self.niche_l.fres
-
-    @property
-    def niche_l_grav(self):
-        return self.niche_l.grav
-
-    @property
-    def niche_b_cut(self):
-        return self.niche_b.cut
-
-    @property
-    def niche_b_fres(self):
-        return self.niche_b.fres
-
-    @property
-    def all(self):
-        return [[self.panel_r_cut, self.panel_r_fres], [self.panel_l_cut, self.panel_l_fres],
-                [self.niche_r_cut, self.niche_r_fres, self.niche_r_grav],
-                [self.niche_l_cut, self.niche_l_fres, self.niche_l_grav], [self.niche_b_cut, self.niche_b_fres]]
-
-
+    def unroll_dict(self):
+        unroll_dict = {self.panel_r.marker + '0': self.panel_r.unroll_dict,
+                       self.panel_l.marker + '1': self.panel_l.unroll_dict,
+                       self.niche_r.marker + '1': self.niche_r.unroll_dict,
+                       self.niche_l.marker + '3': self.niche_l.unroll_dict}
+        return unroll_dict
 
 
 
@@ -133,7 +85,7 @@ b = []
 for i in unroll_elems:
     p = UnrollPack(x, y, circle, *i)
     packs.append(p)
-    pack_unrolls.append(p.all)
+    pack_unrolls.append(p.unroll_dict)
     a =[p.niche_l, p.panel_r]
 
-pack_unrolls = th.list_to_tree(pack_unrolls)
+

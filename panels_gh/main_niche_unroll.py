@@ -380,59 +380,78 @@ class NicheSide(object):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
         if self.type == 0:
-            fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[1])[1]
-            bound_plane = rh.Plane(b_r.Min, fr.XAxis, fr.YAxis)
-        else:
             fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
             bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
+        else:
+            fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[0])[1]
+            bound_plane = rh.Plane(b_r.Min, fr.XAxis, fr.YAxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
     @property
+    def top_parts(self):
+        top = [self.side[0].top_part.DuplicateCurve(), self.niche.top_part.DuplicateCurve(),
+               self.side[1].top_part.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in top]
+        return top
+
+    @property
     def mark_ribs(self):
-        self._mark_ribs = self.ribs_offset()
-        return self._mark_ribs
+        ribs = {}
+        mark_ribs = self.ribs_offset()
+        for i, v in enumerate(mark_ribs):
+            v[0].Transform(self.bound_plane)
+            v[1].Transform(self.bound_plane)
+            ribs[self.marker+str(4+i)] = v
+        return ribs
 
     @property
     def mark_back(self):
         one = self.unrol[1][-1].LengthParameter(1)[1]
         two = self.unrol[1][-1].LengthParameter(self.unrol[1][-1].GetLength() - 1)[1]
-        self._mark_back = self.unrol[1][-1].Trim(one, two)
-
-        return self._mark_back
+        mark_back = self.unrol[1][-1].Trim(one, two)
+        mark_back.Transform(self.bound_plane)
+        return mark_back
 
     @property
     def fres(self):
-        fres = rh.Curve.JoinCurves([self.side[0].fres, self.niche.fres, self.side[1].fres])
-        fres.Transform(self.bound_plane)
+        fres = [self.side[0].fres.DuplicateCurve(), self.niche.fres.DuplicateCurve(), self.side[1].fres.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in fres]
         return fres
 
     @property
     def cut(self):
-        cut = []
-        side = [self.side[0].join, self.side[1].join, self.bottom.fres]
-        reg = self.niche.join_region
 
-        for i in side:
-            i.Transform(self.bound_plane)
-            cut.append(i)
+        side = rh.Curve.JoinCurves([self.side[0].join, self.side[1].join, self.bottom.fres])[0]
+        side.Transform(self.bound_plane)
+
+        cut = [side]
+
+        reg = self.niche.join_region
         for i in reg:
-            i.Transform(self.bound_plane)
-            cut.append(i)
+            ii = i.DuplicateCurve()
+            ii.Transform(self.bound_plane)
+            cut.append(ii)
         return cut
 
     @property
     def grav(self):
-        d = self.mark_ribs
+        d = [self.mark_ribs]
         d.append(self.mark_back)
-        self._grav = d
-        return self._grav
+
+        return d
+
+    @property
+    def unroll_dict(self):
+        unroll_dict = {'cut': self.cut, 'fres': self.fres, 'grav': self.grav}
+        return unroll_dict
 
     def __init__(self, surface, tip, rib, back):
         object.__init__(self)
 
         self.surf = surface
         self.type = tip
+        self.marker = "N-R-10-57-"
 
         self.rebra = Ribs(rib)
         self.back_side = BackNiche(back)
@@ -454,8 +473,7 @@ class NicheSide(object):
             if i.GetLength() > 10:
                 ofs_one = i.OffsetOnSurface(self.unrol_surf.Faces[0], 1.5, 0.1)
                 ofs_two = i.OffsetOnSurface(self.unrol_surf.Faces[0], -1.5, 0.1)
-                ofset_rebra.append(ofs_one[0])
-                ofset_rebra.append(ofs_two[0])
+                ofset_rebra.append([ofs_one[0], ofs_two[0]])
         return ofset_rebra
 
     def unroll_intersection(self):
@@ -466,7 +484,7 @@ class NicheSide(object):
         return r_inters
 
     def gen_side_types(self):
-        if self.type == 0 :
+        if self.type == 0:
             self.niche = Niche(self.edges[2])
             self.bottom = Bottom(self.edges[0])
             self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
@@ -509,13 +527,6 @@ class NicheSide(object):
         line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
         return line
 
-    def bound_rec(self):
-        if self.type == 0:
-            fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
-        else:
-            fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[1])[1]
-        b_r = self.cut.GetBoundingBox(rh.Plane.WorldXY)
-        return b_r
 
 
 
