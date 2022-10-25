@@ -231,9 +231,13 @@ class Niche(BendSide):
         l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
         trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
 
+        p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
+        p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
+        trim = trg.Trim(p_one,p_two)
+
         tt = []
 
-        tt.append(trg)
+        tt.append(trim)
         tt.extend(self.hls[2:-2])
 
         return tt
@@ -397,13 +401,11 @@ class NicheSide(object):
 
     @property
     def mark_ribs(self):
-        ribs = {}
         mark_ribs = self.ribs_offset()
         for i, v in enumerate(mark_ribs):
             v[0].Transform(self.bound_plane)
             v[1].Transform(self.bound_plane)
-            ribs[self.marker+str(4+i)] = v
-        return ribs
+        return mark_ribs
 
     @property
     def mark_back(self):
@@ -421,17 +423,21 @@ class NicheSide(object):
 
     @property
     def cut(self):
+        if self.cogs_bend is True:
+            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join_region[0], self.side[1].join, self.bottom.fres])[0]
+            side.Transform(self.bound_plane)
 
-        side = rh.Curve.JoinCurves([self.side[0].join, self.side[1].join, self.bottom.fres])[0]
-        side.Transform(self.bound_plane)
+            cut = [side]
 
-        cut = [side]
-
-        reg = self.niche.join_region
-        for i in reg:
-            ii = i.DuplicateCurve()
-            ii.Transform(self.bound_plane)
-            cut.append(ii)
+            reg = self.niche.join_region[1:]
+            for i in reg:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
+        else:
+            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+            side.Transform(self.bound_plane)
+            cut = [side]
         return cut
 
     @property
@@ -443,15 +449,17 @@ class NicheSide(object):
 
     @property
     def unroll_dict(self):
-        unroll_dict = {'cut': self.cut, 'fres': self.fres, 'grav': self.grav}
+        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
+                        'tag': [self.tag[0:-1]+str(4+i) for i in range(len(self.unrol[1]) - 1)]}, 'frame':{'bb': 0}}
         return unroll_dict
 
-    def __init__(self, surface, tip, rib, back):
+    def __init__(self, surface, tip, rib, back, cogs_bend, tag):
         object.__init__(self)
 
         self.surf = surface
         self.type = tip
-        self.marker = "N-R-10-57-"
+        self.cogs_bend = cogs_bend
+        self.tag = tag
 
         self.rebra = Ribs(rib)
         self.back_side = BackNiche(back)
@@ -466,11 +474,15 @@ class NicheSide(object):
         self.edges = self.unrol_surf.Edges
         self.gen_side_types()
 
+        un = rh.Unroller(self.surf)
+        un.AddFollowingGeometry(curves=[self.back_intersect()])
+        self.un = un.PerformUnroll()
+
     def ribs_offset(self):
         r = self.unrol[1][0:len(self.unrol[1]) - 1]
         ofset_rebra = []
         for i in r:
-            if i.GetLength() > 10:
+            if i.GetLength() > 3:
                 ofs_one = i.OffsetOnSurface(self.unrol_surf.Faces[0], 1.5, 0.1)
                 ofs_two = i.OffsetOnSurface(self.unrol_surf.Faces[0], -1.5, 0.1)
                 ofset_rebra.append([ofs_one[0], ofs_two[0]])

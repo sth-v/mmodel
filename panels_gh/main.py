@@ -192,13 +192,13 @@ class Niche(BendSide):
         l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
         trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
 
-        #dup = rh.Curve.DuplicateCurve(trg)
-        #v = dup.Explode()
-        #print(v, [i.LengthParameter() for i in v])
+        p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
+        p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
+        trim = trg.Trim(p_one, p_two)
 
         tt = []
 
-        tt.append(trg)
+        tt.append(trim)
         tt.extend(self.hls[2:-2])
 
         return tt
@@ -269,28 +269,34 @@ class Panel:
 
     @property
     def cut(self):
-        side = rh.Curve.JoinCurves([self.side[0].join, self.side[1].join, self.schov.fres])[0]
-        side.Transform(self.bound_plane)
+        if self.cogs_bend is True:
+            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join_region[0], self.side[1].join, self.schov.fres])[0]
+            side.Transform(self.bound_plane)
 
-        cut = [side]
+            cut = [side]
 
-        reg = self.niche.join_region
+            reg = self.niche.join_region[1:]
 
-        for i in reg:
-            ii = i.DuplicateCurve()
-            ii.Transform(self.bound_plane)
-            cut.append(ii)
+            for i in reg:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
+        else:
+            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.schov.fres])[0]
+            side.Transform(self.bound_plane)
+            cut = [side]
         return cut
 
     @property
     def unroll_dict(self):
-        unroll_dict = {'cut': self.cut, 'fres': [self.fres]}
+        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
         return unroll_dict
 
-    def __init__(self, surface, type):
+    def __init__(self, surface, type, cogs_bend, tag):
 
         self.type = type
-        self.marker = "P-R-10-57-"
+        self.cogs_bend = cogs_bend
+        self.tag = tag
 
         self.surf = surface
 

@@ -43,18 +43,16 @@ class UnrollPack:
 
     @property
     def unroll_dict(self):
-        unroll_dict = {self.panel_r.marker + '0': self.panel_r.unroll_dict,
-                       self.panel_l.marker + '1': self.panel_l.unroll_dict,
-                       self.niche_r.marker + '1': self.niche_r.unroll_dict,
-                       self.niche_l.marker + '3': self.niche_l.unroll_dict}
+        unroll_dict = {'P'+ self.tag: [self.panel_r.unroll_dict, self.panel_l.unroll_dict],
+                       'N'+ self.tag: [self.niche_r.unroll_dict, self.niche_l.unroll_dict]}
         return unroll_dict
 
+    def __init__(self, x, y, circle, panel_r, panel_l, niche_r, niche_l, r, n_b, cog_type, tag):
+        self.tag = tag
+        print(tag)
 
-
-    def __init__(self, x, y, circle, panel_r, panel_l, niche_r, niche_l, r, n_b):
-
-        self.panel_r = Panel(panel_r, 0)
-        self.panel_l = Panel(panel_l, 1)
+        self.panel_r = Panel(panel_r, 0, cog_type, 'P-'+self.tag+'-1')
+        self.panel_l = Panel(panel_l, 1, cog_type, 'P-'+self.tag+'-2')
         cog = TT(x, y, circle)
 
         self.panel_r.niche.cg = cog
@@ -63,29 +61,36 @@ class UnrollPack:
         self.panel_l.niche.cg = cog
         self.panel_l.niche.generate_cogs()
 
-        self.niche_r = NicheSide(niche_r, 0, r, n_b)
-        self.niche_l = NicheSide(niche_l, 1, r, n_b)
-        
-        self.niche_l.niche.cg=cog
+        self.niche_r = NicheSide(niche_r, 0, r, n_b, cog_type, 'N-'+self.tag+'-1')
+        self.niche_l = NicheSide(niche_l, 1, r, n_b, cog_type, 'N-'+self.tag+'-3')
+
+        self.niche_l.niche.cg = cog
         self.niche_l.niche.generate_cogs()
 
         self.niche_r.niche.cg = cog
         self.niche_r.niche.generate_cogs()
-        
-        self.niche_b = BackNiche(n_b)
 
         self.niche_b = BackNiche(n_b)
+
         self.ribs = Ribs(r)
+
+
+class MarkerDict:
+    def __init__(self, input_dict):
+        self.__dict__.update(input_dict)
+
+    def GetString(self):
+        return self.__dict__.__str__()
 
 
 packs = []
 pack_unrolls = []
 a = []
 b = []
+import ghpythonlib.treehelpers as th
+
 for i in unroll_elems:
     p = UnrollPack(x, y, circle, *i)
     packs.append(p)
     pack_unrolls.append(p.unroll_dict)
-    a =[p.niche_l, p.panel_r]
-
-
+    a = MarkerDict(p.niche_l.unroll_dict)
