@@ -1,14 +1,5 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-import numpy as np
-
-from mm.baseitems import Item
-
-
-def args_flatten(arg, *args):
-    arr = np.asarray((arg,)).flatten()
-    for barr in args:
-        arr = np.concatenate([arr, np.asarray((barr,)).flatten()])
-    return arr
+from mmodel.mm.baseitems import Item
 
 
 class ReplaceMapping:
@@ -77,45 +68,22 @@ class DotView(Item, ReplaceMapping):
         self.do_traverse(self, kwargs)
 
     @classmethod
-    def do_traverse(cls, obj, dct):
-        for k, v in dct.items():
+    def replace(cls, string: str):
+        return super(DotView, cls).replace(string)
 
-            if isinstance(v, dict):
-                new_item = cls()
-
-                obj.__call__(**{cls.replace(k): new_item})
-
-                cls.do_traverse(new_item, v)
-            else:
-                obj.__call__(**{cls.replace(k): v})
-
-
-class TraverseDict(dict):
-    dict_attr = "__dict__"
-
-    def __init__(self):
-
-        super().__init__()
-
-    def __getitem__(self, item):
-        return dict.__getitem__(self, item)
-
-    def __setitem__(self, item, v):
-        dict.__setitem__(self, item, v)
-
-    def __call__(self, obj, *args, **kwargs):
-        self.do_traverse(self, obj)
-        return self
+    @classmethod
+    def replace_back(cls, string: str):
+        return super(DotView, cls).replace(string)
 
     @classmethod
     def do_traverse(cls, obj, dct):
         for k, v in dct.items():
 
             if isinstance(v, dict):
-                new_item = cls()
+                new_item = type(k, (DotView,), v)
 
-                obj.__call__(**{cls.replace(k): new_item})
+                obj.__call__(**{new_item.replace(k): new_item})
 
                 cls.do_traverse(new_item, v)
             else:
-                obj.__call__(**{cls.replace(k): v})
+                obj.update(**{cls.replace(k): v})
