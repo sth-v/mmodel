@@ -474,9 +474,6 @@ class NicheSide(object):
         self.edges = self.unrol_surf.Edges
         self.gen_side_types()
 
-        un = rh.Unroller(self.surf)
-        un.AddFollowingGeometry(curves=[self.back_intersect()])
-        self.un = un.PerformUnroll()
 
     def ribs_offset(self):
         r = self.unrol[1][0:len(self.unrol[1]) - 1]
@@ -490,7 +487,14 @@ class NicheSide(object):
 
     def unroll_intersection(self):
         r_inters = self.rebra_intersect()
+        [i.PullToBrepFace(self.surf.Faces[0], 0.01) for i in r_inters]
+
         b_inters = self.back_intersect()
+        #b_inters.PullToBrepFace(self.surf.Faces[0], 0.01)
+
+        b_inters =rh.Intersect.Intersection.CurveBrepFace(b_inters, self.surf.Faces[0], 0.1)[1][0]
+
+
 
         r_inters.append(b_inters)
         return r_inters

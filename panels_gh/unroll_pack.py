@@ -49,7 +49,6 @@ class UnrollPack:
 
     def __init__(self, x, y, circle, panel_r, panel_l, niche_r, niche_l, r, n_b, cog_type, tag):
         self.tag = tag
-        print(tag)
 
         self.panel_r = Panel(panel_r, 0, cog_type, 'P-'+self.tag+'-1')
         self.panel_l = Panel(panel_l, 1, cog_type, 'P-'+self.tag+'-2')
@@ -93,4 +92,4 @@ for i in unroll_elems:
     p = UnrollPack(x, y, circle, *i)
     packs.append(p)
     pack_unrolls.append(p.unroll_dict)
-    a = MarkerDict(p.niche_l.unroll_dict)
+
