@@ -37,7 +37,6 @@ cogs = imp.load_module("cogs", cogsfile, cogsfilename, (cogssuffix, cogsmode, co
 from functools import wraps
 
 cogs.__init__("cogs", "generic nodule")
-print cogs
 from cogs import Pattern, TT
 
 reload(cogs)
@@ -180,13 +179,11 @@ class Niche(BendSide):
                                                         0.01)
             bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
                                                         0.01)
-            print aa, bb
             if bb == aa == rh.RegionContainment.BInsideA:
                 self.hls.extend(h)
                 cnt.append(ii.contour)
-                print "cul"
             else:
-                print "аагсл"
+                pass
         _cogs.extend(self.hls[2:-2])
         ccnt = cnt[0:-1]
         for cc in ccnt:
@@ -234,9 +231,13 @@ class Niche(BendSide):
         l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
         trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
 
+        p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
+        p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
+        trim = trg.Trim(p_one,p_two)
+
         tt = []
 
-        tt.append(trg)
+        tt.append(trim)
         tt.extend(self.hls[2:-2])
 
         return tt
@@ -379,41 +380,86 @@ class BackNiche:
 class NicheSide(object):
 
     @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        if self.type == 0:
+            fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
+            bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
+        else:
+            fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[0])[1]
+            bound_plane = rh.Plane(b_r.Min, fr.XAxis, fr.YAxis)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    @property
+    def top_parts(self):
+        top = [self.side[0].top_part.DuplicateCurve(), self.niche.top_part.DuplicateCurve(),
+               self.side[1].top_part.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in top]
+        return top
+
+    @property
     def mark_ribs(self):
-        self._mark_ribs = self.ribs_offset()
-        return self._mark_ribs
+        mark_ribs = self.ribs_offset()
+        for i, v in enumerate(mark_ribs):
+            v[0].Transform(self.bound_plane)
+            v[1].Transform(self.bound_plane)
+        return mark_ribs
 
     @property
     def mark_back(self):
         one = self.unrol[1][-1].LengthParameter(1)[1]
         two = self.unrol[1][-1].LengthParameter(self.unrol[1][-1].GetLength() - 1)[1]
-        self._mark_back = self.unrol[1][-1].Trim(one, two)
-
-        return self._mark_back
+        mark_back = self.unrol[1][-1].Trim(one, two)
+        mark_back.Transform(self.bound_plane)
+        return mark_back
 
     @property
     def fres(self):
-        self._fres = [self.side[0].fres, self.niche.fres, self.side[1].fres]
-        return self._fres
+        fres = [self.side[0].fres.DuplicateCurve(), self.niche.fres.DuplicateCurve(), self.side[1].fres.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in fres]
+        return fres
 
     @property
     def cut(self):
-        self._cut = [self.side[0].join, self.niche.cogs, self.side[1].join, self.bottom.fres]
-        self._cut.extend(self.niche.join_region)
-        return self._cut
+        if self.cogs_bend is True:
+            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join_region[0], self.side[1].join, self.bottom.fres])[0]
+            side.Transform(self.bound_plane)
+
+            cut = [side]
+
+            reg = self.niche.join_region[1:]
+            for i in reg:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
+        else:
+            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+            side.Transform(self.bound_plane)
+            cut = [side]
+        return cut
 
     @property
     def grav(self):
-        d = self.mark_ribs
+        d = [self.mark_ribs]
         d.append(self.mark_back)
-        self._grav = d
-        return self._grav
 
-    def __init__(self, surface, tip, rib, back):
+        return d
+
+    @property
+    def unroll_dict(self):
+        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
+                        'tag': [self.tag[0:-1]+str(4+i) for i in range(len(self.unrol[1]) - 1)]}, 'frame':{'bb': 0}}
+        return unroll_dict
+
+    def __init__(self, surface, tip, rib, back, cogs_bend, tag):
         object.__init__(self)
 
         self.surf = surface
         self.type = tip
+        self.cogs_bend = cogs_bend
+        self.tag = tag
 
         self.rebra = Ribs(rib)
         self.back_side = BackNiche(back)
@@ -428,20 +474,27 @@ class NicheSide(object):
         self.edges = self.unrol_surf.Edges
         self.gen_side_types()
 
+
     def ribs_offset(self):
         r = self.unrol[1][0:len(self.unrol[1]) - 1]
         ofset_rebra = []
         for i in r:
-            if i.GetLength() > 10:
+            if i.GetLength() > 3:
                 ofs_one = i.OffsetOnSurface(self.unrol_surf.Faces[0], 1.5, 0.1)
                 ofs_two = i.OffsetOnSurface(self.unrol_surf.Faces[0], -1.5, 0.1)
-                ofset_rebra.append(ofs_one[0])
-                ofset_rebra.append(ofs_two[0])
+                ofset_rebra.append([ofs_one[0], ofs_two[0]])
         return ofset_rebra
 
     def unroll_intersection(self):
         r_inters = self.rebra_intersect()
+        [i.PullToBrepFace(self.surf.Faces[0], 0.01) for i in r_inters]
+
         b_inters = self.back_intersect()
+        #b_inters.PullToBrepFace(self.surf.Faces[0], 0.01)
+
+        b_inters =rh.Intersect.Intersection.CurveBrepFace(b_inters, self.surf.Faces[0], 0.1)[1][0]
+
+
 
         r_inters.append(b_inters)
         return r_inters
@@ -489,6 +542,8 @@ class NicheSide(object):
         inters = rs.IntersectBreps(self.surf, self.back_side.extend, 0.1)
         line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
         return line
+
+
 
 
 # ptr = TT(globals()['x'], globals()['y'], globals()['circle'])
