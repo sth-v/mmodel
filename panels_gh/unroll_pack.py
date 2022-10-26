@@ -43,8 +43,8 @@ class UnrollPack:
 
     @property
     def unroll_dict(self):
-        unroll_dict = {'P'+ self.tag: [self.panel_r.unroll_dict, self.panel_l.unroll_dict],
-                       'N'+ self.tag: [self.niche_r.unroll_dict, self.niche_l.unroll_dict]}
+        unroll_dict = {'P-'+ self.tag: [self.panel_r.unroll_dict, self.panel_l.unroll_dict],
+                       'N-'+ self.tag: [self.niche_r.unroll_dict, self.niche_l.unroll_dict, self.niche_b.unroll_dict]}
         return unroll_dict
 
     def __init__(self, x, y, circle, panel_r, panel_l, niche_r, niche_l, r, n_b, cog_type, tag):
@@ -60,8 +60,11 @@ class UnrollPack:
         self.panel_l.niche.cg = cog
         self.panel_l.niche.generate_cogs()
 
-        self.niche_r = NicheSide(niche_r, 0, r, n_b, cog_type, 'N-'+self.tag+'-1')
-        self.niche_l = NicheSide(niche_l, 1, r, n_b, cog_type, 'N-'+self.tag+'-3')
+        self.niche_b = BackNiche(n_b, 'N-'+self.tag+'-2')
+        self.ribs = Ribs(r)
+
+        self.niche_r = NicheSide(niche_r, 1, self.ribs, self.niche_b, cog_type, 'N-'+self.tag+'-1')
+        self.niche_l = NicheSide(niche_l, 0, self.ribs, self.niche_b, cog_type, 'N-'+self.tag+'-3')
 
         self.niche_l.niche.cg = cog
         self.niche_l.niche.generate_cogs()
@@ -69,9 +72,7 @@ class UnrollPack:
         self.niche_r.niche.cg = cog
         self.niche_r.niche.generate_cogs()
 
-        self.niche_b = BackNiche(n_b)
 
-        self.ribs = Ribs(r)
 
 
 class MarkerDict:
@@ -93,3 +94,5 @@ for i in unroll_elems:
     packs.append(p)
     pack_unrolls.append(p.unroll_dict)
 
+    a = p.niche_b.cut
+    b = p.niche_b.fres
