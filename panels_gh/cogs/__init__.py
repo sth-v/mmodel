@@ -31,7 +31,7 @@ class TT:
         self.ptk = rg.Point3d(0, 0, 0)
         self.pt2k = rg.Point3d(0, 0, 0)
 
-        self.ln
+
 
     @property
     def pt(self):
