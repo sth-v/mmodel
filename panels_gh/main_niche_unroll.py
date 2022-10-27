@@ -321,26 +321,39 @@ class Ribs:
 
 
 class BackNiche:
+
     @property
     def fres(self):
-        self._fres = [self.side[0].fres, self.side[1].fres]
-        return self._fres
+        fres = [rh.Curve.DuplicateCurve(self.side[0].fres), rh.Curve.DuplicateCurve(self.side[1].fres)]
+        return fres
 
     @property
     def cut(self):
-        self._cut = [self.side[0].join, self.top.fres, self.side[1].join, self.bottom.fres]
-        return self._cut
+        cut = [rh.Curve.JoinCurves([self.side[0].join, self.top.fres, self.side[1].join, self.bottom.fres])[0]]
+        return cut
 
-    def __init__(self, surf):
+    @property
+    def top_parts(self):
+        top = self.side[0].top_part.DuplicateCurve()
+        return top
+
+    @property
+    def unroll_dict(self):
+        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
+        return unroll_dict
+
+    def __init__(self, surf, tag):
         self.surf = surf
         self.extend = self.extend_surf()
+        self.tag = tag
+        self.rev_surf = self.surf.Reverse(1)
 
-        self.unrol_surf = rh.Unroller(self.surf).PerformUnroll()[0][0]
+        self.unrol_surf = rh.Unroller(self.rev_surf).PerformUnroll()[0][0]
 
         self.edges = self.unrol_surf.Curves3D
-        self.side_types()
+        self.gen_side_types()
 
-    def side_types(self):
+    def gen_side_types(self):
 
         self.top = Bottom(self.edges[1])
         self.bottom = Bottom(self.edges[3])
@@ -383,7 +396,7 @@ class NicheSide(object):
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        if self.type == 0:
+        if self.type == 1:
             fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
             bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
         else:
@@ -461,8 +474,8 @@ class NicheSide(object):
         self.cogs_bend = cogs_bend
         self.tag = tag
 
-        self.rebra = Ribs(rib)
-        self.back_side = BackNiche(back)
+        self.rebra = rib
+        self.back_side = back
 
         self.intersections = self.unroll_intersection()
 
@@ -490,17 +503,13 @@ class NicheSide(object):
         [i.PullToBrepFace(self.surf.Faces[0], 0.01) for i in r_inters]
 
         b_inters = self.back_intersect()
-        #b_inters.PullToBrepFace(self.surf.Faces[0], 0.01)
-
         b_inters =rh.Intersect.Intersection.CurveBrepFace(b_inters, self.surf.Faces[0], 0.1)[1][0]
-
-
 
         r_inters.append(b_inters)
         return r_inters
 
     def gen_side_types(self):
-        if self.type == 0:
+        if self.type == 1:
             self.niche = Niche(self.edges[2])
             self.bottom = Bottom(self.edges[0])
             self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
