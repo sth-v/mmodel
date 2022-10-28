@@ -2,6 +2,16 @@
 from mmodel.mm.baseitems import Item
 
 
+class D3(Generic[T1, SP, KT, VT], Base, dict[str, VT]):
+
+
+def args_flatten(arg, *args):
+    arr = np.asarray((arg,)).flatten()
+    for barr in args:
+        arr = np.concatenate([arr, np.asarray((barr,)).flatten()])
+    return arr
+
+
 class ReplaceMapping:
     replacements = {
         "-": "_",
@@ -70,6 +80,38 @@ class DotView(Item, ReplaceMapping):
     @classmethod
     def replace(cls, string: str):
         return super(DotView, cls).replace(string)
+
+
+    @classmethod
+    def replace_back(cls, string: str):
+        return super(DotView, cls).replace(string)
+
+    @classmethod
+    def do_traverse(cls, obj, dct):
+        for k, v in dct.items():
+
+            if isinstance(v, dict):
+                new_item = type(k, (DotView,), v)
+
+                obj.__call__(**{new_item.replace(k): new_item})
+
+                cls.do_traverse(new_item, v)
+            else:
+                obj.update(**{cls.replace(k): v})
+
+
+class TraverseDict(dict):
+    dict_attr = "__dict__"
+
+    def __init__(self):
+
+        super().__init__()
+
+    def __getitem__(self, item):
+        return dict.__getitem__(self, item)
+
+    def __setitem__(self, item, v):
+        dict.__setitem__(self, item, v)
 
     @classmethod
     def replace_back(cls, string: str):
