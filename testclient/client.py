@@ -91,7 +91,7 @@ class BendConstructorApi(ItemApiGenerator, BendConstructorBind):
             self.__post_init__(*args, **kwargs)
 
         else:
-            super(BendConstructorBind, self).__call__(*args, **kwargs)
+            BendConstructorBind.__call__(self, *args, **kwargs)
         return StreamingResponse(self.response(response_headers, prot=prot))
 
 
@@ -102,4 +102,3 @@ bc = BendConstructorBind()
 def bind_bc(name: str, prot: str = "jsn"):
     return bc(name)
 
-uv
