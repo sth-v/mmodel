@@ -38,6 +38,22 @@ class MultiDict(dict):
         return dict.__getitem__(self, __k)
 
 
+class BaseI:
+    """
+    Base Abstract class
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.__call__(**kwargs)
+
+    def __call__(self, **kwargs):
+        for k in kwargs:
+            self.__setattr__(k, kwargs[k])
+
+        return self
+
+
 class Base(Callable):
     """
     Base Abstract class
@@ -51,6 +67,7 @@ class Base(Callable):
 
         self.__dict__.update(kwargs)
         self._dtype = self.__class__.__name__
+        return self
 
 
 class Versioned(Base):
@@ -68,7 +85,43 @@ class Versioned(Base):
         self._version()
 
 
+class VersionedI(BaseI):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _version(self):
+        self.version = HashVersion().__hex__()
+
+    def __eq__(self, other):
+        return hex(self.version) == hex(other.version)
+
+    def __call__(self, *args, **kwargs):
+        super().__call__(*args, **kwargs)
+        self._version()
+
+
 import uuid
+
+
+class IdentifiableI(VersionedI):
+    def __init__(self, *args, **kwargs):
+        self._uuid = uuid.uuid4()
+        super().__init__(*args, **kwargs)
+
+    @property
+    def uid(self):
+        return hex(id(self))
+
+    @property
+    def uuid(self):
+        return str(self._uuid)
+
+    @uuid.setter
+    def uuid(self, v):
+        self._uuid = v
+
+    def __hash__(self):
+        ...
 
 
 class Identifiable(Versioned):
