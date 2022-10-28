@@ -1,5 +1,3 @@
-#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-
 from collections import namedtuple
 
 try:
@@ -7,7 +5,9 @@ try:
 except:
     import rhinoscript as rs
 
+import ghpythonlib.treehelpers as th
 import Rhino.Geometry as rg
+import math
 import copy
 import ghpythonlib.components as ghc
 
@@ -18,11 +18,10 @@ Pat = namedtuple("Pat", ["contour", "hole"])
 
 class TT:
 
-    def __init__(self, pt, pt2, circle, w=6.672, hole=3.5):
-        self.contour = None
+    def __init__(self, pt, pt2, circle, w=15, hole=3.5):
         self.name = "arcpattern"
         self.w = w
-        self.fh = 5.872
+        self.fh = 9.872
         self._n = 0
         self._pt = pt
         self._pt2 = pt2
@@ -68,27 +67,28 @@ class TT:
         pt3.Transform(self.mr)
         pt6 = self.pt2 + rg.Point3d(0, -self.w, 0)
         pt4 = self.pt2 + rg.Point3d(0, -self.w - self.fh, 0)
-        pt5 = pt4 + rg.Point3d(0, -19.067 - (7 - 6.672) + self.fh, 0)
+        pt5 = pt4 + rg.Point3d(0, -16 - self.w + self.fh, 0)
         pt41 = pt4 + rg.Point3d(-self.hole / 2, 0, 0)
         pt42 = pt4 + rg.Point3d(self.hole / 2, 0, 0)
         pt51 = pt5 + rg.Point3d(-self.hole / 2, 0, 0)
         pt52 = pt5 + rg.Point3d(self.hole / 2, 0, 0)
+        print pt5
 
         crv = [
-
             rg.Circle(pt4, self.hole / 2).ToNurbsCurve(),
+            rg.Circle(pt6, self.hole / 2).ToNurbsCurve(),
             rg.Circle(pt5, self.hole / 2).ToNurbsCurve(),
             rg.Polyline([pt41, pt51, pt52, pt42, pt41]).ToPolylineCurve()]
         ln3 = copy.deepcopy(ln0)
         ln2.Transform(self.mr)
         ln3.Transform(self.mr)
-        self.holes = [rg.Curve.CreateBooleanUnion(crv, 0.01)[0].ToNurbsCurve()]
-        self.holes.append(rg.Circle(pt6, self.hole / 2).ToNurbsCurve())
-        self.contour = rg.Curve.JoinCurves([ln0.ToNurbsCurve(), ln1.ToNurbsCurve(),
-                                            rg.Arc(ln1.To, self.circle.PointAt(-0.5), endPoint=ln2.To).ToNurbsCurve(),
-                                            ln2.ToNurbsCurve(), ln3.ToNurbsCurve()])[0]
+        # crvu = list(rg.Curve.CreateBooleanUnion(crv,0.01))
+        self.holes = copy.deepcopy(crv)
+        self.contour = [ln0.ToNurbsCurve(), ln1.ToNurbsCurve(),
+                        rg.Arc(ln1.To, self.circle.PointAt(-0.5), endPoint=ln2.To).ToNurbsCurve(),
+                        ln2.ToNurbsCurve(), ln3.ToNurbsCurve()]
 
-        return Pat(self.contour, self.holes)
+        return self.holes
 
 
 class Ptrn:
@@ -115,9 +115,9 @@ class Pattern:
         self.modl = modl
         self.__l = l
         self.ln = l // modl
-
-        self._hole = self.u.hole
-        self._contour = self.u.contour
+        print(self.ln)
+        self.hole = []
+        self.contour = []
 
     def __iter__(self):
         return self
@@ -127,19 +127,24 @@ class Pattern:
         return rg.Transform.Translation(self.modl, 0, 0)
 
     def mtr(self):
+        contour=[]
+        hole=[]
+        contour.append(self.u.contour)
+        hole.append(self.u.hole)
+        for i in self.u.contour:
+            i.Transform(self.trsf)
 
-        p = Pat(copy.deepcopy(self._contour), copy.deepcopy(self._hole))
-        self._contour.Transform(self.trsf)
-
-        for j in self._hole:
+        for j in self.u.hole:
             j.Transform(self.trsf)
 
-        return p
+        return self.u.hole
 
     def next(self):
         if self.constrain():
             self.ln -= 1
-            return self.mtr()
+            print(self.u)
+            self.mtr()
+            return self.u
         else:
             raise StopIteration
 
@@ -153,5 +158,4 @@ class Pattern:
         self.unit = copy.deepcopy(self.__unit)
         self.u = self.unit.ln
         self.ln = self.__l // self.modl
-        self._hole = self.u.hole
-        self._contour = self.u.contour
+        print(self.ln)
