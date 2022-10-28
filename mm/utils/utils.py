@@ -80,6 +80,7 @@ class DotView(Item, ReplaceMapping):
     def replace(cls, string: str):
         return super(DotView, cls).replace(string)
 
+
     @classmethod
     def replace_back(cls, string: str):
         return super(DotView, cls).replace(string)
@@ -89,13 +90,13 @@ class DotView(Item, ReplaceMapping):
         for k, v in dct.items():
 
             if isinstance(v, dict):
-                new_item = cls()
+                new_item = type(k, (DotView,), v)
 
-                obj.__call__(**{cls.replace(k): new_item})
+                obj.__call__(**{new_item.replace(k): new_item})
 
                 cls.do_traverse(new_item, v)
             else:
-                obj.__call__(**{cls.replace(k): v})
+                obj.update(**{cls.replace(k): v})
 
 
 class TraverseDict(dict):
@@ -111,19 +112,19 @@ class TraverseDict(dict):
     def __setitem__(self, item, v):
         dict.__setitem__(self, item, v)
 
-    def __call__(self, obj, *args, **kwargs):
-        self.do_traverse(self, obj)
-        return self
+    @classmethod
+    def replace_back(cls, string: str):
+        return super(DotView, cls).replace(string)
 
     @classmethod
     def do_traverse(cls, obj, dct):
         for k, v in dct.items():
 
             if isinstance(v, dict):
-                new_item = cls()
+                new_item = type(k, (DotView,), v)
 
-                obj.__call__(**{cls.replace(k): new_item})
+                obj.__call__(**{new_item.replace(k): new_item})
 
                 cls.do_traverse(new_item, v)
             else:
-                obj.__call__(**{cls.replace(k): v})
+                obj.update(**{cls.replace(k): v})

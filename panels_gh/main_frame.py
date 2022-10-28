@@ -7,13 +7,17 @@
 
 __author__ = "sofyadobycina"
 
-#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import math
 
 import Rhino.Geometry as rh
 import ghpythonlib.treehelpers as th
 import rhinoscriptsyntax as rs
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
+import math
+
+
 
 
 def offset(crv, ofs_dist, extend=None):
