@@ -1,7 +1,8 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-import numpy as np
+from mmodel.mm.baseitems import Item
 
-from mm.baseitems import Item
+
+class D3(Generic[T1, SP, KT, VT], Base, dict[str, VT]):
 
 
 def args_flatten(arg, *args):
@@ -80,6 +81,7 @@ class DotView(Item, ReplaceMapping):
     def replace(cls, string: str):
         return super(DotView, cls).replace(string)
 
+
     @classmethod
     def replace_back(cls, string: str):
         return super(DotView, cls).replace(string)
@@ -111,19 +113,19 @@ class TraverseDict(dict):
     def __setitem__(self, item, v):
         dict.__setitem__(self, item, v)
 
-    def __call__(self, obj, *args, **kwargs):
-        self.do_traverse(self, obj)
-        return self
+    @classmethod
+    def replace_back(cls, string: str):
+        return super(DotView, cls).replace(string)
 
     @classmethod
     def do_traverse(cls, obj, dct):
         for k, v in dct.items():
 
             if isinstance(v, dict):
-                new_item = cls()
+                new_item = type(k, (DotView,), v)
 
-                obj.__call__(**{cls.replace(k): new_item})
+                obj.__call__(**{new_item.replace(k): new_item})
 
                 cls.do_traverse(new_item, v)
             else:
-                obj.__call__(**{cls.replace(k): v})
+                obj.update(**{cls.replace(k): v})
