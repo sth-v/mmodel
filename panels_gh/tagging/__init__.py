@@ -1,5 +1,8 @@
 __author__ = "sofyadobycina"
 
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
+import ast
 import ast
 import cPickle as pickle
 import copy
@@ -14,16 +17,15 @@ except:
 import functools
 import types
 import frame
-reload(frame)
-from frame import FramePanel
-HOME=os.getenv("HOME")
-BOTTOM=45
-TOP=35
-N_NICHE=45
-P_NICHE=43.53
-import rhinoscriptsyntax as rs
-import cPickle
 
+reload(frame)
+
+HOME = os.getenv("HOME")
+BOTTOM = 45
+TOP = 35
+N_NICHE = 45
+P_NICHE = 43.53
+from frame import FramePanel
 import Rhino
 
 encode = Rhino.Geometry.GeometryBase.FromJSON
@@ -44,7 +46,7 @@ class RhIterArgParser(dict):
                     iter(v)
                     datas = []
                     print('iteration will probably work')
-                    if isinstance(v,dict):
+                    if isinstance(v, dict):
                         dict.__setitem__(self, k, RhIterArgParser(v))
 
 
@@ -60,10 +62,13 @@ class RhIterArgParser(dict):
                 except TypeError:
                     print('not iterable')
 
-
-
-
                     dict.__setitem__(self, k, v)
+
+
+
+
+
+
 class Tagger:
 
     def __init__(self, cls):
@@ -73,15 +78,15 @@ class Tagger:
     def __call__(self, *args):
         self.inst = self._cls(*args)
 
-        #FramePanel.bottom = BOTTOM
-        #FramePanel.top = TOP
+        # FramePanel.bottom = BOTTOM
+        # FramePanel.top = TOP
 
-        self.ap=RhIterArgParser(self.inst.unroll_dict)
-        #self.panels = FramePanel(self.inst.panel_r, 0, P_NICHE), FramePanel(self.inst.panel_l, 1, P_NICHE)
-        #self.niches = FramePanel(self.inst.niche_r, 0, N_NICHE), FramePanel(self.inst.niche_l, 1, N_NICHE)
-        #with open(HOME+"/mmodel/panels_gh/dump{}.json".format(id(self)),"w") as pkl:
-            #json.dump(self.ap, pkl, indent=3)
-        #with open("Picklefile","w") as pklf:
+        self.ap = RhIterArgParser(self.inst.unroll_dict)
+        # self.panels = FramePanel(self.inst.panel_r, 0, P_NICHE), FramePanel(self.inst.panel_l, 1, P_NICHE)
+        # self.niches = FramePanel(self.inst.niche_r, 0, N_NICHE), FramePanel(self.inst.niche_l, 1, N_NICHE)
+        # with open(HOME+"/mmodel/panels_gh/dump{}.json".format(id(self)),"w") as pkl:
+        # json.dump(self.ap, pkl, indent=3)
+        # with open("Picklefile","w") as pklf:
         #    pklf.writelines(["PROTOCOL={}".format(pickle.HIGHEST_PROTOCOL)])
         #    pickle.dump(self, pklf, pickle.HIGHEST_PROTOCOL)
 
