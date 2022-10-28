@@ -7,10 +7,13 @@
 
 __author__ = "sofyadobycina"
 
-import rhinoscriptsyntax as rs
-import Rhino.Geometry as rh
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
 import math
+
+import Rhino.Geometry as rh
 import ghpythonlib.treehelpers as th
+import rhinoscriptsyntax as rs
 
 
 def offset(crv, ofs_dist, extend=None):
@@ -38,7 +41,7 @@ def intersect(values):
         param = sorted(param)
         if len(param) != 1 and i != 0:
             trimed = rh.Curve.Trim(v, param[0], param[1])
-        elif i == len(values)-1:
+        elif i == len(values) - 1:
             trimed = rh.Curve.Trim(v, v.Domain[0], param[0])
         elif i == 0 and len(param) != 1:
             trimed = rh.Curve.Trim(v, param[1], v.Domain[1])
