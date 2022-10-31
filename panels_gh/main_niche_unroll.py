@@ -303,6 +303,13 @@ class Ribs:
         self.extend = []
         ext_surf = [rh.Surface.Duplicate(i) for i in self.surf]
 
+        self.edges = []
+        for i in self.surf:
+            unrol = rh.Unroller(i).PerformUnroll()[0][0]
+            edge = rh.Curve.JoinCurves(list(unrol.Curves3D))[0]
+            self.edges.append(edge)
+
+
         for i in range(self.__len__()):
             self.i = i
             ext = self.extend_surf(ext_surf)
@@ -510,7 +517,6 @@ class NicheSide(object):
     def grav(self):
         d = [self.mark_ribs]
         d.append(self.mark_back)
-        print('grav', d)
 
         return d
 

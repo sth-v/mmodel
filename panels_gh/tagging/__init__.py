@@ -13,6 +13,7 @@ except:
     import rhinoscript as rs
 # import main_frame
 
+
 # reload(main_frame)
 MMODEL_DIR = os.getenv("MMODEL_DIR")
 HOME = os.getenv("HOME")
@@ -24,6 +25,20 @@ P_NICHE = 43.53
 import json
 import Rhino
 import Rhino.Geometry as rh
+import os
+
+import sys
+
+if os.getenv("USER") == "sofyadobycina":
+    PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
+    sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
+                     os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
+else:
+    os.environ["MMODEL_DIR"] = "/Users/andrewastakhov/PycharmProjects/mmodel"
+    PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
+    sys.path.extend(
+        [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
+         os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
 
 encode = Rhino.Geometry.GeometryBase.ToJSON
 
