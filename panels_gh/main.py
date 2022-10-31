@@ -243,6 +243,7 @@ class Schov(BendSide):
 
 
 class Panel:
+
     @property
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.schov.fres])[0]
@@ -293,8 +294,8 @@ class Panel:
 
     @property
     def unroll_dict(self):
-        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
-        return unroll_dict
+        _unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
+        return _unroll_dict
 
     def __init__(self, surface, type, cogs_bend, tag):
 
