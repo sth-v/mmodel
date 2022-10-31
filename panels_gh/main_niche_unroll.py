@@ -364,8 +364,8 @@ class BackNiche:
 
     @property
     def unroll_dict(self):
-        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
-        return unroll_dict
+        _unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
+        return _unroll_dict
 
 
     def __init__(self, surf, rib, tag):
