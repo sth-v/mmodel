@@ -5,6 +5,7 @@ __author__ = "sofyadobycina"
 import ast
 import copy
 import os
+import sys
 from pprint import pprint
 
 try:
@@ -12,6 +13,14 @@ try:
 except:
     import rhinoscript as rs
 # import main_frame
+if os.getenv("USER") == "sofyadobycina":
+    PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
+    sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
+                     os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
+else:
+    PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
+    sys.path.extend(
+        [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs"])
 
 #reload(main_frame)
 MMODEL_DIR = os.getenv("MMODEL_DIR")
@@ -82,7 +91,7 @@ class Tagger:
         ap = RhIterArgParser(dct)
         # self.panels = FramePanel(self.inst.panel_r, 0, P_NICHE), FramePanel(self.inst.panel_l, 1, P_NICHE)
         # self.niches = FramePanel(self.inst.niche_r, 0, N_NICHE), FramePanel(self.inst.niche_l, 1, N_NICHE)
-        with open(HOME + "/PycharmProjects/mmodel/panels_gh/dump{}.json".format(id(self)), "w") as pkl:
+        with open("{}/dump{}.json".format(PWD, id(self)), "w") as pkl:
             json.dump(ap, pkl, indent=3)
         # with open("Picklefile","w") as pklf:
         #    pklf.writelines(["PROTOCOL={}".format(pickle.HIGHEST_PROTOCOL)])
