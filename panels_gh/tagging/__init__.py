@@ -3,10 +3,6 @@ __author__ = "sofyadobycina"
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import ast
-import ast
-import cPickle as pickle
-import copy
-import json
 import os
 from pprint import pprint
 
@@ -14,12 +10,10 @@ try:
     rs = __import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
-import functools
-import types
-import frame
+import main_frame
 
-reload(frame)
-
+reload(main_frame)
+MMODEL_DIR = os.getenv("MMODEL_DIR")
 HOME = os.getenv("HOME")
 BOTTOM = 45
 TOP = 35

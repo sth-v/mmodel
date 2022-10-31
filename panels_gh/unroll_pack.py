@@ -22,14 +22,13 @@ if os.getenv("USER") == "sofyadobycina":
     sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
                      os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
 else:
-    PWD = os.getenv("HOME") + "/mmodel/panels_gh"
+    PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
     sys.path.extend(
-        [os.getenv("HOME") + "/mmodel/panels_gh", os.getenv("HOME") + "/mmodel/panels_gh/cogs"])
+        [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs"])
 
 cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs", path=[PWD])
 cogs = imp.load_module("cogs", cogsfile, PWD, (cogssuffix, cogsmode, cogstype))
 # sys.path.extend(["/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh"])
-import ghpythonlib.treehelpers as th
 
 TT = cogs.TT
 Pattern = cogs.Pattern
