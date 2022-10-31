@@ -301,16 +301,27 @@ class Ribs:
         self.surf = surf_list
 
         self.extend = []
+        ext_surf = [rh.Surface.Duplicate(i) for i in self.surf]
+
         for i in range(self.__len__()):
             self.i = i
-            ext = self.extend_surf()
+            ext = self.extend_surf(ext_surf)
             self.extend.append(ext)
+
+        self.extend_bottom = []
+        ext_b = [rh.Surface.Duplicate(i) for i in self.surf]
+
+        for i in range(self.__len__()):
+            self.i = i
+            ext = self.extend_bot(ext_b)
+            self.extend_bottom.append(ext)
+
 
     def __len__(self):
         return len(self.surf)
 
-    def extend_surf(self):
-        surf = self.surf[self.i]
+    def extend_surf(self, ext_surf):
+        surf = ext_surf[self.i]
         interv = surf.Domain(1)
         interv = rh.Interval(interv[0] - 50, interv[1] + 50)
 
@@ -319,6 +330,15 @@ class Ribs:
 
         return extr
 
+    def extend_bot(self, ext_bott):
+        surf = ext_bott[self.i]
+        interv = surf.Domain(0)
+        interv = rh.Interval(interv[0] - 50, interv[1] + 50)
+
+        surf.Extend(0, interv)
+        extr = rh.Surface.ToBrep(surf)
+
+        return extr
 
 class BackNiche:
 
@@ -333,6 +353,11 @@ class BackNiche:
         return cut
 
     @property
+    def grav(self):
+        d = [self.ribs_offset()]
+        return d
+
+    @property
     def top_parts(self):
         top = self.side[0].top_part.DuplicateCurve()
         return top
@@ -342,14 +367,22 @@ class BackNiche:
         unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
         return unroll_dict
 
-    def __init__(self, surf, tag):
+
+    def __init__(self, surf, rib, tag):
         self.surf = surf
         self.extend = self.extend_surf()
+
         self.tag = tag
-        self.rev_surf = self.surf.Reverse(1)
+        self.rev_surf = self.surf.Reverse(1).ToBrep()
 
-        self.unrol_surf = rh.Unroller(self.rev_surf).PerformUnroll()[0][0]
+        self.rebra = rib
+        self.intersections = self.rebra_intersect()
 
+        unrol = rh.Unroller(self.rev_surf)
+        unrol.AddFollowingGeometry(curves=self.intersections)
+        self.unrol = unrol.PerformUnroll()
+
+        self.unrol_surf = self.unrol[0][0]
         self.edges = self.unrol_surf.Curves3D
         self.gen_side_types()
 
@@ -380,7 +413,7 @@ class BackNiche:
             v.fres = trimed
 
     def extend_surf(self):
-        surf = rh.Surface.Duplicate(self.surf)
+        surf = self.surf.Duplicate()
         interv = surf.Domain(0)
         interv = rh.Interval(interv[0] - 50, interv[1] + 50)
 
@@ -388,6 +421,26 @@ class BackNiche:
         extr = rh.Surface.ToBrep(surf)
 
         return extr
+
+    def ribs_offset(self):
+        r = self.unrol[1]
+        ofset_rebra = []
+        for i in r:
+            if i.GetLength() > 3:
+                ofs_one = i.OffsetOnSurface(self.unrol_surf.Faces[0], 1.5, 0.1)
+                ofs_two = i.OffsetOnSurface(self.unrol_surf.Faces[0], -1.5, 0.1)
+                ofset_rebra.append([ofs_one[0], ofs_two[0]])
+        return ofset_rebra
+
+    def rebra_intersect(self):
+        intersect = []
+        for i in self.rebra.extend_bottom:
+            inters = rs.IntersectBreps(self.rev_surf, i, 0.1)
+            line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
+            line = rh.Intersect.Intersection.CurveBrepFace(line, self.rev_surf.Faces[0], 0.1)[1][0]
+            intersect.append(line)
+
+        return intersect
 
 
 class NicheSide(object):
@@ -457,6 +510,7 @@ class NicheSide(object):
     def grav(self):
         d = [self.mark_ribs]
         d.append(self.mark_back)
+        print('grav', d)
 
         return d
 
@@ -560,3 +614,4 @@ class NicheSide(object):
 niche_side = NicheSide
 back_niche = BackNiche
 ribs = Ribs
+

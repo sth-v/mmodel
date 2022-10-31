@@ -48,7 +48,7 @@ def intersect(values):
     return res
 
 
-class self:
+class FramePanel:
     bottom = 45
     top = 35
     diag = 20
@@ -108,10 +108,13 @@ class self:
 
         try:
             g = []
-            for i in self.panel.grav[:-1][0]:
+            for i in self.panel.grav[0]:
                 for j in i:
                     g.append(j)
-            g.append(self.panel.grav[-1])
+            try:
+                g.append(self.panel.grav[1])
+            except:
+                pass
             a.append(g)
 
         except AttributeError:
@@ -260,18 +263,21 @@ class MarkerDict:
         return self.__dict__.__str__()
 
 
-self.bottom = bottom
-self.top = top
+FramePanel.bottom = bottom
+FramePanel.top = top
 
-panel_r = self(panel.panel_r, p_niche)
-panel_l = self(panel.panel_l, p_niche)
+panel_r = FramePanel(panel.panel_r, p_niche)
+panel_l = FramePanel(panel.panel_l, p_niche)
 
-niche_r = self(panel.niche_r, n_niche)
-niche_l = self(panel.niche_l, n_niche)
+niche_r = FramePanel(panel.niche_r, n_niche)
+niche_l = FramePanel(panel.niche_l, n_niche)
 
-niche_b = self(panel.niche_b, b_niche)
+niche_b = FramePanel(panel.niche_b, b_niche)
 
-a = MarkerDict(panel.unroll_dict)
+#a = MarkerDict(panel.unroll_dict)
 
-frame = [niche_r.all_elems, niche_l.all_elems, panel_r.all_elems, panel_l.all_elems, niche_b.all_elems]
+frame = [panel_l.all_elems, panel_r.all_elems, niche_r.all_elems, niche_b.all_elems, niche_l.all_elems]
 frame = th.list_to_tree(frame)
+b = [panel_l.panel.surf, panel_r.panel.surf, niche_r.panel.surf, niche_b.panel.surf, niche_l.panel.surf]
+
+

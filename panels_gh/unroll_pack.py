@@ -60,8 +60,9 @@ class UnrollPack:
         self.panel_l.niche.cg = cog
         self.panel_l.niche.generate_cogs()
 
-        self.niche_b = BackNiche(n_b, 'N-'+self.tag+'-2')
         self.ribs = Ribs(r)
+        self.niche_b = BackNiche(n_b, self.ribs, 'N-'+self.tag+'-2')
+
 
         self.niche_r = NicheSide(niche_r, 1, self.ribs, self.niche_b, cog_type, 'N-'+self.tag+'-1')
         self.niche_l = NicheSide(niche_l, 0, self.ribs, self.niche_b, cog_type, 'N-'+self.tag+'-3')
@@ -93,6 +94,6 @@ for i in unroll_elems:
     p = UnrollPack(x, y, circle, *i)
     packs.append(p)
     pack_unrolls.append(p.unroll_dict)
+    a.append(p.niche_b.grav)
 
-    a = p.niche_b.cut
-    b = p.niche_b.fres
+a = th.list_to_tree(a)
