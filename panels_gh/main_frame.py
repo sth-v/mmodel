@@ -7,17 +7,28 @@
 
 __author__ = "sofyadobycina"
 
+# %start gh-py template
 
-import math
+import os
+import sys
+
+if os.getenv("USER") == "sofyadobycina":
+    PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
+    sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
+                     os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
+else:
+    PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
+    sys.path.extend(
+        [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs"])
+
+# %start script
 
 import Rhino.Geometry as rh
-import ghpythonlib.treehelpers as th
+
 import rhinoscriptsyntax as rs
-#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import math
-
-
+import ghpythonlib.treehelpers as th
 
 
 def offset(crv, ofs_dist, extend=None):

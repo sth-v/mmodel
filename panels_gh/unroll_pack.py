@@ -30,6 +30,9 @@ cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs
 cogs = imp.load_module("cogs", cogsfile, PWD, (cogssuffix, cogsmode, cogstype))
 # sys.path.extend(["/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh"])
 
+import cogs
+
+reload(cogs)
 TT = cogs.TT
 Pattern = cogs.Pattern
 Panel = panel
