@@ -52,7 +52,6 @@ import Rhino.Geometry as rh
 import rhinoscriptsyntax as rs
 
 import math
-import ghpythonlib.treehelpers as th
 
 
 def offset(crv, ofs_dist, extend=None):
@@ -89,7 +88,7 @@ def intersect(values):
         res.append(trimed)
     return res
 
-
+@tagging.Framer
 @tagging.Tagger
 class FramePanel:
     bottom = 45
@@ -319,20 +318,20 @@ class MarkerDict:
         return self.__dict__.__str__()
 
 
-panel_r = FramePanel(panel.panel_r, p_niche)
-panel_l = FramePanel(panel.panel_l, p_niche)
+panel_r = FramePanel(71, 1200, 21, panel.panel_r, p_niche)
+panel_l = FramePanel(71, 1200, 21, panel.panel_l, p_niche)
 
-niche_r = FramePanel(panel.niche_r, n_niche)
-niche_l = FramePanel(panel.niche_l, n_niche)
+niche_r = FramePanel(71, 1200, 21, panel.niche_r, n_niche)
+niche_l = FramePanel(71, 1200, 21, panel.niche_l, n_niche)
 
-niche_b = FramePanel(panel.niche_b, b_niche)
+niche_b = FramePanel(71, 1200, 21, panel.niche_b, b_niche)
 
 # a = MarkerDict(panel.unroll_dict)
 
-frame = [panel_l.all_elems, panel_r.all_elems, niche_r.all_elems, niche_b.all_elems, niche_l.all_elems]
-frame = th.list_to_tree(frame)
-b = [panel_l.panel.surf, panel_r.panel.surf, niche_r.panel.surf, niche_b.panel.surf, niche_l.panel.surf]
-
-c = niche_b.stable_dct["frame"]
-k = niche_b.stable_dct["data"]["tag"]
-e = [panel_l, panel_r, niche_r, niche_b, niche_l]
+# frame = [panel_l.all_elems, panel_r.all_elems, niche_r.all_elems, niche_b.all_elems, niche_l.all_elems]
+# frame = th.list_to_tree(frame)
+# b = [panel_l.panel.surf, panel_r.panel.surf, niche_r.panel.surf, niche_b.panel.surf, niche_l.panel.surf]
+#
+# c = niche_b.stable_dct["frame"]
+# k = niche_b.stable_dct["data"]["tag"]
+e = panel_l, panel_r, niche_r, niche_b, niche_l
