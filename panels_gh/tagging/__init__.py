@@ -20,6 +20,20 @@ BOTTOM = 45
 TOP = 35
 N_NICHE = 45
 P_NICHE = 43.53
+import os
+
+import sys
+
+if os.getenv("USER") == "sofyadobycina":
+    PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
+    sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
+                     os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
+else:
+    os.environ["MMODEL_DIR"] = "/Users/andrewastakhov/PycharmProjects/mmodel"
+    PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
+    sys.path.extend(
+        [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
+         os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
 
 import json
 import Rhino
