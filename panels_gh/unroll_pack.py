@@ -76,7 +76,18 @@ class UnrollPack:
         self.niche_r.niche.generate_cogs()
 
 
+class MUP(UnrollPack):
+    def __init__(self, *args, **kwargs):
+        UnrollPack.__init__(self, *args, **kwargs)
 
+    @property
+    def unroll_dict(self):
+        _unroll_dict = {'P': {'R': self.panel_r.unroll_dict, 'L': self.panel_l.unroll_dict},
+                        'N': {'R': self.niche_r.unroll_dict, 'L': self.niche_l.unroll_dict,
+                              'B': self.niche_b.unroll_dict},
+                        'tag': self.tag
+                        }
+        return _unroll_dict
 
 class MarkerDict:
     def __init__(self, input_dict):
@@ -99,3 +110,15 @@ for i in unroll_elems:
     a.append(p.niche_b.grav)
 
 a = th.list_to_tree(a)
+packs_ = []
+pack_unrolls_ = []
+a_ = []
+b_ = []
+
+for i in unroll_elems:
+    pp = MUP(x, y, circle, *i)
+    packs_.append(pp)
+    pack_unrolls_.append(pp.unroll_dict)
+    a_.append(pp.niche_b.grav)
+
+c = th.list_to_tree(a_)
