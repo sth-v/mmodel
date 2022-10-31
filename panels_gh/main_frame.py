@@ -7,9 +7,17 @@
 
 __author__ = "sofyadobycina"
 
-# %start gh-py template
+import copy
 
+try:
+    rs = __import__("rhinoscriptsyntax")
+except:
+    import rhinoscript as rs
+#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
+
+import imp
 import os
+
 import sys
 
 if os.getenv("USER") == "sofyadobycina":
@@ -17,9 +25,25 @@ if os.getenv("USER") == "sofyadobycina":
     sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
                      os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
 else:
+    os.environ["MMODEL_DIR"] = "/Users/andrewastakhov/PycharmProjects/mmodel"
     PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
     sys.path.extend(
-        [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs"])
+        [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
+         os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
+
+cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs", path=[PWD])
+cogs = imp.load_module("cogs", cogsfile, PWD, (cogssuffix, cogsmode, cogstype))
+# sys.path.extend(["/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh"])
+import cogs
+
+reload(cogs)
+
+# taggingfile, taggingfilename, (taggingsuffix, taggingmode, taggingtype) = imp.find_module("tagging", path=[PWD+"/panels_gh"])
+# tagging = imp.load_module("tagging", taggingfile, PWD, (taggingsuffix, taggingmode, taggingtype))
+# import tagging
+# reload(tagging)
+# %start gh-py template
+
 
 # %start script
 
@@ -66,6 +90,7 @@ def intersect(values):
     return res
 
 
+@tagging.Tagger
 class FramePanel:
     bottom = 45
     top = 35
@@ -97,6 +122,13 @@ class FramePanel:
         bound_frame = rh.Rectangle3d(rh.Plane.WorldXY, min_transl, rec.Max)
         self._bound_frame = bound_frame.ToNurbsCurve()
         return self._bound_frame
+
+    @property
+    def bound_frame_r(self):
+        rec = bound_rec(self.frame_all)
+        min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
+
+        return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, rec.Max)
 
     @property
     def rec(self):
@@ -159,7 +191,13 @@ class FramePanel:
             self.p_niche = self.panel.bottom.fres
             self.p_bottom = self.panel.fres[0]
 
-        self.panel.unroll_dict['frame']['bb'] = bound_rec(self.frame_all)
+    @property
+    def unroll_dict_f(self):
+        return {
+            "data": copy.deepcopy(self.panel.unroll_dict),
+            "frame": self.bound_frame.ToNurbsCurve()
+
+        }
 
     def tr_rect(self, p, ind, spec=None):
         crv = self.all_offset()[ind]
@@ -281,9 +319,6 @@ class MarkerDict:
         return self.__dict__.__str__()
 
 
-FramePanel.bottom = bottom
-FramePanel.top = top
-
 panel_r = FramePanel(panel.panel_r, p_niche)
 panel_l = FramePanel(panel.panel_l, p_niche)
 
@@ -292,10 +327,12 @@ niche_l = FramePanel(panel.niche_l, n_niche)
 
 niche_b = FramePanel(panel.niche_b, b_niche)
 
-#a = MarkerDict(panel.unroll_dict)
+# a = MarkerDict(panel.unroll_dict)
 
 frame = [panel_l.all_elems, panel_r.all_elems, niche_r.all_elems, niche_b.all_elems, niche_l.all_elems]
 frame = th.list_to_tree(frame)
 b = [panel_l.panel.surf, panel_r.panel.surf, niche_r.panel.surf, niche_b.panel.surf, niche_l.panel.surf]
 
-
+c = niche_b.stable_dct["frame"]
+k = niche_b.stable_dct["data"]["tag"]
+e = [panel_l, panel_r, niche_r, niche_b, niche_l]
