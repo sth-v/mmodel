@@ -41,6 +41,11 @@ from cogs import Pattern, TT
 
 reload(cogs)
 
+def bound_rec(crv):
+    join = rh.Curve.JoinCurves(crv)[0]
+    bound_rec = rh.PolyCurve.GetBoundingBox(join, rh.Plane.WorldXY)
+    return bound_rec
+
 
 def angle_ofs(angle, side, met_left):
     ang = math.radians(90 / 2)
@@ -536,8 +541,28 @@ class MainPanel(object):
             trimed = rh.Curve.Trim(v.fres, param[0], param[1])
             v.fres = trimed
 
+    def top_side(self):
+        bound = bound_rec(self.fres)
+        top_side = bound.GetEdges()[2]
+        return top_side.ToNurbsCurve()
+
+    def diag_side(self, i):
+
+        crv = rh.Line.ToNurbsCurve(rh.Line(*i[0:2]))
+
+        crv_d = crv.PointAtLength(rh.Curve.DivideByCount(crv, 2, False)[0])
+        self.diag = rh.Point3d.DistanceTo(i[2], crv_d) + 10
+        return crv
+
 
 class NicheSide(MainPanel):
+    bend_ofs = 45
+    top_ofs = 0
+    niche_ofs = 43.53
+    diag_ofs = 20
+
+    bottom_rec = 30
+    side_rec = 100
 
     @property
     def mark_ribs(self):
@@ -557,15 +582,32 @@ class NicheSide(MainPanel):
 
     @property
     def grav(self):
-        d = [self.mark_ribs]
-        d.append(self.mark_back)
-        return d
+        new =[]
+        for i in self.mark_ribs:
+            for ii in i:
+                new.append(ii)
+
+        new.append(self.mark_back)
+        return new
 
     @property
     def unroll_dict(self):
         unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
                         'tag': [self.tag[0:-1]+str(4+i) for i in range(len(self.unrol[1]) - 1)]}, 'frame':{'bb': 0}}
         return unroll_dict
+
+    @property
+    def frame_dict(self):
+
+        diag = self.diag_side([self.top_parts[0].PointAtEnd, self.top_parts[1].PointAtStart, self.fres[1].PointAtStart])
+        top = self.top_side()
+        p_niche = self.fres[1]
+        p_bend = self.fres[0]
+        order = [[p_niche, self.niche_ofs, 'st'], [diag, self.diag_ofs, False], [p_bend, self.bend_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[0, self.top_parts[1]], [2, self.top_parts[0]]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
     def __init__(self, surface, rib=None, back=None, cogs_bend=None, tag=None):
         MainPanel.__init__(self, surface, cogs_bend, tag)
@@ -623,6 +665,7 @@ class NicheSide(MainPanel):
 
 
 class N_1(NicheSide):
+
     @property
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
@@ -633,7 +676,7 @@ class N_1(NicheSide):
         return tr
 
     def __init__(self, surface, rib=None, back=None, cogs_bend=None, tag=None):
-        NicheSide.__init__(self, surface, rib, back,cogs_bend, tag)
+            NicheSide.__init__(self, surface, rib, back,cogs_bend, tag)
 
     def gen_side_types(self):
         self.niche = Niche(self.edges[2])
@@ -653,6 +696,17 @@ class N_3(NicheSide):
         bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), fr.XAxis, -fr.YAxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
+    @property
+    def frame_dict(self):
+        diag = self.diag_side([self.top_parts[2].PointAtEnd, self.top_parts[1].PointAtStart, self.fres[1].PointAtStart])
+        top = self.top_side()
+        p_niche = self.fres[1]
+        p_bend = self.fres[2]
+        order = [[p_niche, self.niche_ofs, 'st'], [diag, self.diag_ofs, False], [p_bend, self.bend_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[0, self.top_parts[1]], [2, self.top_parts[2]]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
     def __init__(self, surface, rib=None, back=None, cogs_bend=None, tag=None):
         NicheSide.__init__(self, surface, rib, back, cogs_bend, tag)
