@@ -18,10 +18,8 @@
 __author__ = "andrewastakhov"
 
 import copy
-import json
 import os
 import socket
-import sys
 
 
 # ---------------------------------------------------------------------------------
@@ -75,7 +73,7 @@ class GhRedisSocket(object):
     def __exit__(self, *args):
         pass
 
-import weakref
+
 """
 class pathtype(type):
     child_registry = []
@@ -174,7 +172,7 @@ class PathMember(Pathable):
     def __path__(self):
         return Pathable.__path__(self)
 """
-import tagging
+
 
 class GhRedisProperty:
 
@@ -206,14 +204,15 @@ class GhRedisProperty:
 
         try:
             with GhRedisSocket(self.host, self.port) as conn:
-                conn.qwery('set', (inst.tag + ":" + self.name v))
+                conn.qwery('set', (inst.tag + ":" + self.name, v))
         except:
             raise KeyError("Key Error")
 
 
 
 import json
-from json import JSONDecoder, JSONEncoder
+
+
 class GhReddisDict(dict):
     def __init__(self, owner, **kwargs):
 
