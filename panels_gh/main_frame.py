@@ -56,7 +56,10 @@ import ghpythonlib.treehelpers as th
 
 
 def offset(crv, ofs_dist, extend=None):
-    c = rh.Curve.Offset(crv, rh.Plane.WorldXY, ofs_dist, 0.01, rh.CurveOffsetCornerStyle.Sharp)[0]
+    if ofs_dist != 0:
+        c = rh.Curve.Offset(crv, rh.Plane.WorldXY, ofs_dist, 0.01, rh.CurveOffsetCornerStyle.Sharp)[0]
+    else:
+        c = crv
     if extend is not None:
         c = rh.Curve.Extend(c, rh.Interval(extend[0], extend[1]))
     return c
@@ -89,11 +92,13 @@ def intersect(values):
         res.append(trimed)
     return res
 
-@tagging.Framer
-@tagging.Tagger
-class FramePanel:
+
+#@tagging.Framer
+#@tagging.Tagger
+class MainFrame(object):
     bottom = 45
     top = 35
+    side = 43.53
     diag = 20
 
     bottom_rec = 30
@@ -137,13 +142,11 @@ class FramePanel:
 
     @property
     def region(self):
-        if self.panel.__class__.__name__ != 'BackNiche':
-            if self.cogs is True:
-                elems = self.cogs_points(2) + self.simple_points(0)
-            else:
-                elems = self.simple_points(2, niche=1) + self.simple_points(0)
+
+        if self.cogs is True:
+            elems = self.cogs_points(2) + self.simple_points(0, self.panel.top_parts[2])
         else:
-            elems = self.simple_points(1, niche=1) + self.simple_points(0)
+            elems = self.simple_points(2, self.panel.top_parts[0]) + self.simple_points(0, self.panel.top_parts[2])
 
         elems.append(self.frame_offset)
         elems.append(self.panel.cut[0])
@@ -153,7 +156,6 @@ class FramePanel:
 
     @property
     def all_elems(self):
-
         a = [self.region, self.panel.fres]
 
         try:
@@ -161,16 +163,162 @@ class FramePanel:
             for i in self.panel.grav[0]:
                 for j in i:
                     g.append(j)
-            try:
-                g.append(self.panel.grav[1])
-            except:
-                pass
-            a.append(g)
 
+            g.append(self.panel.grav[1])
+            a.append(g)
         except AttributeError:
             pass
 
         return a
+
+    def __init__(self, panel):
+        object.__init__(self)
+        self.panel = panel
+        self.cogs = self.panel.cogs_bend
+
+        self.p_niche = self.panel.fres[1]
+        self.p_bottom = self.panel.fres[2]
+
+    @property
+    def unroll_dict_f(self):
+        return {
+            "data": copy.deepcopy(self.panel.unroll_dict),
+            "frame": self.bound_frame.ToNurbsCurve()}
+
+    def tr_rect(self, p, ind, spec=None):
+        crv = self.all_offset()[ind]
+        frame = crv.FrameAt(crv.ClosestPoint(p)[1])[1]
+        if frame.YAxis[0] < 0 and spec is None:
+            frame = rh.Plane(frame.Origin, frame.XAxis, -frame.YAxis)
+        else:
+            frame = rh.Plane(frame.Origin, frame.XAxis, frame.YAxis)
+        tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, frame)
+        rect = self.rect.DuplicateCurve()
+        rect.Transform(tr)
+        return rect
+
+    def cogs_points(self, side):
+        rectang = []
+        for i in self.panel.cut[2:-1:8]:
+            b = i.TryGetCircle(0.1)[1].Center
+            rect = self.tr_rect(b, side)
+            rectang.append(rect)
+
+        b = self.panel.cut[-1].TryGetCircle(0.1)[1].Center
+        rect = self.tr_rect(b, side)
+        rectang.append(rect)
+        return rectang
+
+    def divide_points(self, goal):
+        crv = goal
+
+        st = crv.ClosestPoint(crv.PointAtLength(7.5))[1]
+        end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - 7.5))[1]
+        n_crv = crv.Trim(st, end)
+
+        num = math.ceil(n_crv.GetLength() / 100)
+        param = n_crv.DivideByCount(num, True)
+        points = [n_crv.PointAt(i) for i in param]
+        return points
+
+    def simple_points(self, side, goal):
+        points = self.divide_points(goal)
+        rectang = [self.tr_rect(i, side) for i in points]
+        return rectang
+
+    def all_offset(self):
+        niche = offset(self.p_niche, self.side,
+                       extend=[self.p_niche.Domain[0] + 200, self.p_niche.Domain[1] - 200])
+        if niche is None:
+            niche = offset(self.p_niche, self.side,
+                           extend=[self.p_niche.Domain[0] - 200, self.p_niche.Domain[1] + 200])
+
+        bottom = offset(self.p_bottom, self.bottom,
+                        extend=[self.p_bottom.Domain[0] - 200, self.p_bottom.Domain[1]])
+        top_s = self.top_side()
+        top = offset(self.top_side(), self.top, extend=[top_s.Domain[0], top_s.Domain[1] + 200])
+
+        diag = offset(self.diag_side(), self.diag)
+        all_offset = [bottom, diag, niche, top]
+
+        l = self.panel.fres
+        l.append(self.p_niche)
+        bound = bound_rec(l)
+
+        #all_offset = intersect(all_offset)
+        return bound
+
+    def top_side(self):
+        l = self.panel.fres
+        l.append(self.p_niche)
+        bound = bound_rec(l)
+
+        top_side = bound.GetEdges()[2]
+        return top_side.ToNurbsCurve()
+
+    def diag_side(self):
+        st = self.panel.top_parts[1].PointAtEnd
+        en = self.panel.top_parts[0].PointAtStart
+        p = self.p_niche.PointAtEnd
+
+        crv = rh.Line.ToNurbsCurve(rh.Line(st, en))
+
+        crv_d = crv.PointAtLength(rh.Curve.DivideByCount(crv, 2, False)[0])
+        self.diag = rh.Point3d.DistanceTo(p, crv_d) + 10
+        return crv
+
+    def frame_inner(self):
+        offset = rh.Curve.JoinCurves(self.all_offset()[0:-1])[0]
+        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bottom + 15,
+                                                    offset.PointAtEnd[2])).ToNurbsCurve()
+        frame_offset = rh.Curve.JoinCurves([offset, crv])
+        return frame_offset
+
+class N_1_Frame(MainFrame):
+    bottom = 45
+    top = 0
+    side = 43.53
+    diag = 20
+
+    bottom_rec = 30
+    side_rec = 30
+
+    rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -2, 0), rh.Point3d(2.5, 12, 0)).ToNurbsCurve()
+
+    def __init__(self, panel):
+        MainFrame.__init__(self, panel)
+
+        self.cogs = self.panel.cogs_bend
+
+        self.p_niche = self.panel.fres[1]
+        self.p_bottom = self.panel.fres[0]
+
+    def diag_side(self):
+        st = self.panel.top_parts[1].PointAtEnd
+        en = self.panel.top_parts[0].PointAtStart
+        p = self.p_niche.PointAtStart
+
+        crv = rh.Line.ToNurbsCurve(rh.Line(st, en))
+
+        crv_d = crv.PointAtLength(rh.Curve.DivideByCount(crv, 2, False)[0])
+        self.diag = rh.Point3d.DistanceTo(p, crv_d) + 10
+        return crv
+
+
+
+
+'''@tagging.Framer
+@tagging.Tagger
+class FramePanel:
+    bottom = 45
+    top = 35
+    niche = 43.53
+    diag = 20
+
+    bottom_rec = 30
+    side_rec = 30
+
+    rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -2, 0), rh.Point3d(2.5, 12, 0)).ToNurbsCurve()
 
     def __init__(self, panel, nich_ofs):
         self.niche = nich_ofs
@@ -272,7 +420,7 @@ class FramePanel:
         except AttributeError:
             all_offset = [bottom, niche, top]
 
-        all_offset = intersect(all_offset)
+        #all_offset = intersect(all_offset)
         return all_offset
 
     def top_side(self):
@@ -301,14 +449,7 @@ class FramePanel:
 
         crv_d = crv.PointAtLength(rh.Curve.DivideByCount(crv, 2, False)[0])
         self.diag = rh.Point3d.DistanceTo(p, crv_d) + 10
-        return crv
-
-    def frame_inner(self):
-        offset = rh.Curve.JoinCurves(self.all_offset()[0:-1])[0]
-        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bottom + 15,
-                                                    offset.PointAtEnd[2])).ToNurbsCurve()
-        frame_offset = rh.Curve.JoinCurves([offset, crv])
-        return frame_offset
+        return crv'''
 
 
 class MarkerDict:
@@ -319,19 +460,18 @@ class MarkerDict:
         return self.__dict__.__str__()
 
 
-panel_r = FramePanel(71, 1200, 21, panel.panel_r, p_niche)
-panel_l = FramePanel(71, 1200, 21, panel.panel_l, p_niche)
+#panel_r = FramePanel(71, 1200, 21, panel.panel_r, p_niche)
+#panel_l = FramePanel(71, 1200, 21, panel.panel_l, p_niche)
 
-try:
-    niche_r = FramePanel(71, 1200, 21, panel.niche_r, n_niche)
-    niche_l = FramePanel(71, 1200, 21, panel.niche_l, n_niche)
+#niche_r = FramePanel(71, 1200, 21, panel.niche_r, n_niche)
+niche_r = N_1_Frame(panel.niche_r)
+#niche_l = FramePanel(panel.niche_l, n_niche)
 
-    niche_b = FramePanel(71, 1200, 21, panel.niche_b, b_niche)
+#niche_b = FramePanel(71, 1200, 21, panel.niche_b, b_niche)
 
-    e = panel_l, panel_r, niche_r, niche_b, niche_l
-except:
-    e = panel_l, panel_r
-
+#e = panel_l, panel_r, niche_r, niche_b, niche_l
+e = niche_r
+k = niche_r.all_offset()
 # a = MarkerDict(panel.unroll_dict)
 # frame = [panel_l.all_elems, panel_r.all_elems, niche_r.all_elems, niche_b.all_elems, niche_l.all_elems]
 # frame = th.list_to_tree(frame)

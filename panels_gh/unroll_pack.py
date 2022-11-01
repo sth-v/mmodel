@@ -36,7 +36,8 @@ reload(cogs)
 TT = cogs.TT
 Pattern = cogs.Pattern
 Panel = panel
-NicheSide = niche_side
+N_1 = niche_side[0]
+N_3 = niche_side[1]
 BackNiche = back_niche
 Ribs = ribs
 
@@ -66,8 +67,8 @@ class UnrollPack:
         self.niche_b = BackNiche(n_b, self.ribs, 'N-'+self.tag+'-2')
 
 
-        self.niche_r = NicheSide(niche_r, 1, self.ribs, self.niche_b, cog_type, 'N-'+self.tag+'-1')
-        self.niche_l = NicheSide(niche_l, 0, self.ribs, self.niche_b, cog_type, 'N-'+self.tag+'-3')
+        self.niche_r = N_1(niche_r, self.ribs, self.niche_b, cog_type, 'N-'+self.tag+'-1')
+        self.niche_l = N_3(niche_l, self.ribs, self.niche_b, cog_type, 'N-'+self.tag+'-3')
 
         self.niche_l.niche.cg = cog
         self.niche_l.niche.generate_cogs()
@@ -101,13 +102,19 @@ packs = []
 pack_unrolls = []
 a = []
 b = []
+c=[]
 import ghpythonlib.treehelpers as th
 
 for i in unroll_elems:
     p = UnrollPack(x, y, circle, *i)
     packs.append(p)
     pack_unrolls.append(p.unroll_dict)
-    a.append(p.niche_b.grav)
+    a.append(p.niche_l.niche.fres.FrameAt(p.niche_l.niche.fres.Domain[0])[1])
+    c.append([[p.panel_r.cut, p.panel_r.fres], [p.panel_l.cut, p.panel_l.fres],
+              [p.niche_r.cut, p.niche_r.fres, p.niche_r.grav], [p.niche_l.cut, p.niche_l.fres, p.niche_l.grav],
+              [p.niche_b.cut, p.niche_b.fres, p.niche_b.grav]])
+
+c = th.list_to_tree(c)
 
 a = th.list_to_tree(a)
 packs_ = []
@@ -119,6 +126,4 @@ for i in unroll_elems:
     pp = MUP(x, y, circle, *i)
     packs_.append(pp)
     pack_unrolls_.append(pp.unroll_dict)
-    a_.append(pp.niche_b.grav)
 
-c = th.list_to_tree(a_)
