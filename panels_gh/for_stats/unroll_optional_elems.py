@@ -7,6 +7,8 @@
 
 __author__ = "sofyadobycina"
 
+import json
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -16,6 +18,7 @@ except:
 import imp
 import os
 import sys
+import Rhino.Geometry as rh
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -44,8 +47,8 @@ FramePanel = frame
 
 class UnrollPack:
 
-    def __init__(self, x, y, circle, elements, cog_type=False, tag='10-58'):
-        self.tag = tag
+    def __init__(self, x, y, circle, elements, cog_type=False):
+
         self.cog_type = cog_type
         self.cog = TT(x, y, circle)
 
@@ -54,22 +57,27 @@ class UnrollPack:
         self.data = []
         self.bound = []
 
+        self.sizes = {}
+
         for key, value in elements.items():
             try:
                 iter(value)
                 for i, v in enumerate(value):
-                    elem = self.args_test(key, v, n=i)
+                    elem = self.args_test(key, v[1], n=i)
 
                     self.panels.append(elem)
                     self.data.append(elem.all_elems)
-                    self.bound.append(elem.bound_frame)
+
+                    self.bound.append(elem.bound_frame_r)
+                    self.sizes[v[0]] = {'width': round(elem.bound_frame_r.Width), 'height': round(elem.bound_frame_r.Height)}
 
             except TypeError:
                 elem = self.args_test(key, value)
 
                 self.panels.append(elem)
                 self.data.append(elem.all_elems)
-                self.bound.append(elem.bound_frame)
+
+                self.bound.append(elem.bound_frame_r)
 
 
     def args_test(self, key, value, n=None):
@@ -80,7 +88,7 @@ class UnrollPack:
             cog_type = self.cog_type
 
         if key == 'P-0':
-            p_r = Panel(value, 0, cog_type, 'P-'+self.tag+'-0')
+            p_r = Panel(value, 0, cog_type, 'P-0')
             p_r.niche.cg = self.cog
             p_r.niche.generate_cogs()
 
@@ -88,7 +96,7 @@ class UnrollPack:
             return r
 
         elif key == 'P-1':
-            p_l = Panel(value, 1, cog_type, 'P-'+self.tag+'-1')
+            p_l = Panel(value, 1, cog_type, 'P-1')
             p_l.niche.cg = self.cog
             p_l.niche.generate_cogs()
 
@@ -97,6 +105,16 @@ class UnrollPack:
 
         elif key == 'N-4':
             r = Ribs(value)
+            return r
+
+        elif key == 'N-1':
+            n_r = NicheSide(value, 1)
+            r = FramePanel(n_r, FramePanel.n_niche)
+            return r
+
+        elif key == 'N-3':
+            n_l = NicheSide(value, 0)
+            r = FramePanel(n_l, FramePanel.n_niche)
             return r
 
         else:
@@ -121,8 +139,14 @@ import ghpythonlib.treehelpers as th
 
 a = UnrollPack(x, y, circle, unroll_elems.__dict__)
 
-pack = a.panels
+print(a.panels)
+packs = th.list_to_tree(a.panels)
 geom = th.list_to_tree(a.data)
 bound = a.bound
+
+json_object = json.dumps(a.sizes, indent=3)
+
+with open('/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh/for_stats/niche_sizes.json', 'w') as out_file:
+    out_file.write(json_object)
 
 

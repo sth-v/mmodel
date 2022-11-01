@@ -526,21 +526,30 @@ class NicheSide(object):
                         'tag': [self.tag[0:-1]+str(4+i) for i in range(len(self.unrol[1]) - 1)]}, 'frame':{'bb': 0}}
         return unroll_dict
 
-    def __init__(self, surface, tip, rib, back, cogs_bend, tag):
+    def __init__(self, surface, tip, rib=None, back=None, cogs_bend=None, tag=None):
         object.__init__(self)
 
         self.surf = surface
         self.type = tip
-        self.cogs_bend = cogs_bend
-        self.tag = tag
-
-        self.rebra = rib
-        self.back_side = back
-
-        self.intersections = self.unroll_intersection()
 
         unrol = rh.Unroller(self.surf)
-        unrol.AddFollowingGeometry(curves=self.intersections)
+
+        if cogs_bend is None:
+            self.cogs_bend=False
+
+        if rib is not None:
+            self.cogs_bend = cogs_bend
+            self.tag = tag
+
+            self.rebra = rib
+            self.back_side = back
+
+            self.intersections = self.unroll_intersection()
+
+            unrol.AddFollowingGeometry(curves=self.intersections)
+        else:
+            pass
+
         self.unrol = unrol.PerformUnroll()
 
         self.unrol_surf = self.unrol[0][0]

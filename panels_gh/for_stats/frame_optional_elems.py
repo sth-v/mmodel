@@ -138,7 +138,7 @@ class FramePanel:
         rec = bound_rec(self.frame_all)
         return rec
 
-    @property
+    '''@property
     def region(self):
         if self.panel.__class__.__name__ != 'BackNiche':
             if self.cogs is True:
@@ -152,14 +152,14 @@ class FramePanel:
         elems.append(self.panel.cut[0])
         new = list(rh.Curve.CreateBooleanUnion(elems, 0.1))
         new.extend(self.panel.cut[1:])
-        return new
+        return new'''
 
     @property
     def all_elems(self):
 
-        a = [self.region, self.panel.fres]
-
-        try:
+        #a = [self.region, self.panel.fres]
+        a = [self.frame_offset, self.panel.cut[0], rh.Curve.JoinCurves(self.panel.fres)[0]]
+        '''try:
             g = []
             for i in self.panel.grav[0]:
                 for j in i:
@@ -171,7 +171,7 @@ class FramePanel:
             a.append(g)
 
         except AttributeError:
-            pass
+            pass'''
 
         return a
 
