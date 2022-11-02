@@ -32,7 +32,7 @@ else:
         [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs"])
 
 cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs", path=[PWD])
-# print cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype)
+
 cogs = imp.load_module("cogs", cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype))
 from functools import wraps
 

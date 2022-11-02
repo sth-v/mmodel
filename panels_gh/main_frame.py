@@ -240,36 +240,6 @@ class MainFrame:
 
 
 
-
-class N_3_Frame(N_1_Frame):
-
-    @property
-    def region(self):
-
-        if self.cogs is True:
-            elems = self.cogs_points(0) + self.simple_points(2, self.panel.top_parts[2])
-        else:
-            elems = self.simple_points(2, self.panel.top_parts[2]) + self.simple_points(0, self.panel.top_parts[1])
-
-        elems.append(self.frame_offset)
-        elems.append(self.panel.cut[0])
-        new = list(rh.Curve.CreateBooleanUnion(elems, 0.1))
-        new.extend(self.panel.cut[1:])
-        return new
-
-    def __init__(self, panel):
-        N_1_Frame.__init__(self, panel)
-
-        self.cogs = self.panel.cogs_bend
-
-        self.p_niche = self.panel.fres[1]
-        self.p_bend = self.panel.fres[2]
-
-        self.diag_match = [self.panel.top_parts[2].PointAtEnd, self.panel.top_parts[1].PointAtStart,
-                           self.p_niche.PointAtStart]
-
-
-
 class MarkerDict:
     def __init__(self, input_dict):
         self.__dict__.update(input_dict)
