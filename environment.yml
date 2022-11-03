@@ -1,24 +1,32 @@
 channels:
   - conda-forge
-  - anaconda
+  - default
 dependencies:
+  - python>=3.10.4
   - pip
+  - cmake
   - compas
   - flask
   - numpy
   - pythonocc-core
+  - freecad
+  - pyopenssl
   - scipy=1.8.1
   - setuptools
   - shapely
   - wheel
   - pip:
       - boto3
+      - yandexcloud
+      - redis-py-cluster
+      - setuptools_rust
+      - redis
+      - pottery
       - colored==1.4.3
       - compas-occ
       - fastapi
       - gh-io-stubs==7.7.21140
       - gh-util-stubs==7.7.21140
-      - ghhops-server
       - grasshopper-stubs==7.7.21140
       - jedi==0.18.1
       - orjson==3.8.0
@@ -27,7 +35,6 @@ dependencies:
       - python-multipart
       - pythreejs==2.4.1
       - rhino-stubs==7.7.21140
-      - rhino3dm==7.14.2
       - ujson==5.5.0
       - uvicorn
       - uvloop
