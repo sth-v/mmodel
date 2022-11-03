@@ -20,7 +20,6 @@ import math
 import sys
 import imp
 
-
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
     sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
@@ -59,6 +58,12 @@ def niche_offset(angle, side, met_left):
 
 def niche_shorten(angle, side, met_left):
     return angle_ofs(angle, side, met_left) - 0.5 + 0.25
+
+
+def niche_shift(angle_niche, side_niche, met_left_niche):
+    res = niche_offset(angle_niche, side_niche, met_left_niche) + (angle_ofs(angle_niche, side_niche, met_left_niche)
+                                                                   - right_angle_ofs(side_niche, met_left_niche)) + 0.5
+    return res
 
 
 def morph_decore(fun):
@@ -117,10 +122,9 @@ class BendSide(object):
 
 class Niche(BendSide):
     angle_niche = 45
-    side_niche = 0.3
-    met_left_niche = 0.5
     side_offset = 0.5
     length = 35
+    cogs_shift = -1.466
 
     @property
     def top_part(self):
@@ -191,7 +195,7 @@ class Niche(BendSide):
     @property
     def otgib_morph(self):
         self._morph = rh.Morphs.FlowSpaceMorph(
-            rh.Line(rh.Point3d(0.0, 0.0, 0.0), rh.Point3d(self.bend_axis.Length, 0.0, 0.0)).ToNurbsCurve(),
+            rh.Line(rh.Point3d(0.0, 0.0, 0.0), rh.Point3d(self.bend_axis.Length, self.cogs_shift, 0.0)).ToNurbsCurve(),
             self.bend_axis.ToNurbsCurve(), True, False, True
         )
         return self._morph
@@ -213,7 +217,7 @@ class Niche(BendSide):
 
         p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
         p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
-        trim = trg.Trim(p_one,p_two)
+        trim = trg.Trim(p_one, p_two)
 
         tt = []
 
@@ -229,6 +233,16 @@ class Niche(BendSide):
     @cg.setter
     def cg(self, v):
         self._cg = v
+
+
+class NicheShortened(Niche):
+    angle_niche = 45
+    side_offset = niche_shift(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
+    length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
+    cogs_shift = 0
+
+    def __init__(self, curve):
+        Niche.__dict__['__init__'](self, curve)
 
 
 class Side(BendSide):
@@ -257,13 +271,8 @@ class Side(BendSide):
         self.reverse = reverse
 
 
-
 class Bottom(BendSide):
     side_offset = None
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
-
-
-
-

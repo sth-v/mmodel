@@ -8,7 +8,7 @@ except:
 import Rhino.Geometry as rh
 import sys
 import imp
-
+import math
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -23,7 +23,8 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import BendSide, Niche, Bottom, Side
+from main_sides import BendSide, Niche, Bottom, Side, NicheShortened
+
 reload(main_sides)
 
 
@@ -35,19 +36,18 @@ def bound_rec(crv):
 
 class MainPanel:
     bend_ofs = 45
-    top_ofs = 0
-    niche_ofs = 43.53
-    diag_ofs = 20
+    top_ofs = 35
+    niche_ofs = 45
 
     bottom_rec = 30
-    side_rec = 100
+    side_rec = 30
 
     @property
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        fr = self.niche.fres.FrameAt(self.niche.fres.Domain[0])[1]
-        bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
+        fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[1])[1]
+        bound_plane = rh.Plane(b_r.Min, fr.XAxis, fr.YAxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
@@ -68,7 +68,9 @@ class MainPanel:
     @property
     def cut(self):
         if self.cogs_bend is True:
-            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join_region[0], self.side[1].join, self.bottom.fres])[0]
+            side = \
+                rh.Curve.JoinCurves(
+                    [self.side[0].join, self.niche.join_region[0], self.side[1].join, self.bottom.fres])[0]
             side.Transform(self.bound_plane)
 
             cut = [side]
@@ -85,15 +87,20 @@ class MainPanel:
         return cut
 
     @property
+    def unroll_dict(self):
+        _unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
+        return _unroll_dict
+
+    @property
     def frame_dict(self):
 
-        diag = self.diag_side([self.top_parts[0].PointAtEnd, self.top_parts[1].PointAtStart, self.fres[1].PointAtStart])
+        diag = self.diag_side([self.top_parts[1].PointAtEnd, self.top_parts[0].PointAtStart, self.fres[1].PointAtEnd])
         top = self.top_side()
         p_niche = self.fres[1]
         p_bend = self.fres[0]
-        order = [[p_niche, self.niche_ofs, 'st'], [diag, self.diag_ofs, False], [p_bend, self.bend_ofs, 'both'],
+        order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'both'],
                  [top, self.top_ofs, 'e']]
-        bridge = [[0, self.top_parts[1]], [2, self.top_parts[0]]]
+        bridge = [[2, self.top_parts[1], None], [0, self.top_parts[0], None]]
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
@@ -114,7 +121,6 @@ class MainPanel:
         self.unrol_surf = self.unrol[0][0]
         self.edges = self.unrol_surf.Curves3D
         self.gen_side_types()
-
 
     def gen_side_types(self):
 
@@ -156,15 +162,13 @@ class MainPanel:
         return crv
 
 
-
 class NicheSide(MainPanel):
     bend_ofs = 45
     top_ofs = 0
     niche_ofs = 43.53
-    diag_ofs = 20
 
     bottom_rec = 30
-    side_rec = 100
+    side_rec = 110
 
     @property
     def mark_ribs(self):
@@ -184,7 +188,7 @@ class NicheSide(MainPanel):
 
     @property
     def grav(self):
-        new =[]
+        new = []
         for i in self.mark_ribs:
             for ii in i:
                 new.append(ii)
@@ -194,8 +198,10 @@ class NicheSide(MainPanel):
 
     @property
     def unroll_dict(self):
-        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
-                        'tag': [self.tag[0:-1]+str(4+i) for i in range(len(self.unrol[1]) - 1)]}, 'frame':{'bb': 0}}
+        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf,
+                       'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
+                                'tag': [self.tag[0:-1] + str(4 + i) for i in range(len(self.unrol[1]) - 1)]},
+                       'frame': {'bb': 0}}
         return unroll_dict
 
     @property
@@ -205,18 +211,18 @@ class NicheSide(MainPanel):
         top = self.top_side()
         p_niche = self.fres[1]
         p_bend = self.fres[0]
-        order = [[p_niche, self.niche_ofs, 'st'], [diag, self.diag_ofs, False], [p_bend, self.bend_ofs, 'both'],
+        order = [[p_niche, self.niche_ofs, 'st'], [diag, self.diag, False], [p_bend, self.bend_ofs, 'both'],
                  [top, self.top_ofs, 'e']]
-        bridge = [[0, self.top_parts[1]], [2, self.top_parts[0]]]
+        bridge = [[0, self.top_parts[1], None], [2, self.top_parts[0], None]]
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, rib=None, back=None, cogs_bend=None, tag=None):
-        MainPanel.__init__(self, surface, cogs_bend, tag)
+    def __init__(self, surface, cogs_bend=None, tag=None, rib=None, back=None):
+        MainPanel.__dict__['__init__'](self, surface, cogs_bend, tag)
 
         unrol = rh.Unroller(self.surf)
 
-        if rib is not None:
+        if rib is not None and back is not None:
             self.rebra = rib
             self.back_side = back
             self.intersections = self.unroll_intersection()
@@ -230,6 +236,14 @@ class NicheSide(MainPanel):
         self.edges = self.unrol_surf.Edges
         self.gen_side_types()
 
+    def gen_side_types(self):
+
+        self.niche = NicheShortened(self.edges[2])
+        self.bottom = Bottom(self.edges[0])
+        self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
 
     def ribs_offset(self):
         r = self.unrol[1][0:len(self.unrol[1]) - 1]
@@ -246,7 +260,7 @@ class NicheSide(MainPanel):
         [i.PullToBrepFace(self.surf.Faces[0], 0.01) for i in r_inters]
 
         b_inters = self.back_intersect()
-        b_inters =rh.Intersect.Intersection.CurveBrepFace(b_inters, self.surf.Faces[0], 0.1)[1][0]
+        b_inters = rh.Intersect.Intersection.CurveBrepFace(b_inters, self.surf.Faces[0], 0.1)[1][0]
 
         r_inters.append(b_inters)
         return r_inters
@@ -264,4 +278,3 @@ class NicheSide(MainPanel):
         inters = rs.IntersectBreps(self.surf, self.back_side.extend, 0.1)
         line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
         return line
-

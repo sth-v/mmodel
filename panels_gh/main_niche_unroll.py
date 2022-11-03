@@ -676,7 +676,8 @@ class N_1(NicheSide):
         return tr
 
     def __init__(self, surface, rib=None, back=None, cogs_bend=None, tag=None):
-            NicheSide.__init__(self, surface, rib, back,cogs_bend, tag)
+        NicheSide.__init__(self, surface, rib, back,cogs_bend, tag)
+
 
     def gen_side_types(self):
         self.niche = Niche(self.edges[2])

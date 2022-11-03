@@ -21,6 +21,7 @@ import Rhino.Geometry as rh
 import math
 import sys
 import imp
+import ghpythonlib.treehelpers as th
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -41,19 +42,32 @@ from cogs import Pattern, TT
 
 reload(cogs)
 
-panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module("main_panels", path=[PWD])
-main_panels= imp.load_module("main_panels", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
+panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module("panel_types", path=[PWD])
+panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
-main_panels.__init__("main_panels", "generic nodule")
-from main_panels import MainPanel
-reload(main_panels)
+panel_types.__init__("panel_types", "generic nodule")
+from panel_types import P_1, P_2, N_1, N_3, N_2
 
-a = MainPanel(crv, False)
+reload(panel_types)
 
-cog = TT(x, y, circle)
-a.niche.cg = cog
-a.niche.generate_cogs()
+framelfile, framefilename, (framesuffix, framemode, frametype) = imp.find_module("main_framing", path=[PWD])
+main_framing = imp.load_module("main_framing", framelfile, framefilename, (framesuffix, framemode, frametype))
 
-side = a.unrol_surf
+main_framing.__init__("main_framing", "generic nodule")
+from main_framing import MainFrame
+
+reload(main_framing)
+
+a = N_2(crv)
+b = MainFrame(71, 1200, 21, a)
+
+# cog = TT(x, y, circle)
+# a.niche.cg = cog
+# a.niche.generate_cogs()
+
+#side = b.all_offset()
+side = b.all_elems
+side = th.list_to_tree(side)
 niche = a.cut
 bottom = a.fres
+#side = a.bound_plane

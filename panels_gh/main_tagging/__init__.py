@@ -32,7 +32,7 @@ import sys
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
     sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
-                     os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
+                     os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh/cogs"])
 else:
     os.environ["MMODEL_DIR"] = "/Users/andrewastakhov/PycharmProjects/mmodel"
     PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
@@ -58,7 +58,7 @@ class RhIterArgParser(dict):
                 try:
                     iter(v)
                     datas = []
-                    print('iteration will probably work')
+
                     if isinstance(v, dict):
                         dict.__setitem__(self, k, RhIterArgParser(v))
 
@@ -71,7 +71,6 @@ class RhIterArgParser(dict):
                     dict.__setitem__(self, k, datas)
 
                 except TypeError:
-                    print('not iterable')
 
                     dict.__setitem__(self, k, v)
 
@@ -165,17 +164,17 @@ class Tagger:
         inst = self._cls(*args)
 
         dct = inst.unroll_dict_f
-        print "\n\n{}\n\n".format(dct)
+
         inst.stable_dct = dct
         ap = RhIterArgParser(inst.unroll_dict_f)
         # self.panels = FramePanel(self.inst.panel_r, 0, P_NICHE), FramePanel(self.inst.panel_l, 1, P_NICHE)
         # self.niches = FramePanel(self.inst.niche_r, 0, N_NICHE), FramePanel(self.inst.niche_l, 1, N_NICHE)
-        with open("{}/dump{}.json".format(PWD, id(self)), "w") as pkl:
-            json.dump(ap, pkl, indent=3)
+        #with open("{}/dump{}.json".format(PWD, id(self)), "w") as pkl:
+            #json.dump(ap, pkl, indent=3)
         # with open("Picklefile","w") as pklf:
         #    pklf.writelines(["PROTOCOL={}".format(pickle.HIGHEST_PROTOCOL)])
         #    pickle.dump(self, pklf, pickle.HIGHEST_PROTOCOL)
 
-        pprint(dict(ap))
+        #pprint(dict(ap))
 
         return inst
