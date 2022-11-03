@@ -26,7 +26,7 @@ if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
     sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
                      os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs",
-                     os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh/main_sides"])
+                     os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh/main_panels"])
 else:
     PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
     sys.path.extend(
@@ -41,12 +41,12 @@ from cogs import Pattern, TT
 
 reload(cogs)
 
-panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module("panel_unrolls", path=[PWD])
-panel_unrolls= imp.load_module("panel_unrolls", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
+panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module("main_panels", path=[PWD])
+main_panels= imp.load_module("main_panels", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
-panel_unrolls.__init__("panel_unrolls", "generic nodule")
-from panel_unrolls import MainPanel
-reload(panel_unrolls)
+main_panels.__init__("main_panels", "generic nodule")
+from main_panels import MainPanel
+reload(main_panels)
 
 a = MainPanel(crv, False)
 

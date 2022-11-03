@@ -259,7 +259,7 @@ niche_l = MainFrame(71, 1200, 21, panel.niche_l)
 
 #e = panel_l, panel_r, niche_r, niche_b, niche_l
 e = niche_r, niche_l
-k = niche_l.all_elems
+#k = niche_l.all_elems
 
 # a = MarkerDict(panel.unroll_dict)
 # frame = [panel_l.all_elems, panel_r.all_elems, niche_r.all_elems, niche_b.all_elems, niche_l.all_elems]
