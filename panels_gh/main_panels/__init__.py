@@ -162,7 +162,7 @@ class MainPanel:
         return crv
 
 
-class NicheSide(MainPanel):
+class NichePanel(MainPanel):
     bend_ofs = 45
     top_ofs = 0
     niche_ofs = 43.53
@@ -217,14 +217,13 @@ class NicheSide(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, cogs_bend=None, tag=None, rib=None, back=None):
+    def __init__(self, surface, cogs_bend=None, tag=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surface, cogs_bend, tag)
+        self.__dict__.update(**kwargs)
 
         unrol = rh.Unroller(self.surf)
 
-        if rib is not None and back is not None:
-            self.rebra = rib
-            self.back_side = back
+        if hasattr(self, 'rebra') and hasattr(self, 'back_side'):
             self.intersections = self.unroll_intersection()
             unrol.AddFollowingGeometry(curves=self.intersections)
         else:
@@ -235,6 +234,22 @@ class NicheSide(MainPanel):
         self.unrol_surf = self.unrol[0][0]
         self.edges = self.unrol_surf.Edges
         self.gen_side_types()
+
+    def __add__(self, other):
+
+        if other.__class__.__name__ == 'N_4':
+            if hasattr(self, 'back_side'):
+                return NichePanel(self.surf, self.cogs_bend, self.tag, back_side=self.back_side, rebra=other)
+            else:
+                return NichePanel(self.surf, self.cogs_bend, self.tag, rebra=other)
+
+        elif other.__class__.__name__ == 'N_2':
+            if hasattr(self, 'rebra'):
+                return NichePanel(self.surf, self.cogs_bend, self.tag, back_side=other, rebra=self.rebra)
+            else:
+                return NichePanel(self.surf, self.cogs_bend, self.tag, back_side=other)
+        else:
+            pass
 
     def gen_side_types(self):
 
@@ -256,7 +271,7 @@ class NicheSide(MainPanel):
         return ofset_rebra
 
     def unroll_intersection(self):
-        r_inters = self.rebra_intersect()
+        r_inters = self.rebra_intersect('s')
         [i.PullToBrepFace(self.surf.Faces[0], 0.01) for i in r_inters]
 
         b_inters = self.back_intersect()
@@ -265,9 +280,13 @@ class NicheSide(MainPanel):
         r_inters.append(b_inters)
         return r_inters
 
-    def rebra_intersect(self):
+    def rebra_intersect(self, name):
         intersect = []
-        for i in self.rebra.extend:
+        if name == 's':
+            ext = self.rebra.extend
+        else:
+            ext = self.rebra.extend_bottom
+        for i in ext:
             inters = rs.IntersectBreps(self.surf, i, 0.1)
             line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
             intersect.append(line)
@@ -278,3 +297,57 @@ class NicheSide(MainPanel):
         inters = rs.IntersectBreps(self.surf, self.back_side.extend, 0.1)
         line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
         return line
+
+
+
+class N_4:
+    def __init__(self, surf_list):
+        self.cogs_bend = False
+        self.surf = surf_list
+
+        self.extend = []
+        ext_surf = [rh.Surface.Duplicate(i) for i in self.surf]
+
+        self.edges = []
+        for i in self.surf:
+            unrol = rh.Unroller(i).PerformUnroll()[0][0]
+            edge = rh.Curve.JoinCurves(list(unrol.Curves3D))[0]
+            self.edges.append(edge)
+
+
+        for i in range(self.__len__()):
+            self.i = i
+            ext = self.extend_surf(ext_surf)
+            self.extend.append(ext)
+
+        self.extend_bottom = []
+        ext_b = [rh.Surface.Duplicate(i) for i in self.surf]
+
+        for i in range(self.__len__()):
+            self.i = i
+            ext = self.extend_bot(ext_b)
+            self.extend_bottom.append(ext)
+
+
+    def __len__(self):
+        return len(self.surf)
+
+    def extend_surf(self, ext_surf):
+        surf = ext_surf[self.i]
+        interv = surf.Domain(1)
+        interv = rh.Interval(interv[0] - 50, interv[1] + 50)
+
+        surf.Extend(1, interv)
+        extr = rh.Surface.ToBrep(surf)
+
+        return extr
+
+    def extend_bot(self, ext_bott):
+        surf = ext_bott[self.i]
+        interv = surf.Domain(0)
+        interv = rh.Interval(interv[0] - 50, interv[1] + 50)
+
+        surf.Extend(0, interv)
+        extr = rh.Surface.ToBrep(surf)
+
+        return extr

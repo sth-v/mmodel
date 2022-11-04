@@ -32,7 +32,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 main_panels = imp.load_module("main_panels", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 main_panels.__init__("main_panels", "generic nodule")
-from main_panels import MainPanel, NicheSide
+from main_panels import MainPanel, NichePanel
 
 reload(main_panels)
 
@@ -83,7 +83,7 @@ class P_2(MainPanel):
         self.intersect()
 
 
-class N_1(NicheSide):
+class N_1(NichePanel):
 
     @property
     def bound_plane(self):
@@ -94,11 +94,11 @@ class N_1(NicheSide):
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
-    def __init__(self, surface, rib=None, back=None, cogs_bend=None, tag=None):
-        NicheSide.__dict__['__init__'](self, surface, rib, back, cogs_bend, tag)
+    def __init__(self, surface, cogs_bend=None, tag=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surface, cogs_bend, tag, **kwargs)
 
 
-class N_3(NicheSide):
+class N_3(NichePanel):
     @property
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
@@ -120,8 +120,8 @@ class N_3(NicheSide):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, rib=None, back=None, cogs_bend=None, tag=None):
-        NicheSide.__dict__['__init__'](self, surface, rib, back, cogs_bend, tag)
+    def __init__(self, surface, cogs_bend=None, tag=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surface, cogs_bend, tag, **kwargs)
 
     def gen_side_types(self):
         self.niche = NicheShortened(self.edges[0])
@@ -132,7 +132,7 @@ class N_3(NicheSide):
         self.intersect()
 
 
-class N_2(NicheSide):
+class N_2(NichePanel):
     bend_ofs = 45
     top_ofs = 0
     niche_ofs = 10
@@ -194,17 +194,17 @@ class N_2(NicheSide):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, rib=None, tag=None):
-        NicheSide.__dict__['__init__'](self, surface, rib, tag)
+    def __init__(self, surface, tag=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surface, tag, **kwargs)
+        self.__dict__.update(**kwargs)
 
+        self.rev_surf = self.surf.Reverse(1).ToBrep()
         self.extend = self.extend_surf()
-        self.rev_surf = self.surf.Surfaces[0].Reverse(1).ToBrep()
 
         unrol = rh.Unroller(self.rev_surf)
 
-        if rib is not None:
-            self.rebra = rib
-            self.intersections = self.rebra_intersect()
+        if hasattr(self, 'rebra'):
+            self.intersections = self.rebra_intersect('b')
             unrol.AddFollowingGeometry(curves=self.intersections)
         else:
             pass
@@ -224,7 +224,7 @@ class N_2(NicheSide):
         self.intersect()
 
     def extend_surf(self):
-        surf = self.surf.Surfaces[0].Duplicate()
+        surf = self.rev_surf.Surfaces[0].Duplicate()
         interv = surf.Domain(0)
         interv = rh.Interval(interv[0] - 50, interv[1] + 50)
 

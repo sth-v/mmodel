@@ -104,7 +104,7 @@ def offset_side(elem, dist, extend='st'):
 @main_tagging.Tagger
 class MainFrame:
 
-    rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -2, 0), rh.Point3d(2.5, 12, 0)).ToNurbsCurve()
+    rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -15, 0), rh.Point3d(2.5, 15, 0)).ToNurbsCurve()
 
     @property
     def frame_offset(self):

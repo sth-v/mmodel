@@ -1,13 +1,5 @@
-"""Provides a scripting component.
-    Inputs:
-        x: The x script variable
-        y: The y script variable
-    Output:
-        a: The a output variable"""
 
 __author__ = "sofyadobycina"
-
-#  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 
 import os
 import types
@@ -42,6 +34,14 @@ from cogs import Pattern, TT
 
 reload(cogs)
 
+pfile, pfilename, (psuffix, pmode, ptype) = imp.find_module("main_panels", path=[PWD])
+main_panels = imp.load_module("main_panels", pfile, pfilename, (psuffix, pmode, ptype))
+
+main_panels.__init__("main_panels", "generic nodule")
+from main_panels import N_4
+
+reload(main_panels)
+
 panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module("panel_types", path=[PWD])
 panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
@@ -58,16 +58,47 @@ from main_framing import MainFrame
 
 reload(main_framing)
 
-a = N_2(crv)
-b = MainFrame(71, 1200, 21, a)
+
+
+
+class UnrollPackage:
+    panels_dict = {'P_1': P_1, 'P_2': P_2, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4}
+
+    def __init__(self, x, y, circle, elements):
+
+        self.cog = TT(x, y, circle)
+
+        self.data = []
+
+        for key, value in elements.items():
+            new = self.panels_dict[key](value)
+
+            if key != 'N_4':
+                setattr(self, key, MainFrame(71, 1200, 21, new))
+                det = getattr(self, key)
+                self.data.append(det.all_elems)
+            else:
+                setattr(self, key, new)
+
+
+
+
+
+
+
+
+
+print(crv.__dict__)
+
+a = UnrollPackage(x, y, circle, crv.__dict__)
+
 
 # cog = TT(x, y, circle)
 # a.niche.cg = cog
 # a.niche.generate_cogs()
 
 #side = b.all_offset()
-side = b.all_elems
+side = a.data
 side = th.list_to_tree(side)
-niche = a.cut
-bottom = a.fres
+
 #side = a.bound_plane
