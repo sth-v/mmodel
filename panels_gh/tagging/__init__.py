@@ -35,14 +35,15 @@ else:
         [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
          os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
 
+
 import json
 import Rhino
 import Rhino.Geometry as rh
-
+#rom gh_redis_api import Path2Member, GhRedisProperty,GhReddisDict
 encode = Rhino.Geometry.GeometryBase.ToJSON
 
-
 class RhIterArgParser(dict):
+
 
     def __init__(self, kwargs):
         dict.__init__(self, **kwargs)
@@ -64,8 +65,8 @@ class RhIterArgParser(dict):
 
                     else:
 
-                        for vv in v:
-                            datas.append(RhIterArgParser(vv))
+                        for i, vv in enumerate(v):
+                            dict.__setitem__(self, i, RhIterArgParser(vv))
 
                     dict.__setitem__(self, k, datas)
 
@@ -73,6 +74,7 @@ class RhIterArgParser(dict):
                     print('not iterable')
 
                     dict.__setitem__(self, k, v)
+
 
 
 class Vectorizer:
@@ -147,6 +149,21 @@ class Framer:
         return xxx
 
 
+class TargetTag:
+
+    def __init__(self,cls, name=None):
+        self._cls=cls
+
+        if not name:
+            self.name=self._cls.__name__
+    def __call__(self,  *args, **kwargs):
+        itm=self._cls(*args,**kwargs)
+
+        self.targs[itm.__path__()][self.name]=getattr(itm, self.name)
+        targs = GhReddisDict()
+        return itm
+
+
 class Tagger:
     _cls = None
     inst = None
@@ -161,16 +178,16 @@ class Tagger:
         setattr(self._cls, key, value)
 
     def __call__(self, *args):
-        inst = self._cls(*args)
+        #inst = self._cls(*args)
 
-        dct = inst.unroll_dict_f
-        print "\n\n{}\n\n".format(dct)
-        inst.stable_dct = dct
-        ap = RhIterArgParser(inst.unroll_dict_f)
+        #dct = inst.unroll_dict_f
+        #print("\n\n{}\n\n".format(dct))
+        #inst.stable_dct = dct
+        #ap = RhIterArgParser(inst.unroll_dict_f)
         # self.panels = FramePanel(self.inst.panel_r, 0, P_NICHE), FramePanel(self.inst.panel_l, 1, P_NICHE)
         # self.niches = FramePanel(self.inst.niche_r, 0, N_NICHE), FramePanel(self.inst.niche_l, 1, N_NICHE)
-        with open("{}/dump{}.json".format(PWD, id(self)), "w") as pkl:
-            json.dump(ap, pkl, indent=3)
+        #with open("{}/dump{}.json".format(PWD, id(self)), "w") as pkl:
+            #json.dump(ap, pkl, indent=3)
         # with open("Picklefile","w") as pklf:
         #    pklf.writelines(["PROTOCOL={}".format(pickle.HIGHEST_PROTOCOL)])
         #    pickle.dump(self, pklf, pickle.HIGHEST_PROTOCOL)
@@ -178,3 +195,4 @@ class Tagger:
         pprint(dict(ap))
 
         return inst
+

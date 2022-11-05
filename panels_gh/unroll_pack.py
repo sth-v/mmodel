@@ -7,6 +7,8 @@
 
 __author__ = "sofyadobycina"
 
+import gh_redis_api
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -43,16 +45,16 @@ Ribs = ribs
 
 class UnrollPack:
 
-    @property
+    @gh_redis_api.GhRedisProperty
     def unroll_dict(self):
-        unroll_dict = {'P-'+ self.tag: [self.panel_r.unroll_dict, self.panel_l.unroll_dict],
+        self._unroll_dict = {'P-'+ self.tag: [self.panel_r.unroll_dict, self.panel_l.unroll_dict],
                        'N-'+ self.tag: [self.niche_r.unroll_dict, self.niche_l.unroll_dict, self.niche_b.unroll_dict]}
-        return unroll_dict
+        return self._unroll_dict
 
     def __init__(self, x, y, circle, panel_r, panel_l, niche_r, niche_l, r, n_b, cog_type, tag):
         self.tag = tag
 
-        self.panel_r = Panel(panel_r, 0, cog_type, 'P-'+self.tag+'-1')
+        self.panel_r = Panel(panel_r, 0, cog_type, +self.tag+'-1')
         self.panel_l = Panel(panel_l, 1, cog_type, 'P-'+self.tag+'-2')
         cog = TT(x, y, circle)
 

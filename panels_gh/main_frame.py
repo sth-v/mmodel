@@ -9,6 +9,8 @@ __author__ = "sofyadobycina"
 
 import copy
 
+import tagging
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -35,9 +37,10 @@ cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs
 cogs = imp.load_module("cogs", cogsfile, PWD, (cogssuffix, cogsmode, cogstype))
 # sys.path.extend(["/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh"])
 import cogs
-
+import gh_redis_api
 reload(cogs)
-
+reload(gh_redis_api)
+from gh_redis_api import GhRedisSocket
 # taggingfile, taggingfilename, (taggingsuffix, taggingmode, taggingtype) = imp.find_module("tagging", path=[PWD+"/panels_gh"])
 # tagging = imp.load_module("tagging", taggingfile, PWD, (taggingsuffix, taggingmode, taggingtype))
 # import tagging
@@ -91,6 +94,7 @@ def intersect(values):
 @tagging.Framer
 @tagging.Tagger
 class FramePanel:
+
     bottom = 45
     top = 35
     diag = 20
@@ -109,12 +113,12 @@ class FramePanel:
         self._frame_offset = rh.Curve.JoinCurves([inters, fr_one])[0]
         return self._frame_offset
 
-    @property
+    @gh_redis_api.GhRedisProperty
     def frame_all(self):
         self._frame_all = rh.Curve.JoinCurves(self.all_offset())
         return self._frame_all
 
-    @property
+    @gh_redis_api.GhRedisProperty
     def bound_frame(self):
         rec = bound_rec(self.frame_all)
         min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
@@ -122,7 +126,7 @@ class FramePanel:
         self._bound_frame = bound_frame.ToNurbsCurve()
         return self._bound_frame
 
-    @property
+    @gh_redis_api.GhRedisProperty
     def bound_frame_r(self):
         rec = bound_rec(self.frame_all)
         min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
@@ -133,6 +137,7 @@ class FramePanel:
     def rec(self):
         rec = bound_rec(self.frame_all)
         return rec
+
 
     @property
     def region(self):
@@ -150,7 +155,7 @@ class FramePanel:
         new.extend(self.panel.cut[1:])
         return new
 
-    @property
+    @gh_redis_api.GhRedisProperty
     def all_elems(self):
 
         a = [self.region, self.panel.fres]
@@ -171,26 +176,11 @@ class FramePanel:
 
         return a
 
-    def __init__(self, panel, nich_ofs):
+    def __init__(self, panel):
         self.niche = nich_ofs
         self.panel = panel
 
-        try:
-            self.cogs = self.panel.cogs_bend
-            self.type = self.panel.type
 
-            self.p_niche = self.panel.fres[1]
-
-            if self.type == 1:
-                self.p_bottom = self.panel.fres[2]
-            else:
-                self.p_bottom = self.panel.fres[0]
-
-        except AttributeError:
-            self.p_niche = self.panel.bottom.fres
-            self.p_bottom = self.panel.fres[0]
-
-    @property
     def unroll_dict_f(self):
         return {
             "data": copy.deepcopy(self.panel.unroll_dict),
@@ -309,6 +299,25 @@ class FramePanel:
         frame_offset = rh.Curve.JoinCurves([offset, crv])
         return frame_offset
 
+    def __call__(self, *args,  nich_ofs,**kwargs):
+        self.panel()
+        self.__target__ = gh_redis_api.GhReddisDict(self.panel)
+
+        try:
+            self.cogs = self.panel.cogs_bend
+            self.type = self.panel.type
+
+            self.p_niche = self.panel.fres[1]
+
+            if self.type == 1:
+                self.p_bottom = self.panel.fres[2]
+            else:
+                self.p_bottom = self.panel.fres[0]
+
+        except AttributeError:
+            self.p_niche = self.panel.bottom.fres
+            self.p_bottom = self.panel.fres[0]
+
 
 class MarkerDict:
     def __init__(self, input_dict):
@@ -321,10 +330,10 @@ class MarkerDict:
 panel_r = FramePanel(71, 1200, 21, panel.panel_r, p_niche)
 panel_l = FramePanel(71, 1200, 21, panel.panel_l, p_niche)
 
-niche_r = FramePanel(71, 1200, 21, panel.niche_r, n_niche)
-niche_l = FramePanel(71, 1200, 21, panel.niche_l, n_niche)
+#niche_r = FramePanel(71, 1200, 21, panel.niche_r, n_niche)
+#niche_l = FramePanel(71, 1200, 21, panel.niche_l, n_niche)
 
-niche_b = FramePanel(71, 1200, 21, panel.niche_b, b_niche)
+#niche_b = FramePanel(71, 1200, 21, panel.niche_b, b_niche)
 
 # a = MarkerDict(panel.unroll_dict)
 # frame = [panel_l.all_elems, panel_r.all_elems, niche_r.all_elems, niche_b.all_elems, niche_l.all_elems]

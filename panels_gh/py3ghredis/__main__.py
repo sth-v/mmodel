@@ -23,10 +23,12 @@ if __name__ == "__main__":
                 while True:
 
                     dt = conn.recv(1024 ** 2)
-                    print(dt)
+
                     if (not dt) | (dt == b"") | (dt == ""):
-                        pass
+                        continue
                     else:
+
+                        print(dt)
                         kv = json.loads(dt)
                         if len(kv) == 2:
                             key, value = kv
@@ -36,8 +38,17 @@ if __name__ == "__main__":
                             f = getattr(r, kv[0])
                             data = f()
 
-                        if isinstance(data, (list, bytes)):
-                            conn.sendall(json.dumps([k.decode() for k in data]).encode())
+                        if isinstance(data, (list,dict, tuple,set)):
+                            for i,d in enumerate(data):
+
+                                if isinstance(d, (bytes,bytearray)):
+                                    data[i]=d.decode()
+                            conn.sendall(json.dumps(data).encode())
+                        elif isinstance(data, (str, bytes, bytearray)):
+
+                            conn.sendall(data.encode()) if isinstance(data,str)  else conn.sendall(data)
+
+
                         else:
                             conn.sendall(json.dumps(data).encode())
             except KeyboardInterrupt:
