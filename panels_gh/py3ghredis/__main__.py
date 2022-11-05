@@ -1,13 +1,13 @@
 import json
 import socket
-
+import os
 import redis
 
 if __name__ == "__main__":
     r = redis.StrictRedis(
         host="c-c9q1muil9vsf3ol4p3di.rw.mdb.yandexcloud.net",
         port=6380,
-        password="caMbuj-tabxy1-pikkij",
+        password=os.getenv("REDISPSWD"),
         ssl=True,
         ssl_ca_certs="/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt")
 
