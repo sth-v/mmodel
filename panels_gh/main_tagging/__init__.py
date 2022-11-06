@@ -5,7 +5,6 @@ __author__ = "sofyadobycina"
 import ast
 import copy
 import os
-from pprint import pprint
 
 try:
     rs = __import__("rhinoscriptsyntax")
@@ -22,7 +21,6 @@ TOP = 35
 N_NICHE = 45
 P_NICHE = 43.53
 
-import json
 import Rhino
 import Rhino.Geometry as rh
 import os

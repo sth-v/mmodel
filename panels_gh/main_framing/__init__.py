@@ -1,7 +1,5 @@
 __author__ = "sofyadobycina"
 
-import copy
-
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -31,23 +29,29 @@ main_tagging = imp.load_module("main_tagging", taggingfile, taggingfilename, (ta
 main_tagging.__init__("main_tagging", "generic nodule")
 
 import main_tagging
+
 reload(main_tagging)
-#%start script
+# %start script
 
 cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs", path=[PWD])
 cogs = imp.load_module("cogs", cogsfile, PWD, (cogssuffix, cogsmode, cogstype))
 # sys.path.extend(["/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh"])
 import cogs
+
 reload(cogs)
 
+drawlfile, drawfilename, (drawsuffix, drawmode, drawtype) = imp.find_module("draw", path=[PWD])
+draw = imp.load_module("draw", drawlfile, drawfilename, (drawsuffix, drawmode, drawtype))
 
+draw.__init__("draw", "generic nodule")
+reload(draw)
+from draw import layers
 
 import Rhino.Geometry as rh
 
 import rhinoscriptsyntax as rs
 
 import math
-import ghpythonlib.treehelpers as th
 
 
 def offset(crv, ofs_dist, extend=None):
@@ -100,11 +104,22 @@ def offset_side(elem, dist, extend='st'):
         det = offset(elem, dist)
     return det
 
-@main_tagging.Framer
-@main_tagging.Tagger
-class MainFrame:
 
+class MainFrame:
     rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -15, 0), rh.Point3d(2.5, 15, 0)).ToNurbsCurve()
+
+    def __init__(self, panel):
+
+        self.panel = panel
+        self.cogs = self.panel.cogs_bend
+
+        self.__dict__.update(self.panel.frame_dict)
+
+        self.bottom_rec = self.panel.bottom_rec
+        self.bend = self.panel.bend_ofs
+        self.top = self.panel.top_ofs
+        self.niche = self.panel.niche_ofs
+        self.side_rec = self.panel.side_rec
 
     @property
     def frame_offset(self):
@@ -149,31 +164,24 @@ class MainFrame:
 
     @property
     def all_elems(self):
-        a = [self.region, self.panel.fres]
+        layers[0].objects += self.region
+        layers[1].objects += self.panel.fres
+
         if hasattr(self.panel, 'grav'):
-            a.append(self.panel.grav)
-        else:
-            pass
-        return a
+            layers[2].objects += self.panel.grav
 
-    def __init__(self, panel):
-
-        self.panel = panel
-        self.cogs = self.panel.cogs_bend
-
-        self.__dict__.update(self.panel.frame_dict)
-
-        self.bottom_rec = self.panel.bottom_rec
-        self.bend = self.panel.bend_ofs
-        self.top = self.panel.top_ofs
-        self.niche = self.panel.niche_ofs
-        self.side_rec = self.panel.side_rec
-
-
+        return layers
 
     @property
     def unroll_dict_f(self):
-        return {"data": copy.deepcopy(self.panel.unroll_dict), "frame": self.bound_frame.ToNurbsCurve()}
+        self.panel.unroll_dict.update(
+            {
+                "frame": self.bound_frame.ToNurbsCurve(),
+                "layers": self.all_elems
+            }
+        )
+
+        return self.panel.unroll_dict
 
     def frame_all(self):
         frame_all = rh.Curve.JoinCurves(self.all_offset())

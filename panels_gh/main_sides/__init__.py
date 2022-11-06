@@ -8,7 +8,6 @@
 __author__ = "sofyadobycina"
 
 import os
-import types
 
 try:
     rs = __import__("rhinoscriptsyntax")
@@ -34,7 +33,7 @@ cogs = imp.load_module("cogs", cogsfile, cogsfilename, (cogssuffix, cogsmode, co
 from functools import wraps
 
 cogs.__init__("cogs", "generic module")
-from cogs import Pattern, TT
+from cogs import Pattern
 
 reload(cogs)
 
@@ -195,7 +194,8 @@ class Niche(BendSide):
     @property
     def otgib_morph(self):
         self._morph = rh.Morphs.FlowSpaceMorph(
-            rh.Line(rh.Point3d(0.0, 0.0, 0.0), rh.Point3d(self.bend_axis.Length, self.cogs_shift, 0.0)).ToNurbsCurve(),
+            rh.Line(rh.Point3d(0.0, self.cogs_shift, 0.0),
+                    rh.Point3d(self.bend_axis.Length, self.cogs_shift, 0.0)).ToNurbsCurve(),
             self.bend_axis.ToNurbsCurve(), True, False, True
         )
         return self._morph
