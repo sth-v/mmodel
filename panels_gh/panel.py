@@ -1,20 +1,7 @@
+from gh_redis_api import GhReddisDict, GhRedisProperty
 from main import Niche, Schov, Side, rs
-from gh_redis_api import GhReddisDict,GhRedisProperty
-from tagging import TargetTag,RhIterArgParser,Framer
 
 
-
-class CuttingType(object):
-    name=""
-    color=Rhino.
-    def __init__(self):
-        object.__init__(self)
-    def __add__(self, other):
-       pass
-    def __radd__(self):
-        pass
-    def __iadd__(self):
-        +=
 class Panel:
 
     @GhRedisProperty

@@ -49,9 +49,8 @@ class GhRedisSocket(object):
 
     def send(self, msg):
         self.s.sendall(msg)
-        data = copy.deepcopy(self.s.recv(1024 ** 2))
         # print('Received', repr(data))
-        return data
+        return self.s.recv(1024 * 8)
 
     def __enter__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
