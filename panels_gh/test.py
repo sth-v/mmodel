@@ -71,13 +71,23 @@ class UnrollPackage:
         self.data = []
 
         for key, value in elements.items():
-            new = self.panels_dict[key](value)
 
-            if key != 'N_4':
+            if key != 'N_4' and key != 'N_2':
+                new = self.panels_dict[key](value, True)
+                new.niche.cg = self.cog
+                new.niche.generate_cogs()
                 setattr(self, key, MainFrame(71, 1200, 21, new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
+
+            elif key == 'N_2':
+                new = self.panels_dict[key](value)
+                setattr(self, key, MainFrame(71, 1200, 21, new))
+                det = getattr(self, key)
+                self.data.append(det.all_elems)
+
             else:
+                new = self.panels_dict[key](value)
                 setattr(self, key, new)
 
 
@@ -88,10 +98,10 @@ class UnrollPackage:
 
 
 
-print(crv.__dict__)
+
 
 a = UnrollPackage(x, y, circle, crv.__dict__)
-
+m = a.P_1.panel.niche._cogs
 
 # cog = TT(x, y, circle)
 # a.niche.cg = cog

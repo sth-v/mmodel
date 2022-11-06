@@ -195,7 +195,7 @@ class Niche(BendSide):
     @property
     def otgib_morph(self):
         self._morph = rh.Morphs.FlowSpaceMorph(
-            rh.Line(rh.Point3d(0.0, 0.0, 0.0), rh.Point3d(self.bend_axis.Length, self.cogs_shift, 0.0)).ToNurbsCurve(),
+            rh.Line(rh.Point3d(0.0, self.cogs_shift, 0.0), rh.Point3d(self.bend_axis.Length, self.cogs_shift, 0.0)).ToNurbsCurve(),
             self.bend_axis.ToNurbsCurve(), True, False, True
         )
         return self._morph

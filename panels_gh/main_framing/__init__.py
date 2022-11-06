@@ -24,23 +24,22 @@ else:
         [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
          os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
 
-
 taggingfile, taggingfilename, (taggingsuffix, taggingmode, taggingtype) = imp.find_module("main_tagging", path=[PWD])
 main_tagging = imp.load_module("main_tagging", taggingfile, taggingfilename, (taggingsuffix, taggingmode, taggingtype))
 
 main_tagging.__init__("main_tagging", "generic nodule")
 
 import main_tagging
+
 reload(main_tagging)
-#%start script
+# %start script
 
 cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs", path=[PWD])
 cogs = imp.load_module("cogs", cogsfile, PWD, (cogssuffix, cogsmode, cogstype))
 # sys.path.extend(["/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh"])
 import cogs
+
 reload(cogs)
-
-
 
 import Rhino.Geometry as rh
 
@@ -87,11 +86,12 @@ def intersect(values):
         res.append(trimed)
     return res
 
+
 def offset_side(elem, dist, extend='st'):
     if extend == 'st':
         det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1]])
     elif extend == 'e':
-        det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1]+200])
+        det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 200])
     elif extend == 'both':
         det = offset(elem, dist, extend=[elem.Domain[0] + 200, elem.Domain[1] - 200])
         if det is None:
@@ -100,10 +100,10 @@ def offset_side(elem, dist, extend='st'):
         det = offset(elem, dist)
     return det
 
+
 @main_tagging.Framer
 @main_tagging.Tagger
 class MainFrame:
-
     rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -15, 0), rh.Point3d(2.5, 15, 0)).ToNurbsCurve()
 
     @property
@@ -137,7 +137,7 @@ class MainFrame:
         spec = self.bridge[0][2]
 
         if self.cogs is True:
-            elems = self.cogs_points(o) + self.simple_points(t, self.bridge[1][1])
+            elems = self.cogs_points(o) + self.simple_points(t, self.bridge[1][1], spec)
         else:
             elems = self.simple_points(o, self.bridge[0][1], spec) + self.simple_points(t, self.bridge[1][1], spec)
 
@@ -168,8 +168,6 @@ class MainFrame:
         self.top = self.panel.top_ofs
         self.niche = self.panel.niche_ofs
         self.side_rec = self.panel.side_rec
-
-
 
     @property
     def unroll_dict_f(self):
