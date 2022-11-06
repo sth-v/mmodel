@@ -10,13 +10,26 @@ try:
     rs = __import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
-import ghpythonlib.treehelpers as th
-import Rhino.Geometry as rh
-import math
 import copy
+import math
+import os
+import sys
+
+import Rhino.Geometry as rh
+
+if os.getenv("USER") == "sofyadobycina":
+    PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
+    sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
+                     os.getenv("HOME") + "Documents/GitHub/mmodel/panels_gh/cogs"])
+else:
+    os.environ["MMODEL_DIR"] = "/Users/andrewastakhov/PycharmProjects/mmodel"
+    PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
+    sys.path.extend(
+        [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
+         os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
+
 
 def plane(edge, target, param, param_val):
-
     ptt2 = edge.PointAt(edge.ClosestPoint(param)[1])
     vec = rh.Vector3d(ptt2.X - param.X, ptt2.Y - param.Y, ptt2.Z - param.Z)
 

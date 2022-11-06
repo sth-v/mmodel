@@ -16,7 +16,7 @@ from typing import Any, Union
 import numpy as np
 import pydantic
 
-from mmodel.vcs.utils import HashVersion
+from vcs.utils import HashVersion
 
 
 class MultiDict(dict):

@@ -9,6 +9,8 @@ __author__ = "sofyadobycina"
 
 import copy
 
+import tagging
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -35,9 +37,11 @@ cogsfile, cogsfilename, (cogssuffix, cogsmode, cogstype) = imp.find_module("cogs
 cogs = imp.load_module("cogs", cogsfile, PWD, (cogssuffix, cogsmode, cogstype))
 # sys.path.extend(["/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh"])
 import cogs
-
+import gh_redis_api
+import tagging
 reload(cogs)
-
+reload(gh_redis_api)
+from gh_redis_api import GhRedisSocket
 # taggingfile, taggingfilename, (taggingsuffix, taggingmode, taggingtype) = imp.find_module("tagging", path=[PWD+"/panels_gh"])
 # tagging = imp.load_module("tagging", taggingfile, PWD, (taggingsuffix, taggingmode, taggingtype))
 # import tagging
@@ -53,7 +57,6 @@ import rhinoscriptsyntax as rs
 
 import math
 import ghpythonlib.treehelpers as th
-
 
 def offset(crv, ofs_dist, extend=None):
     if ofs_dist != 0:

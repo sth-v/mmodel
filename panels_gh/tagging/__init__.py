@@ -21,10 +21,6 @@ BOTTOM = 45
 TOP = 35
 N_NICHE = 45
 P_NICHE = 43.53
-
-import json
-import Rhino
-import Rhino.Geometry as rh
 import os
 
 import sys
@@ -39,6 +35,11 @@ else:
     sys.path.extend(
         [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
          os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
+
+
+import json
+import Rhino
+import Rhino.Geometry as rh
 
 encode = Rhino.Geometry.GeometryBase.ToJSON
 
@@ -65,8 +66,8 @@ class RhIterArgParser(dict):
 
                     else:
 
-                        for vv in v:
-                            datas.append(RhIterArgParser(vv))
+                        for i, vv in enumerate(v):
+                            dict.__setitem__(self, i, RhIterArgParser(vv))
 
                     dict.__setitem__(self, k, datas)
 
@@ -74,6 +75,7 @@ class RhIterArgParser(dict):
                     print('not iterable')
 
                     dict.__setitem__(self, k, v)
+
 
 
 class Vectorizer:
@@ -146,6 +148,21 @@ class Framer:
             eeee.append(crv)
         xxx.text_g = copy.deepcopy(eeee)
         return xxx
+
+
+class TargetTag:
+
+    def __init__(self,cls, name=None):
+        self._cls=cls
+
+        if not name:
+            self.name=self._cls.__name__
+    def __call__(self,  *args, **kwargs):
+        itm=self._cls(*args,**kwargs)
+
+        self.targs[itm.__path__()][self.name]=getattr(itm, self.name)
+        targs = GhReddisDict()
+        return itm
 
 
 class Tagger:

@@ -1,22 +1,53 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Lahta Test build Triangle Celling" type="PythonConfigurationType" factoryName="Python" activateToolWindowBeforeRun="false" singleton="false">
-    <module name="mmodel_server" />
+    <module name="mmodel" />
     <option name="INTERPRETER_OPTIONS" value="" />
-    <option name="PARENT_ENVS" value="true" />
+    <option name="PARENT_ENVS" value="false" />
     <envs>
       <env name="AWS_ACCESS_KEY_ID" value="YCAJEWyfhMEdpJv5yhuXECVLT" />
       <env name="AWS_SECRET_ACCESS_KEY" value="YCPsGaw0zZXczhE-vtsG2_XYgM7yW1F_FqCg7de1" />
       <env name="BUCKET" value="lahta.contextmachine.online" />
+      <env name="PWD" value="/tmp/mmodel" />
+      <env name="PYTHONPATH" value="/root/miniconda3/bin/python3.10" />
       <env name="REGION" value="ru-central1" />
       <env name="STORAGE" value="https://storage.yandexcloud.net/" />
     </envs>
-    <option name="SDK_HOME" value="$PROJECT_DIR$/../mambaforge/envs/work/bin/python3.10" />
+    <option name="SDK_HOME" value="/opt/conda/bin/python3" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
     <option name="IS_MODULE_SDK" value="false" />
-    <option name="ADD_CONTENT_ROOTS" value="true" />
-    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <option name="ADD_CONTENT_ROOTS" value="false" />
+    <option name="ADD_SOURCE_ROOTS" value="false" />
+    <EXTENSION ID="DockerContainerSettingsRunConfigurationExtension">
+      <option name="envVars">
+        <list />
+      </option>
+      <option name="extraHosts">
+        <list />
+      </option>
+      <option name="links">
+        <list />
+      </option>
+      <option name="networkDisabled" value="false" />
+      <option name="networkMode" value="bridge" />
+      <option name="portBindings">
+        <list />
+      </option>
+      <option name="publishAllPorts" value="false" />
+      <option name="runCliOptions" value="--entrypoint= --rm" />
+      <option name="version" value="2" />
+      <option name="volumeBindings">
+        <list>
+          <DockerVolumeBindingImpl>
+            <option name="containerPath" value="/opt/project" />
+            <option name="editable" value="true" />
+            <option name="hostPath" value="$PROJECT_DIR$" />
+            <option name="readOnly" value="false" />
+          </DockerVolumeBindingImpl>
+        </list>
+      </option>
+    </EXTENSION>
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/lahta/triacell.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tests/test_mm.py" />
     <option name="PARAMETERS" value="" />
     <option name="SHOW_COMMAND_LINE" value="true" />
     <option name="EMULATE_TERMINAL" value="false" />

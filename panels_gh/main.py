@@ -86,6 +86,7 @@ class BendSide(object):
         return crv[0]
 
 
+
 class Niche(BendSide):
     side_offset = 0.5
     cogs_shift = -1.466
