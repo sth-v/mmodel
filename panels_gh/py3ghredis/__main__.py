@@ -1,18 +1,26 @@
+# ~/miniforge3/envs/bin/python
 import json
+import os
 import socket
 
 import redis
 
+REDISPASSWORD = os.getenv("REDISPASSWORD")
+REDISHOST = os.getenv("REDISHOST")
+REDISPORT = os.getenv("REDISPORT")
+SSLCAPATH = os.getenv("SSLCAPATH")
+
 if __name__ == "__main__":
+    print(REDISPASSWORD, REDISHOST, REDISPORT, SSLCAPATH)
     r = redis.StrictRedis(
         host="c-c9q1muil9vsf3ol4p3di.rw.mdb.yandexcloud.net",
         port=6380,
-        password="caMbuj-tabxy1-pikkij",
+        password=REDISPASSWORD,
         ssl=True,
         ssl_ca_certs="/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt")
-
     HOST = 'localhost'  # Symbolic name meaning all available interfaces
     PORT = 50007  # Arbitrary non-privileged port
+    print(r.keys())
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))
         s.listen(1)
@@ -22,7 +30,7 @@ if __name__ == "__main__":
             try:
                 while True:
 
-                    dt = conn.recv(1024 ** 2)
+                    dt = conn.recv(1024 * 8)
 
                     if (not dt) | (dt == b"") | (dt == ""):
                         continue
