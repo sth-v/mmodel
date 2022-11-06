@@ -52,6 +52,7 @@ import Rhino.Geometry as rh
 import rhinoscriptsyntax as rs
 
 import math
+import ghpythonlib.treehelpers as th
 
 
 def offset(crv, ofs_dist, extend=None):
@@ -152,7 +153,7 @@ class MainFrame:
         spec = self.bridge[0][2]
 
         if self.cogs is True:
-            elems = self.cogs_points(o) + self.simple_points(t, self.bridge[1][1])
+            elems = self.cogs_points(o) + self.simple_points(t, self.bridge[1][1], spec)
         else:
             elems = self.simple_points(o, self.bridge[0][1], spec) + self.simple_points(t, self.bridge[1][1], spec)
 
@@ -164,7 +165,11 @@ class MainFrame:
 
     @property
     def all_elems(self):
-        layers[0].objects += self.region
+        try:
+            layers[0].objects += self.region + self.panel.cut_holes
+        except AttributeError:
+            layers[0].objects += self.region
+
         layers[1].objects += self.panel.fres
 
         if hasattr(self.panel, 'grav'):
@@ -200,12 +205,12 @@ class MainFrame:
 
     def cogs_points(self, crv):
         rectang = []
-        for i in self.panel.cut[2:-1:8]:
+        for i in self.panel.niche_holes[1:-1:8]:
             b = i.TryGetCircle(0.1)[1].Center
             rect = self.tr_rect(b, crv)
             rectang.append(rect)
 
-        b = self.panel.cut[-1].TryGetCircle(0.1)[1].Center
+        b = self.panel.niche_holes[-1].TryGetCircle(0.1)[1].Center
         rect = self.tr_rect(b, crv)
         rectang.append(rect)
         return rectang

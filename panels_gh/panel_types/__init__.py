@@ -24,7 +24,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import BendSide, Niche, Bottom, Side, NicheShortened
+from main_sides import BendSide, Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo
 
 reload(main_sides)
 
@@ -75,9 +75,9 @@ class P_2(MainPanel):
         MainPanel.__dict__['__init__'](self, surface, cogs_bend, tag)
 
     def gen_side_types(self):
-        self.niche = Niche(self.edges[2])
+        self.niche = Niche(self.edges[2], self.cogs_bend)
         self.bottom = Bottom(self.edges[0])
-        self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
+        self.side = [HolesSideTwo(self.edges[1], False), HolesSideOne(self.edges[3], True)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()

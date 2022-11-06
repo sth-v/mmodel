@@ -23,7 +23,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import BendSide, Niche, Bottom, Side, NicheShortened
+from main_sides import BendSide, Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo
 
 reload(main_sides)
 
@@ -33,12 +33,28 @@ def bound_rec(crv):
     bound_rec = rh.PolyCurve.GetBoundingBox(join, rh.Plane.WorldXY)
     return bound_rec
 
+def divide(crv, dist):
+    st = crv.ClosestPoint(crv.PointAtLength(dist))[1]
+    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - dist))[1]
+    curve = crv.Trim(st, end)
+
+    num = math.ceil(curve.GetLength() / 100)
+    param = curve.DivideByCount(num, True)
+    points = [curve.PointAt(i) for i in param]
+    return points
+
+
+def translate(point, crv):
+    frame = crv.FrameAt(crv.ClosestPoint(point)[1])[1]
+    tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, frame)
+    return tr
+
 
 class MainPanel:
     bend_ofs = 45
     top_ofs = 35
     niche_ofs = 45
-
+    grav_holes = 23.75
     bottom_rec = 30
     side_rec = 30
 
@@ -67,28 +83,48 @@ class MainPanel:
 
     @property
     def cut(self):
-        if self.cogs_bend is True:
-            side = \
-                rh.Curve.JoinCurves(
-                    [self.side[0].join, self.niche.join_region[0], self.side[1].join, self.bottom.fres])[0]
-            side.Transform(self.bound_plane)
+        side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join_region, self.side[1].join, self.bottom.fres])[0]
+        side.Transform(self.bound_plane)
+        return [side]
 
-            cut = [side]
-
-            reg = self.niche.join_region[1:]
-            for i in reg:
-                ii = i.DuplicateCurve()
-                ii.Transform(self.bound_plane)
-                cut.append(ii)
-        else:
-            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
-            side.Transform(self.bound_plane)
-            cut = [side]
+    @property
+    def niche_holes(self):
+        cut = []
+        reg = self.niche.region_holes
+        for i in reg:
+            ii = i.DuplicateCurve()
+            ii.Transform(self.bound_plane)
+            cut.append(ii)
         return cut
 
     @property
+    def cut_holes(self):
+        cut = []
+        for v in self.side:
+            for i in v.holes_curve:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
+
+        return cut + self.niche_holes
+
+    @property
+    def grav(self):
+        b = self.bottom.fres.DuplicateCurve()
+        b.Transform(self.bound_plane)
+        line = b.Offset(rh.Plane.WorldXY, -MainPanel.grav_holes, 0.01, rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+        points = divide(line, 35)
+        circ = []
+        for i in points:
+            p = translate(i, line)
+            c = rh.Circle(3.0)
+            c.Transform(p)
+            circ.append(c.ToNurbsCurve())
+        return circ
+
+    @property
     def unroll_dict(self):
-        _unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
+        _unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf}
         return _unroll_dict
 
     @property
@@ -124,9 +160,9 @@ class MainPanel:
 
     def gen_side_types(self):
 
-        self.niche = Niche(self.edges[0])
+        self.niche = Niche(self.edges[0], self.cogs_bend)
         self.bottom = Bottom(self.edges[2])
-        self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
+        self.side = [HolesSideTwo(self.edges[1], True), HolesSideOne(self.edges[3], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -200,8 +236,7 @@ class NichePanel(MainPanel):
     def unroll_dict(self):
         unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf,
                        'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
-                                'tag': [self.tag[0:-1] + str(4 + i) for i in range(len(self.unrol[1]) - 1)]},
-                       'frame': {'bb': 0}}
+                                'tag': [self.tag[0:-1] + str(4 + i) for i in range(len(self.unrol[1]) - 1)]}}
         return unroll_dict
 
     @property
