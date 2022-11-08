@@ -8,7 +8,6 @@ except:
 import Rhino.Geometry as rh
 import sys
 import imp
-import math
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -23,7 +22,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import BendSide, Niche, Bottom, Side, NicheShortened
+from main_sides import Niche, Bottom, Side, NicheShortened
 
 reload(main_sides)
 
@@ -88,8 +87,7 @@ class MainPanel:
 
     @property
     def unroll_dict(self):
-        _unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf, 'frame': {'bb': 0}}
-        return _unroll_dict
+        return {'tag': self.tag, 'unroll': self.unrol_surf}
 
     @property
     def frame_dict(self):
@@ -104,7 +102,7 @@ class MainPanel:
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, cogs_bend=None, tag=None):
+    def __init__(self, surface, tag, cogs_bend):
         object.__init__(self)
 
         self.surf = surface
@@ -121,6 +119,7 @@ class MainPanel:
         self.unrol_surf = self.unrol[0][0]
         self.edges = self.unrol_surf.Curves3D
         self.gen_side_types()
+
 
     def gen_side_types(self):
 
@@ -198,11 +197,10 @@ class NichePanel(MainPanel):
 
     @property
     def unroll_dict(self):
-        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf,
-                       'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
-                                'tag': [self.tag[0:-1] + str(4 + i) for i in range(len(self.unrol[1]) - 1)]},
-                       'frame': {'bb': 0}}
-        return unroll_dict
+        return {'tag': self.tag, 'unroll': self.unrol_surf,
+                'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
+                         'tag': [self.tag[0:-1] + str(4 + i) for i in range(len(self.unrol[1]) - 1)]},
+                'frame': {'bb': 0}}
 
     @property
     def frame_dict(self):
@@ -217,7 +215,7 @@ class NichePanel(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, cogs_bend=None, tag=None, **kwargs):
+    def __init__(self, surface, tag, cogs_bend, **kwargs):
         MainPanel.__dict__['__init__'](self, surface, cogs_bend, tag)
         self.__dict__.update(**kwargs)
 
