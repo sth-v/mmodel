@@ -139,6 +139,7 @@ class BendSide(object):
 class Niche(BendSide):
     angle_niche = 45
     side_offset = 0.5
+    angle = 30
     length = 35
     cogs_shift = -1.466
 
@@ -271,6 +272,7 @@ class Niche(BendSide):
 
 class NicheShortened(Niche):
     angle_niche = 45
+    angle = 30
     side_offset = niche_shift(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     cogs_shift = 0
@@ -281,6 +283,7 @@ class NicheShortened(Niche):
 
 class Side(BendSide):
     side_offset = 1.0
+    angle = 30
 
     @property
     def top_part(self):
@@ -368,6 +371,26 @@ class HolesSideTwo(Side):
 
 class Bottom(BendSide):
     side_offset = None
+
+    def __init__(self, curve):
+        BendSide.__dict__['__init__'](self, curve)
+
+
+class HeatSchov(BendSide):
+    side_offset = 6.3
+    fres_offset = 4.0
+    length = 26.24
+
+    @property
+    def top_part(self):
+        self._top_part = self.fres.Offset(rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._top_part[0]
+
+    @property
+    def fres_shift(self):
+        self._fres_shift = self.fres.Offset(rh.Plane.WorldXY, self.fres_offset, 0.01,
+                                          rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._fres_shift[0]
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)

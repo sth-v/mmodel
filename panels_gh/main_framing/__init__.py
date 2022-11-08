@@ -40,12 +40,12 @@ import cogs
 
 reload(cogs)
 
-drawlfile, drawfilename, (drawsuffix, drawmode, drawtype) = imp.find_module("draw", path=[PWD])
-draw = imp.load_module("draw", drawlfile, drawfilename, (drawsuffix, drawmode, drawtype))
+#drawlfile, drawfilename, (drawsuffix, drawmode, drawtype) = imp.find_module("draw", path=[PWD])
+#draw = imp.load_module("draw", drawlfile, drawfilename, (drawsuffix, drawmode, drawtype))
 
-draw.__init__("draw", "generic nodule")
-reload(draw)
-from draw import layers
+#draw.__init__("draw", "generic nodule")
+#reload(draw)
+#from draw import layers
 
 import Rhino.Geometry as rh
 
@@ -165,17 +165,18 @@ class MainFrame:
 
     @property
     def all_elems(self):
+        all_elems = []
         try:
-            layers[0].objects += self.region + self.panel.cut_holes
+            all_elems += [self.region + self.panel.cut_holes]
         except AttributeError:
-            layers[0].objects += self.region
+            all_elems += [self.region]
 
-        layers[1].objects += self.panel.fres
+        all_elems += [self.panel.fres]
 
         if hasattr(self.panel, 'grav'):
-            layers[2].objects += self.panel.grav
+            all_elems += [self.panel.grav]
 
-        return layers
+        return all_elems
 
     @property
     def unroll_dict_f(self):
