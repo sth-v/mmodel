@@ -5,6 +5,7 @@ __author__ = "sofyadobycina"
 import ast
 import copy
 import os
+from pprint import pprint
 
 try:
     rs = __import__("rhinoscriptsyntax")
@@ -38,39 +39,39 @@ else:
         [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
          os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
 
-encode = Rhino.Geometry.GeometryBase.ToJSON
+
+def encode(obj):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            return {k: encode(v)}
+    elif isinstance(obj, list):
+        for k in obj:
+            return encode(k)
+    else:
+        try:
+            return ast.literal_eval(obj.ToJSON(None))
+        except:
+            return obj
 
 
 class RhIterArgParser(dict):
 
-    def __init__(self, kwargs):
+    def __init__(self, **kwargs):
+
         dict.__init__(self, **kwargs)
 
         for k, v in dict.items(self):
-            if hasattr(v, "ToJSON"):
-
-                dict.__setitem__(self, k, RhIterArgParser(ast.literal_eval(v.ToJSON(None))))
-
-                continue
-            else:
-                try:
-                    iter(v)
-                    datas = []
-
-                    if isinstance(v, dict):
-                        dict.__setitem__(self, k, RhIterArgParser(v))
-
-
-                    else:
-
-                        for vv in v:
-                            datas.append(RhIterArgParser(vv))
-
-                    dict.__setitem__(self, k, datas)
-
-                except TypeError:
-
-                    dict.__setitem__(self, k, v)
+            try:
+                dict.__setitem__(self, k, encode(v))
+            except:
+                if isinstance(v, dict):
+                    dict.__setitem__(self, k, RhIterArgParser(**v))
+                else:
+                    data = []
+                    for vv in v:
+                        dict.__setitem__(self, k, encode(v))
+                        data.append(RhIterArgParser(**vv))
+                    dict.__setitem__(self, k, data)
 
 
 class Vectorizer:
@@ -88,48 +89,55 @@ class Vectorizer:
 class Extender:
     def __init__(self, cls):
         self._cls = cls
-        self.name = cls.__name__
 
-    def __call__(self, *items):
+        print
+        "INIT Extender", self._cls
+
+    def __call__(self, *args, **kwargs):
+        print
+        "call Extender"
         self.itemargs = []
-        for xx in enumerate(items):
-            self.itemargs.append(self._cls(xx))
-        return self
+        instance = self._cls(*args, **kwargs)
+        print
+        "call Extender", instance
 
-    def __get__(self, inst, own):
-        def wrp(*args):
-            dd = []
-            for i, xx in enumerate(self.itemargs):
-                dd.append(xx(*args[i]))
-            return dd
-
-        return wrp
+        return instance
 
 
 class Framer:
     def __init__(self, cls):
         self._cls = cls
 
+        print
+        "init Framer", self._cls
+
     def __call__(self, u, v, s, *args, **kwargs):
-        xxx = self._cls(*args)
-        _, vv = xxx.stable_dct["frame"].TryGetPolyline()
+        print
+        "call Framer",
+        xxx = self._cls(*args, **kwargs)
+        print
+        "call Framer", xxx, xxx.unroll_dict, xxx.unroll_dict["frame"]
+        f, = xxx.unroll_dict["frame"]
+        _, vv = f.TryGetPolyline()
         r = rh.Rectangle3d.CreateFromPolyline(vv)
         rH = 1 / r.Height
         rW = 1 / r.Width
 
+        print
+        u, v, s
         self.c = r.PointAt(u * rW, v * rH)
         self.pln = rh.Plane(self.c, r.Plane.YAxis, r.Plane.XAxis)
         # self.bb=rh.Rectangle3d.CreateFromPolyline(self.c)
 
         r = Rhino.DocObjects.DimensionStyle()
 
-        r.Font = r.Font.__class__("JetBrains Mono")
+        r.Font = r.Font.__class__("GOSTTypeA-Italic")
 
         ee = rh.TextEntity()
 
-        self.tag = xxx.stable_dct["data"]["tag"]
+        self.tag = xxx.unroll_dict["tag"]
 
-        ee.Text = xxx.stable_dct["data"]["tag"]
+        ee.Text = xxx.unroll_dict["tag"]
         ee.TextHeight = 16
 
         ee.Plane = self.pln
@@ -141,38 +149,38 @@ class Framer:
         for crv in eee:
             crv.Transform(t)
             eeee.append(crv)
+        xxx._layers[3].objects.extend(eeee)
+
         xxx.text_g = copy.deepcopy(eeee)
+
         return xxx
 
 
 class Tagger:
-    _cls = None
-    inst = None
-    ap = None
 
     def __init__(self, cls):
         self._cls = cls
         self._cls.top = TOP
         self._cls.bottom = BOTTOM
 
+        print
+        "init Tagger", self._cls
+
     def set_attr_cls(self, key, value):
         setattr(self._cls, key, value)
 
-    def __call__(self, *args):
-        inst = self._cls(*args)
-
-        dct = inst.unroll_dict_f
-
-        inst.stable_dct = dct
-        ap = RhIterArgParser(inst.unroll_dict_f)
+    def __call__(self, *args, **kwargs):
+        print
+        "call Tagger", args, kwargs
+        self.instance = self._cls(*args, **kwargs)
+        print
+        "call Tagger", self.instance
         # self.panels = FramePanel(self.inst.panel_r, 0, P_NICHE), FramePanel(self.inst.panel_l, 1, P_NICHE)
         # self.niches = FramePanel(self.inst.niche_r, 0, N_NICHE), FramePanel(self.inst.niche_l, 1, N_NICHE)
-        #with open("{}/dump{}.json".format(PWD, id(self)), "w") as pkl:
-            #json.dump(ap, pkl, indent=3)
+
         # with open("Picklefile","w") as pklf:
         #    pklf.writelines(["PROTOCOL={}".format(pickle.HIGHEST_PROTOCOL)])
         #    pickle.dump(self, pklf, pickle.HIGHEST_PROTOCOL)
 
-        #pprint(dict(ap))
-
-        return inst
+        pprint(self.instance.unroll_dict)
+        return self.instance
