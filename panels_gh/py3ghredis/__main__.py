@@ -2,6 +2,7 @@
 import json
 import os
 import socket
+import sys
 
 import redis
 
@@ -15,7 +16,7 @@ if __name__ == "__main__":
     r = redis.StrictRedis(
         host="c-c9q1muil9vsf3ol4p3di.rw.mdb.yandexcloud.net",
         port=6380,
-        password=REDISPASSWORD,
+        password="caMbuj-tabxy1-pikkij",
         ssl=True,
         ssl_ca_certs="/usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt")
     HOST = 'localhost'  # Symbolic name meaning all available interfaces
@@ -30,31 +31,24 @@ if __name__ == "__main__":
             try:
                 while True:
 
-                    dt = conn.recv(1024 * 8)
+                    dt, aad, dtt = "append", "part-15", conn.recv(1024 * 32)
 
                     if (not dt) | (dt == b"") | (dt == ""):
                         continue
                     else:
 
-                        print(dt)
-                        kv = json.loads(dt)
-                        if len(kv) == 2:
-                            key, value = kv
-                            f = getattr(r, key)
-                            data = f(value)
-                        else:
-                            f = getattr(r, kv[0])
-                            data = f()
+                        f = getattr(r, dt)
+                        data = f(aad, dtt)
 
-                        if isinstance(data, (list,dict, tuple,set)):
-                            for i,d in enumerate(data):
+                        if isinstance(data, (list, dict, tuple, set)):
+                            for i, d in enumerate(data):
 
-                                if isinstance(d, (bytes,bytearray)):
-                                    data[i]=d.decode()
+                                if isinstance(d, (bytes, bytearray)):
+                                    data[i] = d.decode()
                             conn.sendall(json.dumps(data).encode())
                         elif isinstance(data, (str, bytes, bytearray)):
 
-                            conn.sendall(data.encode()) if isinstance(data,str)  else conn.sendall(data)
+                            conn.sendall(data.encode()) if isinstance(data, str) else conn.sendall(data)
 
 
                         else:
