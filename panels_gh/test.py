@@ -9,7 +9,9 @@ except:
 
 import sys
 import imp
-
+import ghpythonlib.treehelpers as th
+import math
+import Rhino.Geometry as rh
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
     sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
@@ -28,6 +30,12 @@ from cogs import TT
 
 reload(cogs)
 
+sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module("main_sides", path=[PWD])
+main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
+
+main_sides.__init__("main_sides", "generic nodule")
+from main_sides import HolesSideTwo
+
 pfile, pfilename, (psuffix, pmode, ptype) = imp.find_module("main_panels", path=[PWD])
 main_panels = imp.load_module("main_panels", pfile, pfilename, (psuffix, pmode, ptype))
 
@@ -40,7 +48,8 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 panel_types.__init__("panel_types", "generic nodule")
-from panel_types import P_1, P_2, N_1, N_3, N_2
+from panel_types import P_1, P_2, N_1, N_3, N_2, P_3
+
 
 reload(panel_types)
 
@@ -57,31 +66,72 @@ reload(main_framing)
 
 
 class UnrollPackage:
-    panels_dict = {'P_1': P_1, 'P_2': P_2, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4}
+    panels_dict = {'P_1': P_1, 'P_2': P_2, 'P_3': P_3, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4}
 
-    def __init__(self, x, y, circle, elements):
+    def __init__(self, x, y, circle, pins_hole, bend_hole, elements):
         self.cog = TT(x, y, circle)
+        self.hls = bend_hole
+
+        tr = rh.Transform.Rotation(math.pi / 2, rh.Point3d(0, 0, 0))
+        self.hls_rot = pins_hole
+        self.hls_rot.Transform(tr)
+
+
         self.data = []
+        self.fr = []
 
         for key, value in elements.items():
-            new = self.panels_dict[key](value)
+            if key != 'N_4' and key != 'N_2' and key != 'P_3':
+
+                new = self.panels_dict[key](cogs_bend=False, **value)
+                new.hls = self.hls_rot
+
+                new.niche.cg = self.cog
+                new.niche.generate_cogs()
+
+                try:
+                    for i in new.side:
+                        i.hls = self.hls
+                except AttributeError:
+                    pass
 
             if key != 'N_4':
 
                 setattr(self, key, MainFrame(71, 1200, 21, new))
+                setattr(self, key, MainFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-            else:
+                self.fr.append(det.unroll_dict_f)
+
+            elif key == 'N_2':
+                new = self.panels_dict[key](**value)
+                setattr(self, key, MainFrame(new))
+                det = getattr(self, key)
+                self.data.append(det.all_elems)
+
+            elif key == 'P_3':
+                new = self.panels_dict[key](cogs_bend=False, **value)
+                new.hls = self.hls_rot
+
                 setattr(self, key, new)
+                det = getattr(self, key)
+                self.data.append(det.all_elems)
 
 
-"""
+            else:
+                new = self.panels_dict[key](**value)
+                setattr(self, key, new)
+                det = getattr(self, key)
+                #self.data.append(det.all_elems)
+
+
 def main():
-    global x, y, circle, crv
-    print(crv.__dict__)
-    a = UnrollPackage(x, y, circle, crv.__dict__)
-    side = a.data
-    return a, side"""
+    global x, y, circle, pins_hole, bend_hole, crv
+
+    a = UnrollPackage(x, y, circle, pins_hole, bend_hole, crv.__dict__)
+    side = th.list_to_tree(a.data)
+    return a, side
+
 
 if __name__ == "__main__":
     # a, sides = main()

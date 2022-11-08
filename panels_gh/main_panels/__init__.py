@@ -8,6 +8,7 @@ except:
 import Rhino.Geometry as rh
 import sys
 import imp
+import math
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -22,7 +23,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import Niche, Bottom, Side, NicheShortened
+from main_sides import BendSide, Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo
 
 reload(main_sides)
 
@@ -32,12 +33,64 @@ def bound_rec(crv):
     bound_rec = rh.PolyCurve.GetBoundingBox(join, rh.Plane.WorldXY)
     return bound_rec
 
+def divide(crv, dist):
+    st = crv.ClosestPoint(crv.PointAtLength(dist))[1]
+    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - dist))[1]
+    curve = crv.Trim(st, end)
 
-class MainPanel:
+    num = math.ceil(curve.GetLength() / 100)
+    param = curve.DivideByCount(num, True)
+    points = [curve.PointAt(i) for i in param]
+    return points
+
+
+def translate(point, crv):
+    frame = crv.FrameAt(crv.ClosestPoint(point)[1])[1]
+    tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, frame)
+    return tr
+
+class SimplePanel:
+    @property
+    def unroll_dict(self):
+        _unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf}
+        return _unroll_dict
+
+    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        object.__init__(self)
+
+        self.surf = surf
+        self.tag = tag
+        self.pins = pins
+
+        if cogs_bend is None:
+            self.cogs_bend = False
+        else:
+            self.cogs_bend = cogs_bend
+
+    def intersect(self):
+        for i, v in enumerate(self.side_types):
+            old = v.fres.Domain
+            v.fres = v.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
+            param = []
+            for ind, val in enumerate(self.side_types):
+                if i != ind:
+                    old = val.fres.Domain
+                    new = val.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
+                    inters = rs.CurveCurveIntersection(v.fres, new)
+                    if inters is not None:
+                        param.append(inters[0][5])
+            param = sorted(param)
+
+            trimed = rh.Curve.Trim(v.fres, param[0], param[1])
+            v.fres = trimed
+
+
+
+class MainPanel(SimplePanel):
     bend_ofs = 45
     top_ofs = 35
     niche_ofs = 45
-
+    grav_holes = 23.75
     bottom_rec = 30
     side_rec = 30
 
@@ -66,24 +119,30 @@ class MainPanel:
 
     @property
     def cut(self):
-        if self.cogs_bend is True:
-            side = \
-                rh.Curve.JoinCurves(
-                    [self.side[0].join, self.niche.join_region[0], self.side[1].join, self.bottom.fres])[0]
-            side.Transform(self.bound_plane)
+        side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join_region, self.side[1].join, self.bottom.fres])[0]
+        side.Transform(self.bound_plane)
+        return [side]
 
-            cut = [side]
+    @property
+    def niche_holes(self):
+        cut = []
+        reg = self.niche.region_holes
+        for i in reg:
+            ii = i.DuplicateCurve()
+            ii.Transform(self.bound_plane)
+            cut.append(ii)
+        return cut
 
-            reg = self.niche.join_region[1:]
-            for i in reg:
+    @property
+    def cut_holes(self):
+        cut = []
+        for v in self.side:
+            for i in v.holes_curve:
                 ii = i.DuplicateCurve()
                 ii.Transform(self.bound_plane)
                 cut.append(ii)
-        else:
-            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
-            side.Transform(self.bound_plane)
-            cut = [side]
-        return cut
+
+        return cut + self.niche_holes
 
     @property
     def unroll_dict(self):
@@ -102,50 +161,27 @@ class MainPanel:
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, tag, cogs_bend):
-        object.__init__(self)
-
-        self.surf = surface
-        self.tag = tag
-
-        if cogs_bend is None:
-            self.cogs_bend = False
-        else:
-            self.cogs_bend = cogs_bend
+    def __init__(self, surf, tag=None, cogs_bend=None, pins=None):
+        SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
 
         unrol = rh.Unroller(self.surf)
-        self.unrol = unrol.PerformUnroll()
+        if self.pins is not None:
+            a = [self.surf.ClosestPoint(i) for i in self.pins]
+            unrol.AddFollowingGeometry(points=a)
 
+        self.unrol = unrol.PerformUnroll()
         self.unrol_surf = self.unrol[0][0]
         self.edges = self.unrol_surf.Curves3D
+
         self.gen_side_types()
-
-
     def gen_side_types(self):
 
-        self.niche = Niche(self.edges[0])
+        self.niche = Niche(self.edges[0], self.cogs_bend)
         self.bottom = Bottom(self.edges[2])
-        self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
+        self.side = [HolesSideTwo(self.edges[1], True), HolesSideOne(self.edges[3], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
-
-    def intersect(self):
-        for i, v in enumerate(self.side_types):
-            old = v.fres.Domain
-            v.fres = v.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
-            param = []
-            for ind, val in enumerate(self.side_types):
-                if i != ind:
-                    old = val.fres.Domain
-                    new = val.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
-                    inters = rs.CurveCurveIntersection(v.fres, new)
-                    if inters is not None:
-                        param.append(inters[0][5])
-            param = sorted(param)
-
-            trimed = rh.Curve.Trim(v.fres, param[0], param[1])
-            v.fres = trimed
 
     def top_side(self):
         bound = bound_rec(self.fres)
@@ -197,10 +233,10 @@ class NichePanel(MainPanel):
 
     @property
     def unroll_dict(self):
-        return {'tag': self.tag, 'unroll': self.unrol_surf,
-                'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
-                         'tag': [self.tag[0:-1] + str(4 + i) for i in range(len(self.unrol[1]) - 1)]},
-                'frame': {'bb': 0}}
+        unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf,
+                       'axis': {'curve': self.unrol[1][0:len(self.unrol[1]) - 1],
+                                'tag': [self.tag[0:-1] + str(4 + i) for i in range(len(self.unrol[1]) - 1)]}}
+        return unroll_dict
 
     @property
     def frame_dict(self):
@@ -215,8 +251,8 @@ class NichePanel(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, tag, cogs_bend, **kwargs):
-        MainPanel.__dict__['__init__'](self, surface, cogs_bend, tag)
+    def __init__(self, surf, tag=None, cogs_bend=None, pins=None, **kwargs):
+        MainPanel.__dict__['__init__'](self, surf, tag,cogs_bend,pins )
         self.__dict__.update(**kwargs)
 
         unrol = rh.Unroller(self.surf)
@@ -299,9 +335,9 @@ class NichePanel(MainPanel):
 
 
 class N_4:
-    def __init__(self, surf_list):
+    def __init__(self, surf=None):
         self.cogs_bend = False
-        self.surf = surf_list
+        self.surf = surf
 
         self.extend = []
         ext_surf = [rh.Surface.Duplicate(i) for i in self.surf]

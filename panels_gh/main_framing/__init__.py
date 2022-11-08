@@ -53,6 +53,7 @@ import Rhino.Geometry as rh
 import rhinoscriptsyntax as rs
 
 import math
+import ghpythonlib.treehelpers as th
 
 
 def offset(crv, ofs_dist, extend=None):
@@ -129,7 +130,7 @@ class MainFrame(object):
     def __call__(self, surface, tag, cogs_bend, *args):
         self.panel = self.cls_panel(surface, tag, cogs_bend, *args)
 
-        self._layers = copy.deepcopy(layers)
+
         self.cogs = self.panel.cogs_bend
 
         self.__dict__.update(self.panel.frame_dict)
@@ -139,11 +140,7 @@ class MainFrame(object):
         self.top = self.panel.top_ofs
         self.niche = self.panel.niche_ofs
         self.side_rec = self.panel.side_rec
-        self._layers[0].objects.extend(self.region)
-        self._layers[1].objects.extend(self.panel.fres)
-
-        if hasattr(self.panel, 'grav'):
-            self._layers[2].objects.extend(self.panel.grav)
+        self.calc_elems()
 
         return self
     @property
@@ -177,7 +174,7 @@ class MainFrame(object):
         spec = self.bridge[0][2]
 
         if self.cogs is True:
-            elems = self.cogs_points(o) + self.simple_points(t, self.bridge[1][1])
+            elems = self.cogs_points(o) + self.simple_points(t, self.bridge[1][1], spec)
         else:
             elems = self.simple_points(o, self.bridge[0][1], spec) + self.simple_points(t, self.bridge[1][1], spec)
 
@@ -186,11 +183,32 @@ class MainFrame(object):
         new = list(rh.Curve.CreateBooleanUnion(elems, 0.1))
         new.extend(self.panel.cut[1:])
         return new
+    def calc_elems(self):
 
-    @property
+        self._layers = copy.deepcopy(layers)
+        self._layers[0].objects.extend(self.region)
+        self._layers[1].objects.extend(self.panel.fres)
+
+        if hasattr(self.panel, 'grav'):
+            self._layers[2].objects.extend(self.panel.grav)
+
+
+@property
     def all_elems(self):
 
         return self._layers
+        return all_elems
+
+    @property
+    def unroll_dict_f(self):
+        self.panel.unroll_dict.update(
+            {
+                "frame": self.bound_frame.ToNurbsCurve(),
+                "layers": self.all_elems
+            }
+        )
+
+        return self.panel.unroll_dict
 
     def frame_all(self):
         frame_all = rh.Curve.JoinCurves(self.all_offset())
@@ -209,12 +227,12 @@ class MainFrame(object):
 
     def cogs_points(self, crv):
         rectang = []
-        for i in self.panel.cut[2:-1:8]:
+        for i in self.panel.niche_holes[1:-1:8]:
             b = i.TryGetCircle(0.1)[1].Center
             rect = self.tr_rect(b, crv)
             rectang.append(rect)
 
-        b = self.panel.cut[-1].TryGetCircle(0.1)[1].Center
+        b = self.panel.niche_holes[-1].TryGetCircle(0.1)[1].Center
         rect = self.tr_rect(b, crv)
         rectang.append(rect)
         return rectang

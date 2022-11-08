@@ -65,6 +65,23 @@ def niche_shift(angle_niche, side_niche, met_left_niche):
     return res
 
 
+def divide(crv):
+    st = crv.ClosestPoint(crv.PointAtLength(15))[1]
+    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - 15))[1]
+    curve = crv.Trim(st, end)
+
+    num = math.ceil(curve.GetLength() / 100)
+    param = curve.DivideByCount(num, True)
+    points = [curve.PointAt(i) for i in param]
+    return points
+
+
+def translate(point, crv):
+    frame = crv.FrameAt(crv.ClosestPoint(point)[1])[1]
+    tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, frame)
+    return tr
+
+
 def morph_decore(fun):
     @wraps(fun)
     def wrp(slf, *args, **kwargs):
@@ -122,6 +139,7 @@ class BendSide(object):
 class Niche(BendSide):
     angle_niche = 45
     side_offset = 0.5
+    angle = 30
     length = 35
     cogs_shift = -1.466
 
@@ -135,8 +153,10 @@ class Niche(BendSide):
                                          rh.CurveOffsetCornerStyle.__dict__['None'])
         return self._top_part[0]
 
-    def __init__(self, curve):
+    def __init__(self, curve, init_cogs=False):
         BendSide.__dict__['__init__'](self, curve)
+
+        self.init_cogs = init_cogs
 
         self.hls = None
         self._cogs = None
@@ -210,19 +230,34 @@ class Niche(BendSide):
 
     @property
     def join_region(self):
+        if self.init_cogs:
 
-        l = list(self._join_brep.Brep.Faces)
-        l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
-        trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
+            l = list(self._join_brep.Brep.Faces)
+            l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
+            trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
 
-        p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
-        p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
-        trim = trg.Trim(p_one, p_two)
+            p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
+            p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
+            trim = trg.Trim(p_one, p_two)
 
-        tt = []
+            tt = []
 
-        tt.append(trim)
-        tt.extend(self.hls[2:-2])
+            tt.append(trim)
+            tt.extend(self.hls[2:-2])
+
+        else:
+            tt = self.hls[2:-4:8] + self.hls[3:-4:8] + self.hls[-4:-2]
+            trim = self.join
+
+        return trim
+
+    @property
+    def region_holes(self):
+
+        if self.init_cogs:
+            tt = self.hls[2:-2]
+        else:
+            tt = self.hls[2:-4:8] + self.hls[3:-4:8] + self.hls[-4:-2]
 
         return tt
 
@@ -237,6 +272,7 @@ class Niche(BendSide):
 
 class NicheShortened(Niche):
     angle_niche = 45
+    angle = 30
     side_offset = niche_shift(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     cogs_shift = 0
@@ -247,6 +283,7 @@ class NicheShortened(Niche):
 
 class Side(BendSide):
     side_offset = 1.0
+    angle = 30
 
     @property
     def top_part(self):
@@ -271,8 +308,89 @@ class Side(BendSide):
         self.reverse = reverse
 
 
+class HolesSideOne(Side):
+
+    @property
+    def hls(self):
+        return self._hls
+
+    @hls.setter
+    def hls(self, v):
+        self._hls = v
+
+    @property
+    def holes_curve(self):
+        line = self.top_part.Offset(rh.Plane.WorldXY, -self.length / 2, 0.01,
+                                    rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+        points = divide(line)
+
+        circ = []
+        for i in points:
+            p = translate(i, line)
+            c = rh.Circle(2.5)
+            c.Transform(p)
+            circ.append(c.ToNurbsCurve())
+        return circ
+
+    def __init__(self, curve, reverse=None, holes=True):
+        Side.__dict__['__init__'](self, curve)
+        self.reverse = reverse
+        self.holes = holes
+
+
+class HolesSideTwo(Side):
+
+    @property
+    def hls(self):
+        return self._hls
+
+    @hls.setter
+    def hls(self, v):
+        self._hls = v
+
+    @property
+    def holes_curve(self):
+        line = self.top_part.Offset(rh.Plane.WorldXY, -self.length / 2, 0.01,
+                                    rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+        points = divide(line)
+
+        circ = []
+        for i in points:
+            p = translate(i, line)
+            c = self.hls.DuplicateCurve()
+            c.Transform(p)
+            circ.append(c)
+        return circ
+
+    def __init__(self, curve, reverse=None):
+        Side.__dict__['__init__'](self, curve)
+        self.reverse = reverse
+        self.holes = None
+
+
+
 class Bottom(BendSide):
     side_offset = None
+
+    def __init__(self, curve):
+        BendSide.__dict__['__init__'](self, curve)
+
+
+class HeatSchov(BendSide):
+    side_offset = 6.3
+    fres_offset = 4.0
+    length = 26.24
+
+    @property
+    def top_part(self):
+        self._top_part = self.fres.Offset(rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._top_part[0]
+
+    @property
+    def fres_shift(self):
+        self._fres_shift = self.fres.Offset(rh.Plane.WorldXY, self.fres_offset, 0.01,
+                                          rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._fres_shift[0]
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
