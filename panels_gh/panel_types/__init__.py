@@ -24,7 +24,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import BendSide, Niche, Bottom, Side, NicheShortened
+from main_sides import Niche, Bottom, Side, NicheShortened
 
 reload(main_sides)
 
@@ -33,7 +33,10 @@ main_panels = imp.load_module("main_panels", panelfile, panelfilename, (panelsuf
 
 main_panels.__init__("main_panels", "generic nodule")
 from main_panels import MainPanel, NichePanel
+import main_tagging, main_framing
 
+reload(main_tagging)
+reload(main_framing)
 reload(main_panels)
 
 
@@ -43,11 +46,15 @@ def bound_rec(crv):
     return bound_rec
 
 
+@main_tagging.Framer
+@main_framing.MainFrame
 class P_1(MainPanel):
-    def __init__(self, surface, cogs_bend=None, tag=None):
-        MainPanel.__dict__['__init__'](self, surface, cogs_bend, tag)
+    def __init__(self, surface, tag, cogs_bend, *args, **kwargs):
+        MainPanel.__dict__['__init__'](self, surface, tag, cogs_bend, *args, **kwargs)
 
 
+@main_tagging.Framer
+@main_framing.MainFrame
 class P_2(MainPanel):
 
     @property
@@ -71,8 +78,8 @@ class P_2(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, cogs_bend=None, tag=None):
-        MainPanel.__dict__['__init__'](self, surface, cogs_bend, tag)
+    def __init__(self, surface, tag, cogs_bend, *args, **kwargs):
+        MainPanel.__dict__['__init__'](self, surface, tag, cogs_bend, *args, **kwargs)
 
     def gen_side_types(self):
         self.niche = Niche(self.edges[2])
@@ -83,6 +90,8 @@ class P_2(MainPanel):
         self.intersect()
 
 
+@main_tagging.Framer
+@main_framing.MainFrame
 class N_1(NichePanel):
 
     @property
@@ -94,10 +103,12 @@ class N_1(NichePanel):
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
-    def __init__(self, surface, cogs_bend=None, tag=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surface, cogs_bend, tag, **kwargs)
+    def __init__(self, surface, tag, cogs_bend, *args, **kwargs):
+        NichePanel.__dict__['__init__'](self, surface, tag, cogs_bend, *args, **kwargs)
 
 
+@main_tagging.Framer
+@main_framing.MainFrame
 class N_3(NichePanel):
     @property
     def bound_plane(self):
@@ -120,8 +131,8 @@ class N_3(NichePanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, cogs_bend=None, tag=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surface, cogs_bend, tag, **kwargs)
+    def __init__(self, surface, tag, cogs_bend, *args, **kwargs):
+        NichePanel.__dict__['__init__'](self, surface, tag, cogs_bend, *args, **kwargs)
 
     def gen_side_types(self):
         self.niche = NicheShortened(self.edges[0])
@@ -132,6 +143,8 @@ class N_3(NichePanel):
         self.intersect()
 
 
+@main_tagging.Framer
+@main_tagging.Extender
 class N_2(NichePanel):
     bend_ofs = 45
     top_ofs = 0
@@ -194,8 +207,8 @@ class N_2(NichePanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surface, tag=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surface, tag, **kwargs)
+    def __init__(self, surface, tag, *args, **kwargs):
+        NichePanel.__dict__['__init__'](self, surface, tag, *args, **kwargs)
         self.__dict__.update(**kwargs)
 
         self.rev_surf = self.surf.Reverse(1).ToBrep()
