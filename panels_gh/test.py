@@ -9,7 +9,6 @@ except:
 
 import sys
 import imp
-import ghpythonlib.treehelpers as th
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -68,21 +67,30 @@ class UnrollPackage:
             new = self.panels_dict[key](value)
 
             if key != 'N_4':
-                71, 1200, 21,
-                setattr(self, key, MainFrame(new))
+
+                setattr(self, key, MainFrame(71, 1200, 21, new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
             else:
                 setattr(self, key, new)
 
 
+"""
 def main():
     global x, y, circle, crv
     print(crv.__dict__)
     a = UnrollPackage(x, y, circle, crv.__dict__)
-    side = th.list_to_tree(a.data)
-    return a, side
-
+    side = a.data
+    return a, side"""
 
 if __name__ == "__main__":
-    a, side = main()
+    # a, sides = main()
+    a = P_1
+    b = P_2
+    # pprint.pprint(sides)
+
+    # sidel = []
+    # for side_ in sides:
+    #    sidel.append([s.objects for s in side_])
+
+    # side = th.list_to_tree(sidel)
