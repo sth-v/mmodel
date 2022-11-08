@@ -1,40 +1,24 @@
+import json
+
 import Rhino
+import System.Drawing.Color as Color
 
-input = [{
-    "name": "Laser Cut",
-    "color": [255, 255, 255],
-    "objects": []
-},
-    {
-        "name": "Frezerovka",
-        "color": [255, 0, 0],
-        "objects": []
-    },
-
-    {
-        "name": "Razmetka Frezer",
-        "color": [0, 255, 0],
-        "objects": []
-    },
-    {
-        "name": "Markirovka Laser",
-        "color": [255, 255, 0],
-        "objects": []
-    }]
+with open("layers.json") as f:
+    input = json.load(f)
 
 
-class Layer(object, dict):
-    objects = []
+class Layer(dict):
 
-    def __init__(self, name="Default", color=(255, 255, 255), isvisible=True, objects=[], **properties):
+    def __init__(self, name="Default", color=(255, 255, 255, 255), isvisible=True, objects=[], **properties):
         object.__init__(self)
+        self._dict = None
         self.name = name
         self.color = color
-
+        self.objects = []
         self._layer = Rhino.DocObjects.Layer()
         self._layer.Name = self.name
-        self._layer.Color = self.color
-        self._layer.PlotColor = self.color
+        self._layer.Color = Color.FromArgb(*self.color)
+        self._layer.PlotColor = Color.FromArgb(*self.color)
         self.isvisible = isvisible
         self.objects += objects
         self.dict.update(properties)
@@ -47,12 +31,6 @@ class Layer(object, dict):
     @isvisible.setter
     def isvisible(self, v):
         self._layer.IsVisible = v
-
-    def __iadd__(self, other):
-        try:
-            self.objects += list(other)
-        except:
-            self.objects += [other]
 
     @property
     def dict(self):
