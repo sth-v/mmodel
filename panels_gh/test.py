@@ -68,12 +68,12 @@ from main_framing import MainFrame
 class UnrollPackage:
     panels_dict = {'P_1': P_1, 'P_2': P_2, 'P_3': P_3, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4}
 
-    def __init__(self, x, y, circle, bend_hole, elements):
+    def __init__(self, x, y, circle, pins_hole, bend_hole, elements):
         self.cog = TT(x, y, circle)
         self.hls = bend_hole
 
         tr = rh.Transform.Rotation(math.pi / 2, rh.Point3d(0, 0, 0))
-        self.hls_rot = self.hls.DuplicateCurve()
+        self.hls_rot = pins_hole
         self.hls_rot.Transform(tr)
 
 
@@ -123,9 +123,9 @@ class UnrollPackage:
 
 
 def main():
-    global x, y, circle, bend_hole, crv
+    global x, y, circle, pins_hole, bend_hole, crv
 
-    a = UnrollPackage(x, y, circle, bend_hole, crv.__dict__)
+    a = UnrollPackage(x, y, circle, pins_hole, bend_hole, crv.__dict__)
     side = th.list_to_tree(a.data)
     return a, side
 
