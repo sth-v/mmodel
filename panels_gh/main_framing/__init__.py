@@ -1,5 +1,7 @@
 __author__ = "sofyadobycina"
 
+import copy
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -21,7 +23,6 @@ else:
     sys.path.extend(
         [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
          os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
-
 
 taggingfile, taggingfilename, (taggingsuffix, taggingmode, taggingtype) = imp.find_module("main_tagging", path=[PWD])
 main_tagging = imp.load_module("main_tagging", taggingfile, taggingfilename, (taggingsuffix, taggingmode, taggingtype))
@@ -91,11 +92,12 @@ def intersect(values):
         res.append(trimed)
     return res
 
+
 def offset_side(elem, dist, extend='st'):
     if extend == 'st':
         det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1]])
     elif extend == 'e':
-        det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1]+200])
+        det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 200])
     elif extend == 'both':
         det = offset(elem, dist, extend=[elem.Domain[0] + 200, elem.Domain[1] - 200])
         if det is None:
@@ -105,12 +107,29 @@ def offset_side(elem, dist, extend='st'):
     return det
 
 
-class MainFrame:
+class UnrollDict(object):
+
+    def __get__(self, instance, owner=None):
+        ud = copy.deepcopy(instance.panel.unroll_dict)
+
+        ud['frame'] = instance.bound_frame.ToNurbsCurve(),
+        ud['layers'] = instance._layers
+
+        return ud
+
+
+class MainFrame(object):
+    unroll_dict = UnrollDict()
     rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -15, 0), rh.Point3d(2.5, 15, 0)).ToNurbsCurve()
 
     def __init__(self, panel):
+        object.__init__(self)
+        self.cls_panel = panel
 
-        self.panel = panel
+    def __call__(self, surface, tag, cogs_bend, *args):
+        self.panel = self.cls_panel(surface, tag, cogs_bend, *args)
+
+        self._layers = copy.deepcopy(layers)
         self.cogs = self.panel.cogs_bend
 
         self.__dict__.update(self.panel.frame_dict)
@@ -120,7 +139,13 @@ class MainFrame:
         self.top = self.panel.top_ofs
         self.niche = self.panel.niche_ofs
         self.side_rec = self.panel.side_rec
+        self._layers[0].objects.extend(self.region)
+        self._layers[1].objects.extend(self.panel.fres)
 
+        if hasattr(self.panel, 'grav'):
+            self._layers[2].objects.extend(self.panel.grav)
+
+        return self
     @property
     def frame_offset(self):
         fr_one = self.frame_inner()[0]
@@ -164,24 +189,8 @@ class MainFrame:
 
     @property
     def all_elems(self):
-        layers[0].objects += self.region
-        layers[1].objects += self.panel.fres
 
-        if hasattr(self.panel, 'grav'):
-            layers[2].objects += self.panel.grav
-
-        return layers
-
-    @property
-    def unroll_dict_f(self):
-        self.panel.unroll_dict.update(
-            {
-                "frame": self.bound_frame.ToNurbsCurve(),
-                "layers": self.all_elems
-            }
-        )
-
-        return self.panel.unroll_dict
+        return self._layers
 
     def frame_all(self):
         frame_all = rh.Curve.JoinCurves(self.all_offset())
