@@ -231,6 +231,7 @@ class Niche(BendSide):
     @property
     def join_region(self):
         if self.init_cogs:
+            print(self.init_cogs, 'reg')
 
             l = list(self._join_brep.Brep.Faces)
             l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
@@ -240,13 +241,9 @@ class Niche(BendSide):
             p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
             trim = trg.Trim(p_one, p_two)
 
-            tt = []
-
-            tt.append(trim)
-            tt.extend(self.hls[2:-2])
-
         else:
-            tt = self.hls[2:-4:8] + self.hls[3:-4:8] + self.hls[-4:-2]
+
+            print(self.init_cogs, 'false reg')
             trim = self.join
 
         return trim

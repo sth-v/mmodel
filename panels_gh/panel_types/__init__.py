@@ -87,12 +87,9 @@ class P_2(MainPanel):
         unrol = list(self.unrol[2])
         circ = []
         for i in unrol:
-            vec = rh.Vector3d(i)
-            tr = rh.Transform.Translation(vec)
-            n = self.hls.DuplicateCurve()
-            n.Transform(tr)
-            n.Transform(self.bound_plane)
-            circ.append(n)
+            c = rh.Circle(i, 3.25)
+            c.Transform(self.bound_plane)
+            circ.append(c.ToNurbsCurve())
         return circ
 
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None):

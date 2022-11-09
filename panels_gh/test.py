@@ -70,9 +70,10 @@ class UnrollPackage:
 
     def __init__(self, x, y, circle, pins_hole, bend_hole, elements):
         self.cog = TT(x, y, circle)
-        self.hls = bend_hole
-
         tr = rh.Transform.Rotation(math.pi / 2, rh.Point3d(0, 0, 0))
+        self.hls = bend_hole
+        self.hls.Transform(tr)
+
         self.hls_rot = pins_hole
         self.hls_rot.Transform(tr)
 
@@ -127,6 +128,7 @@ def main():
 
     a = UnrollPackage(x, y, circle, pins_hole, bend_hole, crv.__dict__)
     side = th.list_to_tree(a.data)
+    #a.P_2.niche.bend_surf
     return a, side
 
 
