@@ -121,6 +121,7 @@ class MainFrame:
         self.top = self.panel.top_ofs
         self.niche = self.panel.niche_ofs
         self.side_rec = self.panel.side_rec
+        self.tag = self.panel.tag
 
     @property
     def frame_offset(self):

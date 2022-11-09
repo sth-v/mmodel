@@ -164,7 +164,8 @@ class Niche(BendSide):
 
     @property
     def bend_axis(self):
-        return rh.Line(self.join.PointAtStart, self.join.PointAtEnd)
+        #return rh.Line(self.join.PointAtStart, self.join.PointAtEnd)
+        return self.fres
 
     @property
     def join_cp(self):
@@ -186,7 +187,6 @@ class Niche(BendSide):
         self.hls = []
         cnt = []
         for ii in cu:
-
             h = self.choles(self, ii)
             aa = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[0], rh.Plane.WorldXY,
                                                         0.01)
@@ -209,13 +209,13 @@ class Niche(BendSide):
 
     @property
     def cogs_unit(self):
-        return Pattern(self._cg, 23, self.bend_axis.Length)
+        return Pattern(self._cg, 23, self.bend_axis.GetLength())
 
     @property
     def otgib_morph(self):
         self._morph = rh.Morphs.FlowSpaceMorph(
             rh.Line(rh.Point3d(0.0, self.cogs_shift, 0.0),
-                    rh.Point3d(self.bend_axis.Length, self.cogs_shift, 0.0)).ToNurbsCurve(),
+                    rh.Point3d(self.bend_axis.GetLength(), self.cogs_shift, 0.0)).ToNurbsCurve(),
             self.bend_axis.ToNurbsCurve(), True, False, True
         )
         return self._morph
@@ -231,7 +231,6 @@ class Niche(BendSide):
     @property
     def join_region(self):
         if self.init_cogs:
-            print(self.init_cogs, 'reg')
 
             l = list(self._join_brep.Brep.Faces)
             l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
@@ -242,8 +241,6 @@ class Niche(BendSide):
             trim = trg.Trim(p_one, p_two)
 
         else:
-
-            print(self.init_cogs, 'false reg')
             trim = self.join
 
         return trim

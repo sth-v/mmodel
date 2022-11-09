@@ -84,7 +84,7 @@ class UnrollPackage:
         for key, value in elements.items():
             if key != 'N_4' and key != 'N_2' and key != 'P_3':
 
-                new = self.panels_dict[key](cogs_bend=False, **value)
+                new = self.panels_dict[key](cogs_bend=True, **value)
                 new.hls = self.hls_rot
 
                 new.niche.cg = self.cog
@@ -99,7 +99,6 @@ class UnrollPackage:
                 setattr(self, key, MainFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-                self.fr.append(det.unroll_dict_f)
 
             elif key == 'N_2':
                 new = self.panels_dict[key](**value)
@@ -128,7 +127,7 @@ def main():
 
     a = UnrollPackage(x, y, circle, pins_hole, bend_hole, crv.__dict__)
     side = th.list_to_tree(a.data)
-    #a.P_2.niche.bend_surf
+
     return a, side
 
 
