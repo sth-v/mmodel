@@ -146,8 +146,7 @@ class MainPanel(SimplePanel):
 
     @property
     def unroll_dict(self):
-        _unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf}
-        return _unroll_dict
+        return {'tag': self.tag, 'unroll': self.unrol_surf}
 
     @property
     def frame_dict(self):
@@ -162,7 +161,7 @@ class MainPanel(SimplePanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None):
+    def __init__(self, surf, tag=None, cogs_bend=None, pins=None):
         SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
 
         unrol = rh.Unroller(self.surf)
@@ -252,8 +251,8 @@ class NichePanel(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        MainPanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
+    def __init__(self, surf, tag=None, cogs_bend=None, pins=None, **kwargs):
+        MainPanel.__dict__['__init__'](self, surf, tag,cogs_bend,pins )
         self.__dict__.update(**kwargs)
 
         unrol = rh.Unroller(self.surf)
