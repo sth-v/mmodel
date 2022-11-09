@@ -167,12 +167,12 @@ class Tagger:
         ap = RhIterArgParser(inst.unroll_dict_f)
         # self.panels = FramePanel(self.inst.panel_r, 0, P_NICHE), FramePanel(self.inst.panel_l, 1, P_NICHE)
         # self.niches = FramePanel(self.inst.niche_r, 0, N_NICHE), FramePanel(self.inst.niche_l, 1, N_NICHE)
-        #with open("{}/dump{}.json".format(PWD, id(self)), "w") as pkl:
-            #json.dump(ap, pkl, indent=3)
+        # with open("{}/dump{}.json".format(PWD, id(self)), "w") as pkl:
+        # json.dump(ap, pkl, indent=3)
         # with open("Picklefile","w") as pklf:
         #    pklf.writelines(["PROTOCOL={}".format(pickle.HIGHEST_PROTOCOL)])
         #    pickle.dump(self, pklf, pickle.HIGHEST_PROTOCOL)
 
-        #pprint(dict(ap))
+        # pprint(dict(ap))
 
         return inst

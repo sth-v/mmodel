@@ -1,5 +1,3 @@
-import Rhino
-
 input = [{
     "name": "Laser Cut",
     "color": [255, 255, 255],
@@ -23,30 +21,25 @@ input = [{
     }]
 
 
-class Layer(object, dict):
+class Layer(object):
     objects = []
 
-    def __init__(self, name="Default", color=(255, 255, 255), isvisible=True, objects=[], **properties):
+    def __init__(self, name="Default", color=(255, 255, 255, 255), isvisible=True, **properties):
         object.__init__(self)
         self.name = name
         self.color = color
-
-        self._layer = Rhino.DocObjects.Layer()
-        self._layer.Name = self.name
-        self._layer.Color = self.color
-        self._layer.PlotColor = self.color
+        self._dict = {}
         self.isvisible = isvisible
-        self.objects += objects
+        self.objects = properties["objects"] if "objects" in properties.keys() else []
         self.dict.update(properties)
-        dict.__init__(self, **self.dict)
 
     @property
     def isvisible(self):
-        return self._layer.IsVisible
+        return self.visible
 
     @isvisible.setter
     def isvisible(self, v):
-        self._layer.IsVisible = v
+        self.visible = v
 
     def __iadd__(self, other):
         try:
@@ -69,6 +62,3 @@ class Layer(object, dict):
     @dict.setter
     def dict(self, v):
         self._dict = v
-
-
-layers = [Layer(**i) for i in input]

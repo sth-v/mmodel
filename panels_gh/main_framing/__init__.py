@@ -1,5 +1,8 @@
 __author__ = "sofyadobycina"
 
+import json
+from collections import namedtuple
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -22,7 +25,6 @@ else:
         [os.getenv("MMODEL_DIR") + "/panels_gh", os.getenv("MMODEL_DIR") + "/panels_gh/cogs",
          os.getenv("MMODEL_DIR") + "/panels_gh/tagging"])
 
-
 taggingfile, taggingfilename, (taggingsuffix, taggingmode, taggingtype) = imp.find_module("main_tagging", path=[PWD])
 main_tagging = imp.load_module("main_tagging", taggingfile, taggingfilename, (taggingsuffix, taggingmode, taggingtype))
 
@@ -40,19 +42,18 @@ import cogs
 
 reload(cogs)
 
-#drawlfile, drawfilename, (drawsuffix, drawmode, drawtype) = imp.find_module("draw", path=[PWD])
-#draw = imp.load_module("draw", drawlfile, drawfilename, (drawsuffix, drawmode, drawtype))
+# drawlfile, drawfilename, (drawsuffix, drawmode, drawtype) = imp.find_module("draw", path=[PWD])
+# draw = imp.load_module("draw", drawlfile, drawfilename, (drawsuffix, drawmode, drawtype))
 
-#draw.__init__("draw", "generic nodule")
-#reload(draw)
-#from draw import layers
+# draw.__init__("draw", "generic nodule")
+# reload(draw)
+# from draw import layers
 
 import Rhino.Geometry as rh
 
 import rhinoscriptsyntax as rs
 
 import math
-import ghpythonlib.treehelpers as th
 
 
 def offset(crv, ofs_dist, extend=None):
@@ -92,11 +93,12 @@ def intersect(values):
         res.append(trimed)
     return res
 
+
 def offset_side(elem, dist, extend='st'):
     if extend == 'st':
         det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1]])
     elif extend == 'e':
-        det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1]+200])
+        det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 200])
     elif extend == 'both':
         det = offset(elem, dist, extend=[elem.Domain[0] + 200, elem.Domain[1] - 200])
         if det is None:
@@ -106,11 +108,21 @@ def offset_side(elem, dist, extend='st'):
     return det
 
 
+AdvanceTag = namedtuple("AdvanceTag", ["full", 'typology', 'side', 'row', 'col', 'part'])
+
+import draw
+
+reload(draw)
+draw.Layer("name")
+import itertools
+
+
 class MainFrame:
     rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -15, 0), rh.Point3d(2.5, 15, 0)).ToNurbsCurve()
 
     def __init__(self, panel):
-
+        with open(PWD + "/configs/layers.json") as f:
+            self._layers = json.load(f)
         self.panel = panel
         self.cogs = self.panel.cogs_bend
 
@@ -121,6 +133,9 @@ class MainFrame:
         self.top = self.panel.top_ofs
         self.niche = self.panel.niche_ofs
         self.side_rec = self.panel.side_rec
+        self.tag = self.panel.tag
+        self.advance_tag = AdvanceTag(self.panel.tag, *self.panel.tag.split("_"))
+        print self.tag
 
     @property
     def frame_offset(self):
@@ -165,6 +180,7 @@ class MainFrame:
 
     @property
     def all_elems(self):
+
         all_elems = []
         try:
             all_elems += [self.region + self.panel.cut_holes]
@@ -177,6 +193,14 @@ class MainFrame:
             all_elems += [self.panel.grav]
 
         return all_elems
+
+    @property
+    def layers(self):
+        lays = []
+        for lay, o in itertools.izip_longest(self._layers, self.all_elems, fillvalue=[]):
+            lay["objects"] = o
+            lays.append(lay)
+        return lays
 
     @property
     def unroll_dict_f(self):

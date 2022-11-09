@@ -12,6 +12,7 @@ import imp
 import ghpythonlib.treehelpers as th
 import math
 import Rhino.Geometry as rh
+
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
     sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
@@ -34,7 +35,6 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import HolesSideTwo
 
 pfile, pfilename, (psuffix, pmode, ptype) = imp.find_module("main_panels", path=[PWD])
 main_panels = imp.load_module("main_panels", pfile, pfilename, (psuffix, pmode, ptype))
@@ -50,7 +50,6 @@ panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuf
 panel_types.__init__("panel_types", "generic nodule")
 from panel_types import P_1, P_2, N_1, N_3, N_2, P_3
 
-
 reload(panel_types)
 
 framelfile, framefilename, (framesuffix, framemode, frametype) = imp.find_module("main_framing", path=[PWD])
@@ -61,8 +60,7 @@ main_framing.__init__("main_framing", "generic nodule")
 reload(main_framing)
 
 from main_framing import MainFrame
-
-
+import random
 
 
 class UnrollPackage:
@@ -77,14 +75,15 @@ class UnrollPackage:
         self.hls_rot = pins_hole
         self.hls_rot.Transform(tr)
 
-
         self.data = []
         self.fr = []
 
+        self.cogs_bend = random.choice([True, False])
         for key, value in elements.items():
+
             if key != 'N_4' and key != 'N_2' and key != 'P_3':
 
-                new = self.panels_dict[key](cogs_bend=False, **value)
+                new = self.panels_dict[key](cogs_bend=self.cogs_bend, **value)
                 new.hls = self.hls_rot
 
                 new.niche.cg = self.cog
@@ -120,7 +119,7 @@ class UnrollPackage:
                 new = self.panels_dict[key](**value)
                 setattr(self, key, new)
                 det = getattr(self, key)
-                #self.data.append(det.all_elems)
+                # self.data.append(det.all_elems)
 
 
 def main():
@@ -128,7 +127,7 @@ def main():
 
     a = UnrollPackage(x, y, circle, pins_hole, bend_hole, crv.__dict__)
     side = th.list_to_tree(a.data)
-    #a.P_2.niche.bend_surf
+    # a.P_2.niche.bend_surf
     return a, side
 
 
