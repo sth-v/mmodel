@@ -1,5 +1,6 @@
-import math
 import os
+
+import math
 
 try:
     rs = __import__("rhinoscriptsyntax")
@@ -32,13 +33,12 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 main_panels = imp.load_module("main_panels", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 main_panels.__init__("main_panels", "generic nodule")
-from main_panels import MainPanel, NichePanel
-import main_tagging, main_framing
 from main_panels import MainPanel, NichePanel, SimplePanel
 
-reload(main_tagging)
-reload(main_framing)
 reload(main_panels)
+import main_tagging
+
+reload(main_tagging)
 
 
 def bound_rec(crv):
@@ -47,8 +47,6 @@ def bound_rec(crv):
     return bound_rec
 
 
-@main_tagging.Framer
-@main_framing.MainFrame
 class P_1(MainPanel):
 
     @property
@@ -61,12 +59,10 @@ class P_1(MainPanel):
             circ.append(c.ToNurbsCurve())
         return circ
 
-    def __init__(self, surf, tag=None, cogs_bend=None, pins=None *args, **kwargs):
-        MainPanel.__dict__['__init__'](self, surface, tag, cogs_bend, *args, **kwargs)
+    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        MainPanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
 
-@main_tagging.Framer
-@main_framing.MainFrame
 class P_2(MainPanel):
 
     @property
@@ -100,8 +96,8 @@ class P_2(MainPanel):
             circ.append(c.ToNurbsCurve())
         return circ
 
-    def __init__(self, surf, tag=None, cogs_bend=None, pins=None *args, **kwargs):
-        MainPanel.__dict__['__init__'](self, surface, tag, cogs_bend, *args, **kwargs)
+    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        MainPanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
     def gen_side_types(self):
         self.niche = Niche(self.edges[2], self.cogs_bend)
@@ -110,6 +106,7 @@ class P_2(MainPanel):
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
+
 
 class P_3(SimplePanel):
     @property
@@ -127,28 +124,29 @@ class P_3(SimplePanel):
     def cut_holes(self):
         unrol = self.unrol[2]
         h = []
-        for i in unrol[0:len(self.pins)/2]:
+        for i in unrol[0:len(self.pins) / 2]:
             c = rh.Circle(i, 5)
             h.append(c)
 
-        for i in unrol[len(self.pins)/2:]:
+        for i in unrol[len(self.pins) / 2:]:
             vec = rh.Vector3d(i)
             tr = rh.Transform.Translation(vec)
             n = self.hls.DuplicateCurve()
             n.Transform(tr)
             h.append(n)
         return h
+
     @property
     def all_elems(self):
-        return [self.cut+self.cut_holes, self.fres]
+        return [self.cut + self.cut_holes, self.fres]
 
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None):
         SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
         unrol = rh.Unroller(self.surf)
 
         if self.pins is not None:
-            unrol.AddFollowingGeometry(points=self.pins[0:len(self.pins)/2])
-            unrol.AddFollowingGeometry(points=self.pins[len(self.pins)/2:])
+            unrol.AddFollowingGeometry(points=self.pins[0:len(self.pins) / 2])
+            unrol.AddFollowingGeometry(points=self.pins[len(self.pins) / 2:])
 
         self.unrol = unrol.PerformUnroll()
         self.unrol_surf = self.unrol[0][0]
@@ -156,12 +154,12 @@ class P_3(SimplePanel):
         self.gen_side_types()
 
     def gen_side_types(self):
-        self.side = [HeatSchov(self.edges[0]), HeatSchov(self.edges[1]), HeatSchov(self.edges[2]), HeatSchov(self.edges[3])]
+        self.side = [HeatSchov(self.edges[0]), HeatSchov(self.edges[1]), HeatSchov(self.edges[2]),
+                     HeatSchov(self.edges[3])]
         self.side_types = self.side
         self.intersect()
 
-@main_tagging.Framer
-@main_framing.MainFrame
+
 class N_1(NichePanel):
 
     @property
@@ -173,12 +171,10 @@ class N_1(NichePanel):
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
-    def __init__(self, surf, tag=None, cogs_bend=None, pins=None *args, **kwargs):
-        NichePanel.__dict__['__init__'](self, surface, tag, cogs_bend, *args, **kwargs)
+    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
 
-@main_tagging.Framer
-@main_framing.MainFrame
 class N_3(NichePanel):
     @property
     def bound_plane(self):
@@ -201,8 +197,8 @@ class N_3(NichePanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf, tag=None, cogs_bend=None, pins=None * args, **kwargs):
-        NichePanel.__dict__['__init__'](self, surface, tag, cogs_bend, *args, **kwargs)
+    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, tag=tag, **kwargs)
 
     def gen_side_types(self):
         self.niche = NicheShortened(self.edges[0])
@@ -213,8 +209,6 @@ class N_3(NichePanel):
         self.intersect()
 
 
-@main_tagging.Framer
-@main_tagging.Extender
 class N_2(NichePanel):
     bend_ofs = 45
     top_ofs = 0
@@ -277,8 +271,9 @@ class N_2(NichePanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf, tag=None, pins=None, *args, **kwargs):
-        NichePanel.__dict__['__init__'](self, surface, tag,  pins=None, *args,**kwargs)
+    def __init__(self, surf=None, pins=None, tag=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, tag=tag, **kwargs)
+
         self.__dict__.update(**kwargs)
 
         self.rev_surf = self.surf.Reverse(1).ToBrep()

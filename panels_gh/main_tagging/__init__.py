@@ -111,8 +111,8 @@ class Framer:
         self._cls = cls
 
     def __call__(self, u, v, s, *args, **kwargs):
-        xxx = self._cls(*args)
-        _, vv = xxx.stable_dct["frame"].TryGetPolyline()
+        xxx = self._cls
+        _, vv = xxx.unroll_dict_f["frame"].TryGetPolyline()
         r = rh.Rectangle3d.CreateFromPolyline(vv)
         rH = 1 / r.Height
         rW = 1 / r.Width
@@ -122,26 +122,43 @@ class Framer:
         # self.bb=rh.Rectangle3d.CreateFromPolyline(self.c)
 
         r = Rhino.DocObjects.DimensionStyle()
-
-        r.Font = r.Font.__class__("JetBrains Mono")
+        r.TextHeight = 30
 
         ee = rh.TextEntity()
 
-        self.tag = xxx.stable_dct["data"]["tag"]
+        self.tag = xxx.unroll_dict_f["tag"]
 
-        ee.Text = xxx.stable_dct["data"]["tag"]
-        ee.TextHeight = 16
+        ee.Text = " " + xxx.unroll_dict_f["tag"]
+        ee.TextHeight = 30
 
         ee.Plane = self.pln
+        ee.Font = Rhino.DocObjects.Font("GOST type A")
+        ee.SetItalic(True)
 
-        t = rh.Transform.Scale(ee.Plane, s, s, 1.0)
+        t = rh.Transform.Scale(ee.Plane, 1, 1, 1.0)
         self.text = ee
-        eee = self.text.CreateCurves(r, False, 1.0, 0.01)
+
+        mxf = Rhino.Geometry.Transform.Mirror(
+            Rhino.Geometry.Plane(self.text.Plane.Origin, self.text.Plane.YAxis, self.text.Plane.ZAxis))
+        m2 = Rhino.Geometry.Transform.Mirror(Rhino.Geometry.Plane.WorldXY)
+
+        eee = list(self.text.CreateCurves(r, False, 1.0, 0.01))
         eeee = []
-        for crv in eee:
-            crv.Transform(t)
-            eeee.append(crv)
-        xxx.text_g = copy.deepcopy(eeee)
+        for ee in eee:
+            arcs = ee.ToArcsAndLines(tolerance=0.1, angleTolerance=0.01, minimumLength=3.0,
+                                     maximumLength=999999)
+
+            arcs.Transform(t)
+            arcs1 = copy.deepcopy(arcs)
+            arcs.Transform(mxf)
+
+            arcs1.Transform(m2)
+            arcs.Transform(m2)
+            eeee.append((0, arcs1))
+            eeee.append((0, arcs))
+
+        xxx.text_geometry = eeee
+
         return xxx
 
 

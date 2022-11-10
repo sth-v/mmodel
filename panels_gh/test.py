@@ -62,6 +62,11 @@ reload(main_framing)
 from main_framing import MainFrame
 import random
 
+import main_tagging
+
+reload(main_tagging
+       )
+
 
 class UnrollPackage:
     panels_dict = {'P_1': P_1, 'P_2': P_2, 'P_3': P_3, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4}
@@ -126,6 +131,7 @@ def main():
     global x, y, circle, pins_hole, bend_hole, crv
 
     a = UnrollPackage(x, y, circle, pins_hole, bend_hole, crv.__dict__)
+
     side = th.list_to_tree(a.data)
     # a.P_2.niche.bend_surf
     return a, side

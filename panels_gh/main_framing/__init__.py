@@ -127,7 +127,7 @@ class MainFrame:
         self.cogs = self.panel.cogs_bend
 
         self.__dict__.update(self.panel.frame_dict)
-
+        self._text_geometry = [[], [], [], [], []]
         self.bottom_rec = self.panel.bottom_rec
         self.bend = self.panel.bend_ofs
         self.top = self.panel.top_ofs
@@ -135,7 +135,13 @@ class MainFrame:
         self.side_rec = self.panel.side_rec
         self.tag = self.panel.tag
         self.advance_tag = AdvanceTag(self.panel.tag, *self.panel.tag.split("_"))
-        print self.tag
+        self._unroll_dict = {
+            "frame": self.bound_frame.ToNurbsCurve(),
+            "layers": self.all_elems
+        }
+
+        print
+        self.tag
 
     @property
     def frame_offset(self):
@@ -181,37 +187,53 @@ class MainFrame:
     @property
     def all_elems(self):
 
-        all_elems = []
-        try:
-            all_elems += [self.region + self.panel.cut_holes]
-        except AttributeError:
-            all_elems += [self.region]
+        _all_elems = [[], [], [], [], []]
 
-        all_elems += [self.panel.fres]
+        try:
+            _all_elems[0].extend(self.region + self.panel.cut_holes)
+        except AttributeError:
+            _all_elems[0].extend(self.region)
+
+        _all_elems[1].extend(self.panel.fres)
 
         if hasattr(self.panel, 'grav'):
-            all_elems += [self.panel.grav]
+            _all_elems[2].extend(self.panel.grav)
+        ll = []
+        for elem in _all_elems:
+            arcs = []
+            for ee in elem:
+                arcs.append(
+                    ee.ToArcsAndLines(tolerance=0.1, angleTolerance=0.01, minimumLength=3.0, maximumLength=999999))
+            ll.append(arcs)
+        return ll
 
-        return all_elems
+    @property
+    def text_geometry(self):
+        return self._text_geometry
+
+    @text_geometry.setter
+    def text_geometry(self, v):
+
+        self._text_geometry = v
 
     @property
     def layers(self):
         lays = []
-        for lay, o in itertools.izip_longest(self._layers, self.all_elems, fillvalue=[]):
+        all_elems = self.all_elems
+        for i, v in self.text_geometry:
+            all_elems[i].append(v)
+
+        for lay, o in itertools.izip_longest(self._layers, all_elems, fillvalue=[]):
             lay["objects"] = o
             lays.append(lay)
         return lays
 
     @property
     def unroll_dict_f(self):
-        self.panel.unroll_dict.update(
-            {
-                "frame": self.bound_frame.ToNurbsCurve(),
-                "layers": self.all_elems
-            }
-        )
+        dct = self.panel.unroll_dict
+        dct.update(self._unroll_dict)
 
-        return self.panel.unroll_dict
+        return dct
 
     def frame_all(self):
         frame_all = rh.Curve.JoinCurves(self.all_offset())
