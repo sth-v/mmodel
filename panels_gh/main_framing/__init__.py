@@ -140,8 +140,6 @@ class MainFrame:
             "layers": self.all_elems
         }
 
-        print
-        self.tag
 
     @property
     def frame_offset(self):
