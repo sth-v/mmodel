@@ -142,15 +142,6 @@ class P_3(SimplePanel):
 
 class N_1(NichePanel):
 
-    @property
-    def bound_plane(self):
-        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
-        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        fr = self.niche.fres.FrameAt(self.niche.fres.Domain[0])[1]
-        bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), fr.XAxis, -fr.YAxis)
-        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
-        return tr
-
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
         NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
@@ -160,8 +151,10 @@ class N_3(NichePanel):
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        fr = self.niche.fres.FrameAt(self.niche.fres.Domain[0])[1]
-        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), fr.XAxis, -fr.YAxis)
+        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1]-0.01)-self.niche.fres.PointAt(self.niche.fres.Domain[0]+0.01))
+        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1]-0.01)-self.niche.fres.PointAt(self.niche.fres.Domain[0]+0.01))
+        yaxis.Rotate(math.pi/2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
@@ -178,12 +171,12 @@ class N_3(NichePanel):
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, tag=tag, **kwargs)
+        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
     def gen_side_types(self):
-        self.niche = NicheShortened(self.edges[0])
+        self.niche = NicheShortened(self.edges[0], self.cogs_bend)
         self.bottom = Bottom(self.edges[2])
-        self.side = [HolesSideOne(self.edges[1], True), HolesSideTwo(self.edges[3], False)]
+        self.side = [HolesSideTwo(self.edges[1], True), HolesSideOne(self.edges[3], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()

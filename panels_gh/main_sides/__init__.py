@@ -287,8 +287,8 @@ class NicheShortened(Niche):
     length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     cogs_shift = 0
 
-    def __init__(self, curve):
-        Niche.__dict__['__init__'](self, curve)
+    def __init__(self, curve, init_cogs=False):
+        Niche.__dict__['__init__'](self, curve, init_cogs=init_cogs)
 
 
 class Side(BendSide):

@@ -79,6 +79,7 @@ class UnrollPackage:
 
         self.data = []
         self.t = []
+        self.a=[]
 
         #self.cogs_bend = random.choice([True, False])
         self.cogs_bend = False
@@ -101,16 +102,17 @@ class UnrollPackage:
                 det = getattr(self, key)
 
                 self.data.append(det.all_elems)
-                self.t.append(det.panel.niche.cogs_unit._hole)
+
 
 
             elif key == 'N_2':
-                new = self.panels_dict[key](**value)
-                setattr(self, key, MainFrame(new))
-                det = getattr(self, key)
+               # new = self.panels_dict[key](**value)
+                #setattr(self, key, MainFrame(new))
+                #det = getattr(self, key)
 
-                self.data.append(det.all_elems)
-                self.t.append(det.tag)
+                #self.data.append(det.all_elems)
+                #self.t.append(det.tag)
+                pass
 
             elif key == 'P_3':
                 new = self.panels_dict[key](cogs_bend=False, **value)
@@ -133,14 +135,15 @@ class UnrollPackage:
 def main():
     global x, y, circle, bend_hole, p3_hole, cog_hole,  crv
 
-    a = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
+    aa = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
 
-    side = th.list_to_tree(a.data)
-    m = th.list_to_tree(a.t)
+    side = th.list_to_tree(aa.data)
+    #m = th.list_to_tree(aa.t)
+    #a = aa.a
 
 
-    return a, side, m
+    return aa, side
 
 
 if __name__ == "__main__":
-    a, side, m = main()
+    aa, side = main()

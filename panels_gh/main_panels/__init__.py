@@ -218,6 +218,19 @@ class NichePanel(MainPanel):
     side_rec = 110
 
     @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), xaxis, yaxis)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    @property
     def mark_ribs(self):
         mark_ribs = self.ribs_offset()
         for i, v in enumerate(mark_ribs):
@@ -264,7 +277,7 @@ class NichePanel(MainPanel):
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
     def __init__(self, surf, tag=None, cogs_bend=None, pins=None, **kwargs):
-        MainPanel.__dict__['__init__'](self, surf, tag,cogs_bend,pins )
+        MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, pins=pins)
         self.__dict__.update(**kwargs)
 
         unrol = rh.Unroller(self.surf)
@@ -299,7 +312,7 @@ class NichePanel(MainPanel):
 
     def gen_side_types(self):
 
-        self.niche = NicheShortened(self.edges[2])
+        self.niche = NicheShortened(self.edges[2], self.cogs_bend)
         self.bottom = Bottom(self.edges[0])
         self.side = [HolesSideTwo(self.edges[1], False), HolesSideOne(self.edges[3], True)]
 
