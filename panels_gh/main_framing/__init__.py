@@ -200,8 +200,9 @@ class MainFrame:
         for elem in _all_elems:
             arcs = []
             for ee in elem:
-                arcs.append(
-                    ee.ToArcsAndLines(tolerance=0.1, angleTolerance=0.01, minimumLength=3.0, maximumLength=999999))
+                #arcs.append(
+                    #ee.ToArcsAndLines(tolerance=0.1, angleTolerance=0.01, minimumLength=3.0, maximumLength=3.5*math.pi/2))
+                arcs.append(ee)
             ll.append(arcs)
         return ll
 

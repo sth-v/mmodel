@@ -131,6 +131,7 @@ class MainPanel(SimplePanel):
             ii = i.DuplicateCurve()
             ii.Transform(self.bound_plane)
             cut.append(ii)
+
         return cut
 
     @property
@@ -142,7 +143,18 @@ class MainPanel(SimplePanel):
                 ii.Transform(self.bound_plane)
                 cut.append(ii)
 
+
         return cut + self.niche_holes
+
+    @property
+    def grav(self):
+        unrol = list(self.unrol[2])
+        circ = []
+        for i in unrol:
+            c = rh.Circle(i, 3.25)
+            c.Transform(self.bound_plane)
+            circ.append(c.ToNurbsCurve())
+        return circ
 
     @property
     def unroll_dict(self):
@@ -178,7 +190,7 @@ class MainPanel(SimplePanel):
 
         self.niche = Niche(self.edges[0], self.cogs_bend)
         self.bottom = Bottom(self.edges[2])
-        self.side = [HolesSideTwo(self.edges[1], True), HolesSideOne(self.edges[3], False)]
+        self.side = [HolesSideOne(self.edges[1], True), HolesSideTwo(self.edges[3], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -289,7 +301,7 @@ class NichePanel(MainPanel):
 
         self.niche = NicheShortened(self.edges[2])
         self.bottom = Bottom(self.edges[0])
-        self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
+        self.side = [HolesSideTwo(self.edges[1], False), HolesSideOne(self.edges[3], True)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()

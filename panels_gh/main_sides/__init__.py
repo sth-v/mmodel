@@ -65,12 +65,12 @@ def niche_shift(angle_niche, side_niche, met_left_niche):
     return res
 
 
-def divide(crv):
-    st = crv.ClosestPoint(crv.PointAtLength(15))[1]
-    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - 15))[1]
+def divide(crv, dist=100, ofs=15):
+    st = crv.ClosestPoint(crv.PointAtLength(ofs))[1]
+    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
     curve = crv.Trim(st, end)
 
-    num = math.ceil(curve.GetLength() / 100)
+    num = math.ceil(curve.GetLength() / dist)
     param = curve.DivideByCount(num, True)
     points = [curve.PointAt(i) for i in param]
     return points
@@ -161,10 +161,10 @@ class Niche(BendSide):
         self.hls = None
         self._cogs = None
         self._join_brep = None
+        self.cog_hole = None
 
     @property
     def bend_axis(self):
-        #return rh.Line(self.join.PointAtStart, self.join.PointAtEnd)
         return self.fres
 
     @property
@@ -251,8 +251,24 @@ class Niche(BendSide):
         if self.init_cogs:
             tt = self.hls[2:-2]
         else:
-            tt = self.hls[2:-4:8] + self.hls[3:-4:8] + self.hls[-4:-2]
+            line = self.top_part.Offset(rh.Plane.WorldXY, -self.length / 2, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+            points = divide(line, dist=50, ofs=0)
+            circ = []
+            for i in points[0::2]:
+                p = line.ClosestPoint(i)[1]
+                fr = line.FrameAt(p)[1]
+                tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, fr)
+                h, hh = self.cog_hole[0].DuplicateCurve(), self.cog_hole[1].DuplicateCurve()
 
+                h.Transform(tr)
+                hh.Transform(tr)
+                circ.append(h)
+                circ.append(hh)
+            for i in points[1::2]:
+                c = rh.Circle(i, 1.75)
+                circ.append(c.ToNurbsCurve())
+            tt = circ
         return tt
 
     @property

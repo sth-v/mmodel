@@ -49,16 +49,6 @@ def bound_rec(crv):
 
 class P_1(MainPanel):
 
-    @property
-    def grav(self):
-        unrol = list(self.unrol[2])
-        circ = []
-        for i in unrol:
-            c = rh.Circle(i, 3.25)
-            c.Transform(self.bound_plane)
-            circ.append(c.ToNurbsCurve())
-        return circ
-
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
@@ -86,23 +76,13 @@ class P_2(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    @property
-    def grav(self):
-        unrol = list(self.unrol[2])
-        circ = []
-        for i in unrol:
-            c = rh.Circle(i, 3.25)
-            c.Transform(self.bound_plane)
-            circ.append(c.ToNurbsCurve())
-        return circ
-
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
     def gen_side_types(self):
         self.niche = Niche(self.edges[2], self.cogs_bend)
         self.bottom = Bottom(self.edges[0])
-        self.side = [HolesSideTwo(self.edges[1], False), HolesSideOne(self.edges[3], True)]
+        self.side = [HolesSideOne(self.edges[1], False), HolesSideTwo(self.edges[3], True)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -125,7 +105,7 @@ class P_3(SimplePanel):
         unrol = self.unrol[2]
         h = []
         for i in unrol[0:len(self.pins) / 2]:
-            c = rh.Circle(i, 5)
+            c = rh.Circle(i, 5.25)
             h.append(c)
 
         for i in unrol[len(self.pins) / 2:]:
@@ -203,7 +183,7 @@ class N_3(NichePanel):
     def gen_side_types(self):
         self.niche = NicheShortened(self.edges[0])
         self.bottom = Bottom(self.edges[2])
-        self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
+        self.side = [HolesSideOne(self.edges[1], True), HolesSideTwo(self.edges[3], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()

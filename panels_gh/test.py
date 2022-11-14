@@ -71,53 +71,56 @@ reload(main_tagging
 class UnrollPackage:
     panels_dict = {'P_1': P_1, 'P_2': P_2, 'P_3': P_3, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4}
 
-    def __init__(self, x, y, circle, pins_hole, bend_hole, elements):
+    def __init__(self, x, y, circle, bend_hole, p3_hole, cog_hole, elements):
         self.cog = TT(x, y, circle)
-        tr = rh.Transform.Rotation(math.pi / 2, rh.Point3d(0, 0, 0))
-        self.hls = bend_hole
-        self.hls.Transform(tr)
-
-        self.hls_rot = pins_hole
-        self.hls_rot.Transform(tr)
+        self.bend_hole = bend_hole
+        self.p3_hole = p3_hole
+        self.cog_hole = cog_hole
 
         self.data = []
-        self.fr = []
+        self.t = []
 
-        self.cogs_bend = random.choice([True, False])
+        #self.cogs_bend = random.choice([True, False])
+        self.cogs_bend = False
         for key, value in elements.items():
 
             if key != 'N_4' and key != 'N_2' and key != 'P_3':
 
                 new = self.panels_dict[key](cogs_bend=self.cogs_bend, **value)
-                new.hls = self.hls_rot
 
                 new.niche.cg = self.cog
+                new.niche.cog_hole = self.cog_hole
                 new.niche.generate_cogs()
 
                 try:
                     for i in new.side:
-                        i.hls = self.hls
+                        i.hls = self.bend_hole
                 except AttributeError:
                     pass
-
                 setattr(self, key, MainFrame(new))
                 det = getattr(self, key)
+
                 self.data.append(det.all_elems)
-                self.fr.append(det.unroll_dict_f)
+                self.t.append(det.panel.niche.cogs_unit._hole)
+
 
             elif key == 'N_2':
                 new = self.panels_dict[key](**value)
                 setattr(self, key, MainFrame(new))
                 det = getattr(self, key)
+
                 self.data.append(det.all_elems)
+                self.t.append(det.tag)
 
             elif key == 'P_3':
                 new = self.panels_dict[key](cogs_bend=False, **value)
-                new.hls = self.hls_rot
+                new.hls = self.p3_hole
 
                 setattr(self, key, new)
                 det = getattr(self, key)
+
                 self.data.append(det.all_elems)
+                #self.t.append(det.tag)
 
 
             else:
@@ -128,15 +131,16 @@ class UnrollPackage:
 
 
 def main():
-    global x, y, circle, pins_hole, bend_hole, crv
+    global x, y, circle, bend_hole, p3_hole, cog_hole,  crv
 
-    a = UnrollPackage(x, y, circle, pins_hole, bend_hole, crv.__dict__)
+    a = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
 
     side = th.list_to_tree(a.data)
-    # a.P_2.niche.bend_surf
+    m = th.list_to_tree(a.t)
 
-    return a, side
+
+    return a, side, m
 
 
 if __name__ == "__main__":
-    a, side = main()
+    a, side, m = main()
