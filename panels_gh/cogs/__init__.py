@@ -11,6 +11,7 @@ import ghpythonlib.components as ghc
 
 R1 = 1.5
 W = 11.5
+
 Pat = namedtuple("Pat", ["contour", "hole"])
 
 
@@ -103,6 +104,35 @@ class Ptrn:
         return len(self.itr)
 
 
+class Pattern2:
+    def __init__(self, unit, module_length, length=1000):
+        self.unit = unit
+        self.module_length = module_length
+        self.length = length
+        self._len = self.length
+
+    def constrain(self):
+        return self._len > 0
+
+    @property
+    def transform(self):
+        return rg.Transform.Translation(self.module_length, 0, 0)
+
+    def next_transform(self):
+        _unit = copy.deepcopy(self.unit)
+
+        self.unit.Transform(self.transform)
+        return _unit
+
+    def next(self):
+        if self.constrain():
+            self._len -= self.module_length
+            return self.next_transform()
+        else:
+            raise StopIteration
+
+    def reload(self):
+        self._len=self.length
 class Pattern:
     def __init__(self, unit, modl=23, l=1000):
         self.__unit = unit
