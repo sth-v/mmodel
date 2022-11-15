@@ -226,8 +226,7 @@ class N_2(NichePanel):
 
     @property
     def frame_dict(self):
-        # diag = self.diag_side([self.top_parts[2].PointAtEnd, self.top_parts[1].PointAtStart, self.fres[
-        # 1].PointAtStart])
+
         bf = self.top.fres.DuplicateCurve()
         bf.Transform(self.bound_plane)
         p_niche = bf
@@ -248,11 +247,11 @@ class N_2(NichePanel):
         NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, tag=tag, **kwargs)
 
         self.__dict__.update(**kwargs)
-
-        self.rev_surf = self.surf.Reverse(1).ToBrep()
+        self.surf_rev = self.surf.Duplicate()
+        self.surf_rev.Flip()
         self.extend = self.extend_surf()
 
-        unrol = rh.Unroller(self.rev_surf)
+        unrol = rh.Unroller(self.surf_rev)
 
         if hasattr(self, 'rebra'):
             self.intersections = self.rebra_intersect('b')
@@ -267,15 +266,15 @@ class N_2(NichePanel):
         self.gen_side_types()
 
     def gen_side_types(self):
-        self.top = Bottom(self.edges[1])
-        self.bottom = Bottom(self.edges[3])
-        self.side = [Side(self.edges[0]), Side(self.edges[2])]
+        self.top = Bottom(self.edges[0])
+        self.bottom = Bottom(self.edges[2])
+        self.side = [Side(self.edges[1]), Side(self.edges[3])]
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 
     def extend_surf(self):
-        surf = self.rev_surf.Surfaces[0].Duplicate()
+        surf = self.surf.Surfaces[0].Duplicate()
         interv = surf.Domain(0)
         interv = rh.Interval(interv[0] - 50, interv[1] + 50)
 

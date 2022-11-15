@@ -8,7 +8,7 @@
 __author__ = "sofyadobycina"
 
 import os
-
+import copy
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -33,7 +33,7 @@ cogs = imp.load_module("cogs", cogsfile, cogsfilename, (cogssuffix, cogsmode, co
 from functools import wraps
 
 cogs.__init__("cogs", "generic module")
-from cogs import Pattern
+from cogs import Pattern, PatternSimple
 
 reload(cogs)
 
@@ -190,26 +190,40 @@ class Niche(BendSide):
             h = self.choles(self, ii)
             aa = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[0], rh.Plane.WorldXY,
                                                         0.01)
-            bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
+            try:
+                bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
                                                         0.01)
-            if bb == aa == rh.RegionContainment.BInsideA:
-                self.hls.extend(h)
-                cnt.append(ii.contour)
-            else:
-                pass
+                if bb == aa == rh.RegionContainment.BInsideA:
+                    self.hls.extend(ii.hole)
+                    cnt.append(ii.contour)
+
+            except IndexError:
+                if aa == rh.RegionContainment.BInsideA:
+                    self.hls.extend(ii.hole)
+                    cnt.append(ii.contour)
+
+
         _cogs.extend(self.hls[2:-2])
-        ccnt = cnt[0:-1]
-        for cc in ccnt:
-            self.otgib_morph.Morph(cc)
 
-        self._join_brep = br.Faces[0].Split(ccnt, 0.01).GetRegions()[0]
+        try:
+            ccnt = cnt[0:-1]
 
-        _cogs.extend(list(self._join_brep.Brep.Faces)[-1].Brep.Edges)
+            for cc in ccnt:
+                self.otgib_morph.Morph(cc)
+            _cogs.extend(ccnt)
+            self._join_brep = br.Faces[0].Split(ccnt, 0.01).GetRegions()[0]
+            _cogs.extend(list(self._join_brep.Brep.Faces)[-1].Brep.Edges)
+
+        except TypeError:
+            pass
         self._cogs = _cogs
 
     @property
     def cogs_unit(self):
-        return Pattern(self._cg, 23, self.bend_axis.GetLength())
+        if self.init_cogs:
+            return Pattern(self._cg, 23, self.bend_axis.GetLength())
+        else:
+            return PatternSimple(self._cg, 46, self.bend_axis.GetLength())
 
     @property
     def otgib_morph(self):
@@ -231,7 +245,6 @@ class Niche(BendSide):
     @property
     def join_region(self):
         if self.init_cogs:
-
             l = list(self._join_brep.Brep.Faces)
             l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
             trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
@@ -247,29 +260,11 @@ class Niche(BendSide):
 
     @property
     def region_holes(self):
-
         if self.init_cogs:
-            tt = self.hls[2:-2]
+            return self.hls[2:-2]
         else:
-            line = self.top_part.Offset(rh.Plane.WorldXY, -self.length / 2, 0.01,
-                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-            points = divide(line, dist=50, ofs=0)
-            circ = []
-            for i in points[0::2]:
-                p = line.ClosestPoint(i)[1]
-                fr = line.FrameAt(p)[1]
-                tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, fr)
-                h, hh = self.cog_hole[0].DuplicateCurve(), self.cog_hole[1].DuplicateCurve()
+            return self.hls[3:-2]
 
-                h.Transform(tr)
-                hh.Transform(tr)
-                circ.append(h)
-                circ.append(hh)
-            for i in points[1::2]:
-                c = rh.Circle(i, 1.75)
-                circ.append(c.ToNurbsCurve())
-            tt = circ
-        return tt
 
     @property
     def cg(self):
@@ -289,6 +284,44 @@ class NicheShortened(Niche):
 
     def __init__(self, curve, init_cogs=False):
         Niche.__dict__['__init__'](self, curve, init_cogs=init_cogs)
+
+    '''@property
+    def bend_surf(self):
+        b = self.top_part.DuplicateCurve()
+        b.Reverse()
+        return rh.NurbsSurface.CreateRuledSurface(b, self.bend_axis.ToNurbsCurve())
+
+    @property
+    def bend_axis(self):
+        b = self.fres.DuplicateCurve()
+        b.Reverse()
+        return b
+
+    @property
+    def otgib_morph(self):
+        self._morph = rh.Morphs.FlowSpaceMorph(
+            rh.Line(rh.Point3d(self.bend_axis.GetLength(), self.cogs_shift, 0.0),
+                    rh.Point3d(0.0, self.cogs_shift, 0.0)).ToNurbsCurve(),
+            self.bend_axis.ToNurbsCurve(), True, False, True
+        )
+        return self._morph
+
+    @property
+    def join_region(self):
+        if self.init_cogs:
+            l = list(self._join_brep.Brep.Faces)
+            l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
+            trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
+
+            p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
+            p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
+            trim = trg.Trim(p_two, p_one)
+
+        else:
+            trim = self.join
+
+        return trim'''
+
 
 
 class Side(BendSide):

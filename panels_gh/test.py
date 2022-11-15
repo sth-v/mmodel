@@ -73,6 +73,7 @@ class UnrollPackage:
 
     def __init__(self, x, y, circle, bend_hole, p3_hole, cog_hole, elements):
         self.cog = TT(x, y, circle)
+
         self.bend_hole = bend_hole
         self.p3_hole = p3_hole
         self.cog_hole = cog_hole
@@ -82,7 +83,7 @@ class UnrollPackage:
         self.a=[]
 
         #self.cogs_bend = random.choice([True, False])
-        self.cogs_bend = False
+        self.cogs_bend = True
         for key, value in elements.items():
 
             if key != 'N_4' and key != 'N_2' and key != 'P_3':
@@ -99,20 +100,25 @@ class UnrollPackage:
                 except AttributeError:
                     pass
                 setattr(self, key, MainFrame(new))
+                #setattr(self, key, new)
                 det = getattr(self, key)
-
+                #self.data.append(det.niche.join_region)
                 self.data.append(det.all_elems)
+
+
+                print(self.t)
+
 
 
 
             elif key == 'N_2':
-               # new = self.panels_dict[key](**value)
-                #setattr(self, key, MainFrame(new))
-                #det = getattr(self, key)
+                new = self.panels_dict[key](cogs_bend=self.cogs_bend, **value)
+                setattr(self, key, MainFrame(new))
+                #setattr(self, key, new)
+                det = getattr(self, key)
+                self.data.append(det.all_elems)
 
-                #self.data.append(det.all_elems)
-                #self.t.append(det.tag)
-                pass
+
 
             elif key == 'P_3':
                 new = self.panels_dict[key](cogs_bend=False, **value)
@@ -122,8 +128,6 @@ class UnrollPackage:
                 det = getattr(self, key)
 
                 self.data.append(det.all_elems)
-                #self.t.append(det.tag)
-
 
             else:
                 new = self.panels_dict[key](**value)
@@ -138,12 +142,15 @@ def main():
     aa = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
 
     side = th.list_to_tree(aa.data)
-    #m = th.list_to_tree(aa.t)
-    #a = aa.a
+    #side = aa.data
+
+    m = aa.t
+    a = aa.a
 
 
-    return aa, side
+
+    return aa, side, m, a
 
 
 if __name__ == "__main__":
-    aa, side = main()
+    aa, side, m, a = main()

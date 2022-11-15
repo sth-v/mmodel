@@ -147,7 +147,12 @@ class MainFrame:
         p_o = self.bound_frame.ClosestPoint(fr_one.PointAtStart)[1]
         p_t = self.bound_frame.ClosestPoint(fr_one.PointAtEnd)[1]
         inters = self.bound_frame.Trim(p_o, p_t)
-        self._frame_offset = rh.Curve.JoinCurves([inters, fr_one])[0]
+
+        p_o = fr_one.ClosestPoint(inters.PointAtStart)[1]
+        p_t = fr_one.ClosestPoint(inters.PointAtEnd)[1]
+        inters_two = fr_one.Trim(p_o, p_t)
+
+        self._frame_offset = rh.Curve.JoinCurves([inters, inters_two])[0]
         return self._frame_offset
 
     @property
@@ -288,7 +293,7 @@ class MainFrame:
 
     def frame_inner(self):
         offset = rh.Curve.JoinCurves(self.all_offset()[0:-1])[0]
-        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend + 15,
+        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend,
                                                     offset.PointAtEnd[2])).ToNurbsCurve()
         frame_offset = rh.Curve.JoinCurves([offset, crv])
         return frame_offset
