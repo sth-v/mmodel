@@ -67,7 +67,7 @@ import main_tagging
 reload(main_tagging
        )
 
-
+sizes = []
 class UnrollPackage:
     panels_dict = {'P_1': P_1, 'P_2': P_2, 'P_3': P_3, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4}
 
@@ -79,11 +79,12 @@ class UnrollPackage:
         self.cog_hole = cog_hole
 
         self.data = []
+        self.sizes = []
         self.t = []
         self.a=[]
 
         #self.cogs_bend = random.choice([True, False])
-        self.cogs_bend = True
+        self.cogs_bend = False
         for key, value in elements.items():
 
             if key != 'N_4' and key != 'N_2' and key != 'P_3':
@@ -100,21 +101,19 @@ class UnrollPackage:
                 except AttributeError:
                     pass
                 setattr(self, key, MainFrame(new))
-                #setattr(self, key, new)
                 det = getattr(self, key)
-                #self.data.append(det.niche.join_region)
                 self.data.append(det.all_elems)
 
 
-                print(self.t)
-
+                self.t.append(det.bound_stats)
+                sizes.append({'marker': det.panel.tag, 'width': round(det.bound_stats.Width),
+                                   'height': round(det.bound_stats.Height)})
 
 
 
             elif key == 'N_2':
                 new = self.panels_dict[key](cogs_bend=self.cogs_bend, **value)
                 setattr(self, key, MainFrame(new))
-                #setattr(self, key, new)
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
 
@@ -123,34 +122,41 @@ class UnrollPackage:
             elif key == 'P_3':
                 new = self.panels_dict[key](cogs_bend=False, **value)
                 new.hls = self.p3_hole
-
                 setattr(self, key, new)
                 det = getattr(self, key)
-
                 self.data.append(det.all_elems)
 
             else:
                 new = self.panels_dict[key](**value)
                 setattr(self, key, new)
                 det = getattr(self, key)
-                # self.data.append(det.all_elems)
 
 
+import json
 def main():
     global x, y, circle, bend_hole, p3_hole, cog_hole,  crv
+    side = []
+    a = []
+    frame = []
+    for i in crv:
+        aa = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, i.__dict__)
+        a.append(aa)
+        s = th.list_to_tree(aa.data)
+        side.append(s)
+        frame.append(aa.t[0])
+        frame.append(aa.t[1])
 
-    aa = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
+    m = [i.__str__() for i in sizes]
+    json_object = json.dumps( sizes, indent=3)
 
-    side = th.list_to_tree(aa.data)
-    #side = aa.data
-
-    m = aa.t
-    a = aa.a
+    with open('/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh/for_stats/niche_sizes.json', 'w') as out_file:
+        out_file.write(json_object)
 
 
 
-    return aa, side, m, a
+
+    return a, side, frame, m
 
 
 if __name__ == "__main__":
-    aa, side, m, a = main()
+    a, side, frame, m = main()

@@ -215,7 +215,7 @@ class NichePanel(MainPanel):
     niche_ofs = 43.53
 
     bottom_rec = 30
-    side_rec = 110
+    side_rec = 30
 
     @property
     def bound_plane(self):

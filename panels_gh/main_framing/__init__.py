@@ -123,6 +123,7 @@ class MainFrame:
     def __init__(self, panel):
         with open(PWD + "/configs/layers.json") as f:
             self._layers = json.load(f)
+
         self.panel = panel
         self.cogs = self.panel.cogs_bend
 
@@ -139,6 +140,7 @@ class MainFrame:
             "frame": self.bound_frame.ToNurbsCurve(),
             "layers": self.all_elems
         }
+        print(self.advance_tag, self._unroll_dict)
 
 
     @property
@@ -167,8 +169,9 @@ class MainFrame:
     def bound_stats(self):
         rec = bound_rec(self.frame_all())
         min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
+        max_transl = rh.Point3d(rec.Max[0] +  self.side_rec+5, rec.Max[1], 0)
 
-        return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, rec.Max)
+        return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, max_transl)
 
     @property
     def region(self):

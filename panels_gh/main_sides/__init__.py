@@ -263,7 +263,7 @@ class Niche(BendSide):
         if self.init_cogs:
             return self.hls[2:-2]
         else:
-            return self.hls[3:-2]
+            return self.hls
 
 
     @property
@@ -285,43 +285,12 @@ class NicheShortened(Niche):
     def __init__(self, curve, init_cogs=False):
         Niche.__dict__['__init__'](self, curve, init_cogs=init_cogs)
 
-    '''@property
-    def bend_surf(self):
-        b = self.top_part.DuplicateCurve()
-        b.Reverse()
-        return rh.NurbsSurface.CreateRuledSurface(b, self.bend_axis.ToNurbsCurve())
-
     @property
-    def bend_axis(self):
-        b = self.fres.DuplicateCurve()
-        b.Reverse()
-        return b
-
-    @property
-    def otgib_morph(self):
-        self._morph = rh.Morphs.FlowSpaceMorph(
-            rh.Line(rh.Point3d(self.bend_axis.GetLength(), self.cogs_shift, 0.0),
-                    rh.Point3d(0.0, self.cogs_shift, 0.0)).ToNurbsCurve(),
-            self.bend_axis.ToNurbsCurve(), True, False, True
-        )
-        return self._morph
-
-    @property
-    def join_region(self):
+    def region_holes(self):
         if self.init_cogs:
-            l = list(self._join_brep.Brep.Faces)
-            l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
-            trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
-
-            p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
-            p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
-            trim = trg.Trim(p_two, p_one)
-
+            return self.hls[2:-2]
         else:
-            trim = self.join
-
-        return trim'''
-
+            return self.hls
 
 
 class Side(BendSide):
