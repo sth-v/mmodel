@@ -79,17 +79,17 @@ class UnrollPackage:
         self.cog_hole = cog_hole
 
         self.data = []
-        self.sizes = []
-        self.t = []
-        self.a=[]
+        self.m = []
+
+
 
         #self.cogs_bend = random.choice([True, False])
-        self.cogs_bend = False
+
         for key, value in elements.items():
 
             if key != 'N_4' and key != 'N_2' and key != 'P_3':
 
-                new = self.panels_dict[key](cogs_bend=self.cogs_bend, **value)
+                new = self.panels_dict[key](**value)
 
                 new.niche.cg = self.cog
                 new.niche.cog_hole = self.cog_hole
@@ -103,16 +103,12 @@ class UnrollPackage:
                 setattr(self, key, MainFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-
-
-                self.t.append(det.bound_stats)
-                sizes.append({'marker': det.panel.tag, 'width': round(det.bound_stats.Width),
-                                   'height': round(det.bound_stats.Height)})
+                self.m.append(det.panel.tag)
 
 
 
             elif key == 'N_2':
-                new = self.panels_dict[key](cogs_bend=self.cogs_bend, **value)
+                new = self.panels_dict[key](**value)
                 setattr(self, key, MainFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
@@ -120,11 +116,12 @@ class UnrollPackage:
 
 
             elif key == 'P_3':
-                new = self.panels_dict[key](cogs_bend=False, **value)
+                new = self.panels_dict[key](**value)
                 new.hls = self.p3_hole
                 setattr(self, key, new)
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
+                self.m.append(det.tag)
 
             else:
                 new = self.panels_dict[key](**value)
@@ -135,28 +132,14 @@ class UnrollPackage:
 import json
 def main():
     global x, y, circle, bend_hole, p3_hole, cog_hole,  crv
-    side = []
-    a = []
-    frame = []
-    for i in crv:
-        aa = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, i.__dict__)
-        a.append(aa)
-        s = th.list_to_tree(aa.data)
-        side.append(s)
-        frame.append(aa.t[0])
-        frame.append(aa.t[1])
 
-    m = [i.__str__() for i in sizes]
-    json_object = json.dumps( sizes, indent=3)
-
-    with open('/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh/for_stats/niche_sizes.json', 'w') as out_file:
-        out_file.write(json_object)
+    a = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
+    side = th.list_to_tree(a.data)
+    m = a.m
 
 
-
-
-    return a, side, frame, m
+    return a, side, m
 
 
 if __name__ == "__main__":
-    a, side, frame, m = main()
+    a, side, m = main()

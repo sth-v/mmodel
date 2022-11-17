@@ -25,7 +25,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov
+from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel
 
 reload(main_sides)
 
@@ -33,7 +33,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 main_panels = imp.load_module("main_panels", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 main_panels.__init__("main_panels", "generic nodule")
-from main_panels import MainPanel, NichePanel, SimplePanel
+from main_panels import MainPanel, NichePanel, SimplePanel, ArcPanel
 
 reload(main_panels)
 import main_tagging
@@ -47,13 +47,13 @@ def bound_rec(crv):
     return bound_rec
 
 
-class P_1(MainPanel):
+class P_1(ArcPanel):
 
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        MainPanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+    def __init__(self,surf, tag=None, pins=None, cogs_bend=None, holes=None, **kwargs):
+        ArcPanel.__dict__['__init__'](self, surf=surf, tag=tag, pins=pins, cogs_bend=cogs_bend, holes=holes, **kwargs)
 
 
-class P_2(MainPanel):
+class P_2(ArcPanel):
 
     @property
     def bound_plane(self):
@@ -76,12 +76,12 @@ class P_2(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        MainPanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+    def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        ArcPanel.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
     def gen_side_types(self):
         self.niche = Niche(self.edges[2], self.cogs_bend)
-        self.bottom = Bottom(self.edges[0])
+        self.bottom = BottomPanel(self.edges[0])
         self.side = [HolesSideOne(self.edges[1], False), HolesSideTwo(self.edges[3], True)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]

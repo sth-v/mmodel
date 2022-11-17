@@ -135,12 +135,12 @@ class MainFrame:
         self.niche = self.panel.niche_ofs
         self.side_rec = self.panel.side_rec
         self.tag = self.panel.tag
-        self.advance_tag = AdvanceTag(self.panel.tag, *self.panel.tag.split("_"))
+        self.advance_tag = AdvanceTag(self.panel.tag, *self.panel.tag.split("-"))
         self._unroll_dict = {
             "frame": self.bound_frame.ToNurbsCurve(),
             "layers": self.all_elems
         }
-        print(self.advance_tag, self._unroll_dict)
+
 
 
     @property
