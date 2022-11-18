@@ -8,7 +8,7 @@
 __author__ = "sofyadobycina"
 
 import os
-
+import copy
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -33,7 +33,7 @@ cogs = imp.load_module("cogs", cogsfile, cogsfilename, (cogssuffix, cogsmode, co
 from functools import wraps
 
 cogs.__init__("cogs", "generic module")
-from cogs import Pattern
+from cogs import Pattern, PatternSimple
 
 reload(cogs)
 
@@ -65,12 +65,12 @@ def niche_shift(angle_niche, side_niche, met_left_niche):
     return res
 
 
-def divide(crv):
-    st = crv.ClosestPoint(crv.PointAtLength(15))[1]
-    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - 15))[1]
+def divide(crv, dist=100, ofs=15):
+    st = crv.ClosestPoint(crv.PointAtLength(ofs))[1]
+    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
     curve = crv.Trim(st, end)
 
-    num = math.ceil(curve.GetLength() / 100)
+    num = math.ceil(curve.GetLength() / dist)
     param = curve.DivideByCount(num, True)
     points = [curve.PointAt(i) for i in param]
     return points
@@ -161,10 +161,10 @@ class Niche(BendSide):
         self.hls = None
         self._cogs = None
         self._join_brep = None
+        self.cog_hole = None
 
     @property
     def bend_axis(self):
-        #return rh.Line(self.join.PointAtStart, self.join.PointAtEnd)
         return self.fres
 
     @property
@@ -190,26 +190,40 @@ class Niche(BendSide):
             h = self.choles(self, ii)
             aa = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[0], rh.Plane.WorldXY,
                                                         0.01)
-            bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
+            try:
+                bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
                                                         0.01)
-            if bb == aa == rh.RegionContainment.BInsideA:
-                self.hls.extend(h)
-                cnt.append(ii.contour)
-            else:
-                pass
+                if bb == aa == rh.RegionContainment.BInsideA:
+                    self.hls.extend(ii.hole)
+                    cnt.append(ii.contour)
+
+            except IndexError:
+                if aa == rh.RegionContainment.BInsideA:
+                    self.hls.extend(ii.hole)
+                    cnt.append(ii.contour)
+
+
         _cogs.extend(self.hls[2:-2])
-        ccnt = cnt[0:-1]
-        for cc in ccnt:
-            self.otgib_morph.Morph(cc)
 
-        self._join_brep = br.Faces[0].Split(ccnt, 0.01).GetRegions()[0]
+        try:
+            ccnt = cnt[0:-1]
 
-        _cogs.extend(list(self._join_brep.Brep.Faces)[-1].Brep.Edges)
+            for cc in ccnt:
+                self.otgib_morph.Morph(cc)
+            _cogs.extend(ccnt)
+            self._join_brep = br.Faces[0].Split(ccnt, 0.01).GetRegions()[0]
+            _cogs.extend(list(self._join_brep.Brep.Faces)[-1].Brep.Edges)
+
+        except TypeError:
+            pass
         self._cogs = _cogs
 
     @property
     def cogs_unit(self):
-        return Pattern(self._cg, 23, self.bend_axis.GetLength())
+        if self.init_cogs:
+            return Pattern(self._cg, 23, self.bend_axis.GetLength())
+        else:
+            return PatternSimple(self._cg, 46, self.bend_axis.GetLength())
 
     @property
     def otgib_morph(self):
@@ -231,7 +245,6 @@ class Niche(BendSide):
     @property
     def join_region(self):
         if self.init_cogs:
-
             l = list(self._join_brep.Brep.Faces)
             l.sort(key=lambda t: rh.AreaMassProperties.Compute(t).Area, reverse=True)
             trg = l[0].OuterLoop.To3dCurve().Simplify(rh.CurveSimplifyOptions.All, 0.1, 0.01)
@@ -247,13 +260,11 @@ class Niche(BendSide):
 
     @property
     def region_holes(self):
-
         if self.init_cogs:
-            tt = self.hls[2:-2]
+            return self.hls[2:-2]
         else:
-            tt = self.hls[2:-4:8] + self.hls[3:-4:8] + self.hls[-4:-2]
+            return self.hls
 
-        return tt
 
     @property
     def cg(self):
@@ -271,8 +282,15 @@ class NicheShortened(Niche):
     length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     cogs_shift = 0
 
-    def __init__(self, curve):
-        Niche.__dict__['__init__'](self, curve)
+    def __init__(self, curve, init_cogs=False):
+        Niche.__dict__['__init__'](self, curve, init_cogs=init_cogs)
+
+    @property
+    def region_holes(self):
+        if self.init_cogs:
+            return self.hls[2:-2]
+        else:
+            return self.hls
 
 
 class Side(BendSide):
@@ -365,6 +383,12 @@ class HolesSideTwo(Side):
 
 class Bottom(BendSide):
     side_offset = None
+
+    def __init__(self, curve):
+        BendSide.__dict__['__init__'](self, curve)
+
+class BottomPanel(BendSide):
+    side_offset = 1.25
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)

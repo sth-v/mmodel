@@ -25,7 +25,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov
+from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel
 
 reload(main_sides)
 
@@ -33,7 +33,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 main_panels = imp.load_module("main_panels", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 main_panels.__init__("main_panels", "generic nodule")
-from main_panels import MainPanel, NichePanel, SimplePanel
+from main_panels import MainPanel, NichePanel, SimplePanel, ArcPanel
 
 reload(main_panels)
 import main_tagging
@@ -47,23 +47,13 @@ def bound_rec(crv):
     return bound_rec
 
 
-class P_1(MainPanel):
+class P_1(ArcPanel):
 
-    @property
-    def grav(self):
-        unrol = list(self.unrol[2])
-        circ = []
-        for i in unrol:
-            c = rh.Circle(i, 3.25)
-            c.Transform(self.bound_plane)
-            circ.append(c.ToNurbsCurve())
-        return circ
-
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        MainPanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+    def __init__(self,surf, tag=None, pins=None, cogs_bend=None, holes=None, **kwargs):
+        ArcPanel.__dict__['__init__'](self, surf=surf, tag=tag, pins=pins, cogs_bend=cogs_bend, holes=holes, **kwargs)
 
 
-class P_2(MainPanel):
+class P_2(ArcPanel):
 
     @property
     def bound_plane(self):
@@ -86,23 +76,13 @@ class P_2(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    @property
-    def grav(self):
-        unrol = list(self.unrol[2])
-        circ = []
-        for i in unrol:
-            c = rh.Circle(i, 3.25)
-            c.Transform(self.bound_plane)
-            circ.append(c.ToNurbsCurve())
-        return circ
-
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        MainPanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+    def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        ArcPanel.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
     def gen_side_types(self):
         self.niche = Niche(self.edges[2], self.cogs_bend)
-        self.bottom = Bottom(self.edges[0])
-        self.side = [HolesSideTwo(self.edges[1], False), HolesSideOne(self.edges[3], True)]
+        self.bottom = BottomPanel(self.edges[0])
+        self.side = [HolesSideOne(self.edges[1], False), HolesSideTwo(self.edges[3], True)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -125,7 +105,7 @@ class P_3(SimplePanel):
         unrol = self.unrol[2]
         h = []
         for i in unrol[0:len(self.pins) / 2]:
-            c = rh.Circle(i, 5)
+            c = rh.Circle(i, 5.25)
             h.append(c)
 
         for i in unrol[len(self.pins) / 2:]:
@@ -162,15 +142,6 @@ class P_3(SimplePanel):
 
 class N_1(NichePanel):
 
-    @property
-    def bound_plane(self):
-        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
-        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        fr = self.niche.fres.FrameAt(self.niche.fres.Domain[0])[1]
-        bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), fr.XAxis, -fr.YAxis)
-        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
-        return tr
-
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
         NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
@@ -180,8 +151,10 @@ class N_3(NichePanel):
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        fr = self.niche.fres.FrameAt(self.niche.fres.Domain[0])[1]
-        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), fr.XAxis, -fr.YAxis)
+        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1]-0.01)-self.niche.fres.PointAt(self.niche.fres.Domain[0]+0.01))
+        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1]-0.01)-self.niche.fres.PointAt(self.niche.fres.Domain[0]+0.01))
+        yaxis.Rotate(math.pi/2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
@@ -198,12 +171,12 @@ class N_3(NichePanel):
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, tag=tag, **kwargs)
+        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
     def gen_side_types(self):
-        self.niche = NicheShortened(self.edges[0])
+        self.niche = NicheShortened(self.edges[0], self.cogs_bend)
         self.bottom = Bottom(self.edges[2])
-        self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
+        self.side = [HolesSideTwo(self.edges[1], True), HolesSideOne(self.edges[3], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -253,8 +226,7 @@ class N_2(NichePanel):
 
     @property
     def frame_dict(self):
-        # diag = self.diag_side([self.top_parts[2].PointAtEnd, self.top_parts[1].PointAtStart, self.fres[
-        # 1].PointAtStart])
+
         bf = self.top.fres.DuplicateCurve()
         bf.Transform(self.bound_plane)
         p_niche = bf
@@ -275,11 +247,11 @@ class N_2(NichePanel):
         NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, tag=tag, **kwargs)
 
         self.__dict__.update(**kwargs)
-
-        self.rev_surf = self.surf.Reverse(1).ToBrep()
+        self.surf_rev = self.surf.Duplicate()
+        self.surf_rev.Flip()
         self.extend = self.extend_surf()
 
-        unrol = rh.Unroller(self.rev_surf)
+        unrol = rh.Unroller(self.surf_rev)
 
         if hasattr(self, 'rebra'):
             self.intersections = self.rebra_intersect('b')
@@ -294,15 +266,15 @@ class N_2(NichePanel):
         self.gen_side_types()
 
     def gen_side_types(self):
-        self.top = Bottom(self.edges[1])
-        self.bottom = Bottom(self.edges[3])
-        self.side = [Side(self.edges[0]), Side(self.edges[2])]
+        self.top = Bottom(self.edges[0])
+        self.bottom = Bottom(self.edges[2])
+        self.side = [Side(self.edges[1]), Side(self.edges[3])]
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 
     def extend_surf(self):
-        surf = self.rev_surf.Surfaces[0].Duplicate()
+        surf = self.surf.Surfaces[0].Duplicate()
         interv = surf.Domain(0)
         interv = rh.Interval(interv[0] - 50, interv[1] + 50)
 

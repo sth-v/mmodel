@@ -123,6 +123,7 @@ class MainFrame:
     def __init__(self, panel):
         with open(PWD + "/configs/layers.json") as f:
             self._layers = json.load(f)
+
         self.panel = panel
         self.cogs = self.panel.cogs_bend
 
@@ -134,11 +135,12 @@ class MainFrame:
         self.niche = self.panel.niche_ofs
         self.side_rec = self.panel.side_rec
         self.tag = self.panel.tag
-        self.advance_tag = AdvanceTag(self.panel.tag, *self.panel.tag.split("_"))
+        self.advance_tag = AdvanceTag(self.panel.tag, *self.panel.tag.split("-"))
         self._unroll_dict = {
             "frame": self.bound_frame.ToNurbsCurve(),
             "layers": self.all_elems
         }
+
 
 
     @property
@@ -147,7 +149,12 @@ class MainFrame:
         p_o = self.bound_frame.ClosestPoint(fr_one.PointAtStart)[1]
         p_t = self.bound_frame.ClosestPoint(fr_one.PointAtEnd)[1]
         inters = self.bound_frame.Trim(p_o, p_t)
-        self._frame_offset = rh.Curve.JoinCurves([inters, fr_one])[0]
+
+        p_o = fr_one.ClosestPoint(inters.PointAtStart)[1]
+        p_t = fr_one.ClosestPoint(inters.PointAtEnd)[1]
+        inters_two = fr_one.Trim(p_o, p_t)
+
+        self._frame_offset = rh.Curve.JoinCurves([inters, inters_two])[0]
         return self._frame_offset
 
     @property
@@ -162,8 +169,9 @@ class MainFrame:
     def bound_stats(self):
         rec = bound_rec(self.frame_all())
         min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
+        max_transl = rh.Point3d(rec.Max[0] +  self.side_rec+5, rec.Max[1], 0)
 
-        return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, rec.Max)
+        return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, max_transl)
 
     @property
     def region(self):
@@ -200,8 +208,9 @@ class MainFrame:
         for elem in _all_elems:
             arcs = []
             for ee in elem:
-                arcs.append(
-                    ee.ToArcsAndLines(tolerance=0.1, angleTolerance=0.01, minimumLength=3.0, maximumLength=999999))
+                #arcs.append(
+                    #ee.ToArcsAndLines(tolerance=0.1, angleTolerance=0.01, minimumLength=3.0, maximumLength=3.5*math.pi/2))
+                arcs.append(ee)
             ll.append(arcs)
         return ll
 
@@ -287,7 +296,7 @@ class MainFrame:
 
     def frame_inner(self):
         offset = rh.Curve.JoinCurves(self.all_offset()[0:-1])[0]
-        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend + 15,
+        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend,
                                                     offset.PointAtEnd[2])).ToNurbsCurve()
         frame_offset = rh.Curve.JoinCurves([offset, crv])
         return frame_offset
