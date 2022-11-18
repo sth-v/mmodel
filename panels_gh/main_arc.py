@@ -211,13 +211,13 @@ o_right = []
 s_right = []
 a = []
 
-for i in panels[0:6:2]:
+for i in panels[0::2]:
     pan = Panel(i, 0)
     s_left.append(pan.surf_top)
     o_left.append(pan.surf_otgib)
     a.append(pan.niche.eval_frame)
 
-for i in panels[1:7:2]:
+for i in panels[1::2]:
     pan = Panel(i, 1)
     s_right.append(pan.surf_top)
     o_right.append(pan.surf_otgib)
