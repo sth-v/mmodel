@@ -2,7 +2,7 @@ channels:
   - conda-forge
   - default
 dependencies:
-  - python>=3.10.4
+  - python>=3.10.*
   - pip
   - cmake
   - compas
@@ -16,6 +16,7 @@ dependencies:
   - shapely
   - wheel
   - pip:
+      - cmake
       - boto3
       - yandexcloud
       - redis-py-cluster

@@ -11,6 +11,7 @@ import ghpythonlib.components as ghc
 
 R1 = 1.5
 W = 11.5
+
 Pat = namedtuple("Pat", ["contour", "hole"])
 
 
@@ -103,6 +104,7 @@ class Ptrn:
         return len(self.itr)
 
 
+
 class PatternSimple:
     def __init__(self, unit, module_length=46, length=1000):
         self.__unit = unit
@@ -113,7 +115,6 @@ class PatternSimple:
         self.module_length = module_length
         self.length = length
         self._len = self.length
-
         self._hole = self.u.hole
         self._contour = self.u.contour
 
@@ -121,6 +122,7 @@ class PatternSimple:
 
     def __iter__(self):
         return self
+
 
     def constrain(self):
         return self._len > 0
@@ -130,6 +132,7 @@ class PatternSimple:
         return rg.Transform.Translation(self.module_length, 0, 0)
 
     def next_transform(self):
+
         _circ = copy.deepcopy(self.circ)
         _hole = copy.deepcopy(self._hole)
 
@@ -151,11 +154,12 @@ class PatternSimple:
         if self.constrain():
             self._len -= self.module_length
             return self.next_transform()
-
         else:
             raise StopIteration
 
+
     def reload(self):
+
         self._len = self.length
         self.i = 0
 
