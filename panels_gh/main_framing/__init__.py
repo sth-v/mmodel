@@ -141,8 +141,6 @@ class MainFrame:
             "layers": self.all_elems
         }
 
-
-
     @property
     def frame_offset(self):
         fr_one = self.frame_inner()[0]
@@ -169,7 +167,7 @@ class MainFrame:
     def bound_stats(self):
         rec = bound_rec(self.frame_all())
         min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
-        max_transl = rh.Point3d(rec.Max[0] +  self.side_rec+5, rec.Max[1], 0)
+        max_transl = rh.Point3d(rec.Max[0] + self.side_rec + 5, rec.Max[1], 0)
 
         return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, max_transl)
 
@@ -201,17 +199,17 @@ class MainFrame:
             _all_elems[0].extend(self.region)
 
         _all_elems[1].extend(self.panel.fres)
+        _all_elems[2].extend(self.panel.grav)
 
-        if hasattr(self.panel, 'grav'):
-            _all_elems[2].extend(self.panel.grav)
+        _all_elems[2].extend(self.panel.grav)
         ll = []
         for elem in _all_elems:
             arcs = []
             for ee in elem:
-                #arcs.append(
-                    #ee.ToArcsAndLines(tolerance=0.1, angleTolerance=0.01, minimumLength=3.0, maximumLength=3.5*math.pi/2))
+                # arcs.append(
+                # ee.ToArcsAndLines(tolerance=0.1, angleTolerance=0.01, minimumLength=3.0, maximumLength=3.5*math.pi/2))
                 arcs.append(ee)
-            ll.append(arcs)
+            ll.append(list(itertools.chain(arcs)))
         return ll
 
     @property
@@ -227,8 +225,7 @@ class MainFrame:
     def layers(self):
         lays = []
         all_elems = self.all_elems
-        for i, v in self.text_geometry:
-            all_elems[i].append(v)
+        all_elems[0].extend(self.text_geometry)
 
         for lay, o in itertools.izip_longest(self._layers, all_elems, fillvalue=[]):
             lay["objects"] = o

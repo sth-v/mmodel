@@ -85,6 +85,13 @@ class Vectorizer:
         self._cls.__getattr__(instance, self.name)
 
 
+def trsf(items, transform):
+    for i in items:
+        anu = copy.deepcopy(i)
+        anu.Transform(transform)
+        yield anu
+
+
 class Extender:
     def __init__(self, cls):
         self._cls = cls
@@ -119,30 +126,48 @@ class Framer:
 
         self.c = r.PointAt(u * rW, v * rH)
         self.pln = rh.Plane(self.c, r.Plane.YAxis, r.Plane.XAxis)
-        # self.bb=rh.Rectangle3d.CreateFromPolyline(self.c)
 
+        mw = r.Width / 4.0
+        mh = r.Height / 4.0
+        mark_a, mark_b = rh.Plane(rh.Point3d(400, mh * 3, 0.0), rh.Vector3d(0, 0, 1)), rh.Plane(
+            rh.Point3d(mw * 3, mh, 0.0), rh.Vector3d(0, 0, 1))
         r = Rhino.DocObjects.DimensionStyle()
-        r.TextHeight = 30
+        r.TextHeight = 20
 
         ee = rh.TextEntity()
 
         self.tag = xxx.unroll_dict_f["tag"]
 
-        ee.Text = " " + xxx.unroll_dict_f["tag"]
-        ee.TextHeight = 30
+        ee.Text = xxx.unroll_dict_f["tag"]
 
+        ee.TextHeight = 20
+        ee1 = rh.TextEntity()
+        ee1.Text = xxx.unroll_dict_f["tag"]
+        ee2 = rh.TextEntity()
+        ee2.Text = xxx.unroll_dict_f["tag"]
+        ee2.TextHeight = 20
+        ee1.TextHeight = 20
+        ee1.Plane = mark_a
+        ee2.Plane = mark_b
         ee.Plane = self.pln
-        ee.Font = Rhino.DocObjects.Font("GOST type A")
-        ee.SetItalic(True)
+        ee.Font = Rhino.DocObjects.Font("TC_LaserSans")
+        ee1.Font = Rhino.DocObjects.Font("JetBrains Mono")
+        ee2.Font = Rhino.DocObjects.Font("JetBrains Mono")
 
         t = rh.Transform.Scale(ee.Plane, 1, 1, 1.0)
         self.text = ee
-
+        te2 = rh.Transform.Scale(ee2.Plane, 20, 20, 1.0)
+        te1 = rh.Transform.Scale(ee1.Plane, 20, 20, 1.0)
         mxf = Rhino.Geometry.Transform.Mirror(
             Rhino.Geometry.Plane(self.text.Plane.Origin, self.text.Plane.YAxis, self.text.Plane.ZAxis))
         m2 = Rhino.Geometry.Transform.Mirror(Rhino.Geometry.Plane.WorldXY)
-
+        ds = Rhino.DocObjects.DimensionStyle()
         eee = list(self.text.CreateCurves(r, False, 1.0, 0.01))
+        eee1 = list(ee1.CreateCurves(ds, False, 1.0, 0.01))
+        eee2 = list(ee2.CreateCurves(ds, False, 1.0, 0.01))
+
+        xxx.panel.grav.extend(list(trsf(eee1, te1)) + list(trsf(eee2, te2)))
+
         eeee = []
         for ee in eee:
             arcs = ee.ToArcsAndLines(tolerance=0.1, angleTolerance=0.01, minimumLength=3.0,
@@ -154,10 +179,10 @@ class Framer:
 
             arcs1.Transform(m2)
             arcs.Transform(m2)
-            eeee.append((0, arcs1))
-            eeee.append((0, arcs))
+            eeee.append(arcs1)
+            eeee.append(arcs)
 
-        xxx.text_geometry = eeee
+        xxx.text_geometry.extend(eeee)
 
         return xxx
 
