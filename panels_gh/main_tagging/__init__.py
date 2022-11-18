@@ -117,7 +117,7 @@ class Framer:
     def __init__(self, cls):
         self._cls = cls
 
-    def __call__(self, u, v, s, *args, **kwargs):
+    def __call__(self, u, v, s, layer,  *args, **kwargs):
         xxx = self._cls
         _, vv = xxx.unroll_dict_f["frame"].TryGetPolyline()
         r = rh.Rectangle3d.CreateFromPolyline(vv)
@@ -182,7 +182,7 @@ class Framer:
             eeee.append(arcs1)
             eeee.append(arcs)
 
-        xxx.text_geometry.extend(eeee)
+        xxx.text_geometry[layer].extend(eeee)
 
         return xxx
 

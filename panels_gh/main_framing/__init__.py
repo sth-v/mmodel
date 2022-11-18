@@ -139,6 +139,7 @@ class MainFrame:
         self._unroll_dict = {
             "frame": self.bound_frame.ToNurbsCurve(),
             "layers": self.all_elems
+
         }
 
     @property
@@ -199,7 +200,8 @@ class MainFrame:
             _all_elems[0].extend(self.region)
 
         _all_elems[1].extend(self.panel.fres)
-        _all_elems[2].extend(self.panel.grav)
+
+
 
         _all_elems[2].extend(self.panel.grav)
         ll = []
@@ -225,7 +227,8 @@ class MainFrame:
     def layers(self):
         lays = []
         all_elems = self.all_elems
-        all_elems[0].extend(self.text_geometry)
+        for i, v in enumerate(all_elems):
+            all_elems[i].extend(self.text_geometry[i])
 
         for lay, o in itertools.izip_longest(self._layers, all_elems, fillvalue=[]):
             lay["objects"] = o
@@ -236,6 +239,7 @@ class MainFrame:
     def unroll_dict_f(self):
         dct = self.panel.unroll_dict
         dct.update(self._unroll_dict)
+        point = self.bound_frame
 
         return dct
 

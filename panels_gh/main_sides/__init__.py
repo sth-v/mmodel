@@ -339,7 +339,7 @@ class HolesSideOne(Side):
         circ = []
         for i in points:
             p = translate(i, line)
-            c = rh.Circle(2.5)
+            c = rh.Circle(2.25)
             c.Transform(p)
             circ.append(c.ToNurbsCurve())
         return circ
@@ -367,11 +367,17 @@ class HolesSideTwo(Side):
         points = divide(line)
 
         circ = []
-        for i in points:
-            p = translate(i, line)
-            c = self.hls.DuplicateCurve()
-            c.Transform(p)
-            circ.append(c)
+        for i, v in enumerate(points):
+            p = translate(v, line)
+            if i%2 == 0:
+                c = self.hls.DuplicateCurve()
+                c.Transform(p)
+                circ.append(c)
+            else:
+                c = rh.Circle(2.25)
+                c.Transform(p)
+                circ.append(c.ToNurbsCurve())
+
         return circ
 
     def __init__(self, curve, reverse=None):

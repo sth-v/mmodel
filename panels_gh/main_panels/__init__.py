@@ -178,7 +178,6 @@ class MainPanel(SimplePanel):
 
         unrol = rh.Unroller(self.surf)
         if self.h_p[0] is not None:
-            print(self.h_p)
             a = [self.surf.ClosestPoint(i) for i in self.h_p]
             unrol.AddFollowingGeometry(points=a)
 
@@ -216,14 +215,13 @@ class ArcPanel(MainPanel):
         unrol = list(self.u_p_m[2])
         circ = []
         for i in unrol:
-            c = rh.Circle(i, 3.25)
+            c = rh.Circle(i, 5.0)
             c.Transform(self.bound_plane)
             circ.append(c.ToNurbsCurve())
 
             c = rh.Circle(i, 8.25)
             c.Transform(self.bound_plane)
             p = rh.Polyline.CreateCircumscribedPolygon(c, 3).ToNurbsCurve()
-            print(p, 'p')
             circ.append(p)
         return circ
     @property
@@ -235,7 +233,7 @@ class ArcPanel(MainPanel):
             c.Transform(self.bound_plane)
             circ.append(c.ToNurbsCurve())
         res = circ + self.pins_marker
-        print(res)
+
         return res
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None,  pins=None, pins_mark=None, **kwargs):
