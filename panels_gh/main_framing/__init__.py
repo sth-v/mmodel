@@ -154,7 +154,7 @@ class MiniFrame(object):
 
 
 class MainFrame:
-    rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -15, 0), rh.Point3d(2.5, 15, 0)).ToNurbsCurve()
+    rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -13, 0), rh.Point3d(2.5, 13, 0)).ToNurbsCurve()
 
     def __init__(self, panel):
         with open(PWD + "/configs/layers.json") as f:

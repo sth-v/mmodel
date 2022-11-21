@@ -213,6 +213,7 @@ class Niche(BendSide):
             self._join_brep = br.Faces[0].Split(ccnt, 0.01).GetRegions()[0]
             _cogs.extend(list(self._join_brep.Brep.Faces)[-1].Brep.Edges)
 
+
         except TypeError:
             pass
         self._cogs = _cogs
@@ -251,7 +252,10 @@ class Niche(BendSide):
             p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
             p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
             trim = trg.Trim(p_one, p_two)
-
+            if trim is None:
+                trg.MakeClosed(0.1)
+                trim = trg.Trim(p_one, p_two)
+            print(p_two, p_one, trim)
         else:
             trim = self.join
 
