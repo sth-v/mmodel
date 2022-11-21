@@ -6,17 +6,18 @@
         a: The a output variable"""
 
 __author__ = "sofyadobycina"
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
 
 import imp
+import math
 import os
 import sys
 
 import Rhino.Geometry as rh
-import math
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -83,7 +84,7 @@ class BendSide(object):
 
     def curve_offset(self, curve):
         crv = rh.Curve.Offset(curve, rh.Plane.WorldXY, -self.side_offset, 0.01, rh.CurveOffsetCornerStyle.
-        None)
+                              None)
         return crv[0]
 
 
@@ -98,7 +99,7 @@ class Niche(BendSide):
         trimed = rh.Curve.Trim(self.fres, p_one[1], p_two[1])
 
         self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.
-        None)
+                                         None)
         return self._top_part[0]
 
     def __init__(self, curve):
@@ -230,7 +231,7 @@ class Side(BendSide):
             trimed = rh.Curve.Trim(self.fres, p_one[1], self.fres.Domain[1])
 
         self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.
-        None)
+                                         None)
         return self._top_part[0]
 
     def __init__(self, curve, reverse):

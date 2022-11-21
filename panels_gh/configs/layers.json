@@ -1,57 +1,68 @@
 [
   {
+    "objects": [],
     "name": "Laser Cut",
+    "visible": true,
     "color": [
       255,
       255,
       255,
       255
-    ],
-    "objects": [],
-    "visible": true
+    ]
   },
   {
-    "name": "Frezerovka",
+    "objects": [],
+    "name": "Frezerovka-140",
+    "visible": false,
     "color": [
       255,
       0,
       0,
       255
-    ],
-    "objects": [],
-    "visible": false
+    ]
   },
   {
-    "name": "Razmetka Frezer",
+    "objects": [],
+    "name": "Frezerovka-90",
+    "visible": false,
     "color": [
       0,
-      255,
       0,
+      255,
       255
-    ],
-    "objects": [],
-    "visible": false
+    ]
   },
   {
-    "name": "Markirovka Laser",
-    "color": [
-      255,
-      255,
-      0,
-      255
-    ],
     "objects": [],
-    "visible": false
-  },
-  {
     "name": "Markirovka Frezer",
+    "visible": false,
     "color": [
       255,
       0,
       255,
       255
-    ],
+    ]
+  },
+  {
     "objects": [],
-    "visible": false
+    "name": "Razmetka Frezer",
+    "visible": false,
+    "color": [
+      0,
+      255,
+      0,
+      255
+    ]
+  },
+  {
+    "objects": [],
+    "name": "Markirovka Laser",
+    "visible": true,
+    "color": [
+      255,
+      255,
+      0,
+      255
+    ]
   }
 ]

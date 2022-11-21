@@ -8,7 +8,7 @@
 __author__ = "sofyadobycina"
 
 import os
-import copy
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -192,7 +192,7 @@ class Niche(BendSide):
                                                         0.01)
             try:
                 bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
-                                                        0.01)
+                                                            0.01)
                 if bb == aa == rh.RegionContainment.BInsideA:
                     self.hls.extend(ii.hole)
                     cnt.append(ii.contour)
@@ -201,7 +201,6 @@ class Niche(BendSide):
                 if aa == rh.RegionContainment.BInsideA:
                     self.hls.extend(ii.hole)
                     cnt.append(ii.contour)
-
 
         _cogs.extend(self.hls[2:-2])
 
@@ -264,7 +263,6 @@ class Niche(BendSide):
             return self.hls[2:-2]
         else:
             return self.hls
-
 
     @property
     def cg(self):
@@ -369,7 +367,7 @@ class HolesSideTwo(Side):
         circ = []
         for i, v in enumerate(points):
             p = translate(v, line)
-            if i%2 == 0:
+            if i % 2 == 0:
                 c = self.hls.DuplicateCurve()
                 c.Transform(p)
                 circ.append(c)
@@ -386,12 +384,12 @@ class HolesSideTwo(Side):
         self.holes = None
 
 
-
 class Bottom(BendSide):
     side_offset = None
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
+
 
 class BottomPanel(BendSide):
     side_offset = 1.25
@@ -407,13 +405,14 @@ class HeatSchov(BendSide):
 
     @property
     def top_part(self):
-        self._top_part = self.fres.Offset(rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.__dict__['None'])
+        self._top_part = self.fres.Offset(rh.Plane.WorldXY, self.length, 0.01,
+                                          rh.CurveOffsetCornerStyle.__dict__['None'])
         return self._top_part[0]
 
     @property
     def fres_shift(self):
         self._fres_shift = self.fres.Offset(rh.Plane.WorldXY, self.fres_offset, 0.01,
-                                          rh.CurveOffsetCornerStyle.__dict__['None'])
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])
         return self._fres_shift[0]
 
     def __init__(self, curve):

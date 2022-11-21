@@ -1,6 +1,5 @@
-import os
-
 import math
+import os
 
 try:
     rs = __import__("rhinoscriptsyntax")
@@ -10,6 +9,7 @@ except:
 import Rhino.Geometry as rh
 import sys
 import imp
+import ghpythonlib.components as comp
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -33,7 +33,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 main_panels = imp.load_module("main_panels", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 main_panels.__init__("main_panels", "generic nodule")
-from main_panels import MainPanel, NichePanel, SimplePanel, ArcPanel
+from main_panels import NichePanel, SimplePanel, ArcPanel
 
 reload(main_panels)
 import main_tagging
@@ -49,7 +49,7 @@ def bound_rec(crv):
 
 class P_1(ArcPanel):
 
-    def __init__(self,surf, tag=None, pins=None, cogs_bend=None, holes=None, **kwargs):
+    def __init__(self, surf, tag=None, pins=None, cogs_bend=None, holes=None, **kwargs):
         ArcPanel.__dict__['__init__'](self, surf=surf, tag=tag, pins=pins, cogs_bend=cogs_bend, holes=holes, **kwargs)
 
 
@@ -101,6 +101,10 @@ class P_3(SimplePanel):
         return [side]
 
     @property
+    def bound_frame(self):
+        return self._bound_rect
+
+    @property
     def cut_holes(self):
         unrol = self.unrol[2]
         h = []
@@ -117,8 +121,22 @@ class P_3(SimplePanel):
         return h
 
     @property
+    def hole_one(self):
+        unroll = self.unrol[2]
+        cent = unroll[0:len(self.pins) / 2]
+        cent = cent[len(cent) / 2]
+        return cent
+
+    @property
+    def hole_two(self):
+        unroll = self.unrol[2]
+        cent = unroll[len(self.pins) / 2:]
+        cent = cent[len(cent) / 2]
+        return cent
+
+    @property
     def all_elems(self):
-        return [self.cut + self.cut_holes, self.fres]
+        return self.cut + self.cut_holes
 
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None):
         SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
@@ -132,7 +150,23 @@ class P_3(SimplePanel):
         self.unrol_surf = self.unrol[0][0]
         self.edges = self.unrol_surf.Curves3D
         self.gen_side_types()
+        edge1_vector = rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart)
+        edge0_pt = self.edges[0].PointAt(self.edges[0].GetLength() / 2)
+        edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)
+        # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
 
+        self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+
+    edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
+
+    edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
+
+    @property
+    def plane(self):
+
+        return rh.Plane(self._bound_rect.Center, self.edge1_vector, self.edge2_vector)
+
+    # edge2_vector.Unitize()
     def gen_side_types(self):
         self.side = [HeatSchov(self.edges[0]), HeatSchov(self.edges[1]), HeatSchov(self.edges[2]),
                      HeatSchov(self.edges[3])]
@@ -151,9 +185,11 @@ class N_3(NichePanel):
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1]-0.01)-self.niche.fres.PointAt(self.niche.fres.Domain[0]+0.01))
-        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1]-0.01)-self.niche.fres.PointAt(self.niche.fres.Domain[0]+0.01))
-        yaxis.Rotate(math.pi/2, rh.Plane.WorldXY.ZAxis)
+        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
         bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr

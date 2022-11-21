@@ -117,6 +117,40 @@ draw.Layer("name")
 import itertools
 
 
+class MiniFrame(object):
+    def __init__(self, panel):
+        object.__init__(self)
+        self.panel = panel
+        with open(PWD + "/configs/layers.json") as f:
+            self._layers = json.load(f)
+        self.all_elems = list(itertools.repeat([], len(self._layers)))
+        self.all_elems[0] = panel.all_elems
+        self._text_geometry = [[], [], [], [], [], []]
+        self._unroll_dict = {
+            "frame": self.panel.bound_frame,
+            "layers": self.all_elems
+
+        }
+
+    @property
+    def layers(self):
+        lays = []
+        all_elems = self.all_elems
+
+        for lay, o, t in itertools.izip_longest(self._layers, all_elems, self.text_geometry, fillvalue=[]):
+            lay["objects"] = o + t
+            lays.append(lay)
+        return lays
+
+    @property
+    def text_geometry(self):
+        return self._text_geometry
+
+    @text_geometry.setter
+    def text_geometry(self, v):
+        self._text_geometry = v
+
+
 class MainFrame:
     rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-2.5, -15, 0), rh.Point3d(2.5, 15, 0)).ToNurbsCurve()
 
@@ -128,7 +162,7 @@ class MainFrame:
         self.cogs = self.panel.cogs_bend
 
         self.__dict__.update(self.panel.frame_dict)
-        self._text_geometry = [[], [], [], [], []]
+        self._text_geometry = [[], [], [], [], [], []]
         self.bottom_rec = self.panel.bottom_rec
         self.bend = self.panel.bend_ofs
         self.top = self.panel.top_ofs
@@ -192,18 +226,16 @@ class MainFrame:
     @property
     def all_elems(self):
 
-        _all_elems = [[], [], [], [], []]
+        _all_elems = [[], [], [], [], [], []]
 
         try:
             _all_elems[0].extend(self.region + self.panel.cut_holes)
         except AttributeError:
             _all_elems[0].extend(self.region)
 
-        _all_elems[1].extend(self.panel.fres)
-
-
-
-        _all_elems[2].extend(self.panel.grav)
+        _all_elems[1].extend([self.panel.fres[1]])
+        _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
+        _all_elems[4].extend(self.panel.grav)
         ll = []
         for elem in _all_elems:
             arcs = []
