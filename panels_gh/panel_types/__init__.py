@@ -156,21 +156,13 @@ class P_3(SimplePanel):
         # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
         self.edge2_vector = rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1))
 
-        try:
-            self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
-        except:
-            r = rh.Curve.GetBoundingBox(self.cut).Center
-            pl = rh.Plane(r, self.edge1_vector, self.edge2_vector)
-            self._bound_rect = rh.Curve.GetBoundingBox(self.cut, pl)
+        self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
 
 
     @property
     def plane(self):
-        try:
-            return rh.Plane(self._bound_rect.Center, self.edge1_vector, self.edge2_vector)
-        except:
-            r = rh.Curve.GetBoundingBox(self.cut).Center
-            return rh.Plane(r, self.edge1_vector, self.edge2_vector)
+        return rh.Plane(self._bound_rect.Center, self.edge1_vector, self.edge2_vector)
+
 
 
     # edge2_vector.Unitize()
