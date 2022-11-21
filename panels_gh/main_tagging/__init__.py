@@ -287,40 +287,52 @@ class Framer:
         _, vv = self._cls.unroll_dict_f["frame"].TryGetPolyline()
 
         self.rect = rh.Rectangle3d.CreateFromPolyline(vv)
+        self.spec = [self._cls.panel.bottom.fres, self._cls.panel.niche.fres]
+    def __call__(self, u, v, tagobj, layer, side=None,  *args, **kwargs):
 
-    def __call__(self, u, v, tagobj, layer, *args, **kwargs):
-        rH, rW = 1 / self.rect.Height, 1 / self.rect.Width
+        if side is None:
+            rH, rW = 1 / self.rect.Height, 1 / self.rect.Width
 
-        center = self.rect.PointAt(u * rW, v * rH)
-        tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
-        tagobj.text = self._cls.unroll_dict_f["tag"]
+            center = self.rect.PointAt(u * rW, v * rH)
+            tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
 
-        # mw = r.Width / 4.0
-        # mh = r.Height / 4.0
-        # mark_a, mark_b = rh.Plane(rh.Point3d(400, mh * 3, 0.0), rh.Vector3d(0, 0, 1)), rh.Plane(
-        # rh.Point3d(mw * 3, mh, 0.0), rh.Vector3d(0, 0, 1))
-        # r = Rhino.DocObjects.DimensionStyle()
-        # r.TextHeight = s
-        # ee = rh.TextEntity()
-        # self.tag = xxx.unroll_dict_f["tag"]
-        # ee.Text = xxx.unroll_dict_f["tag"]
-        # ee.TextHeight = s
+            # mw = r.Width / 4.0
+            # mh = r.Height / 4.0
+            # mark_a, mark_b = rh.Plane(rh.Point3d(400, mh * 3, 0.0), rh.Vector3d(0, 0, 1)), rh.Plane(
+            # rh.Point3d(mw * 3, mh, 0.0), rh.Vector3d(0, 0, 1))
+            # r = Rhino.DocObjects.DimensionStyle()
+            # r.TextHeight = s
+            # ee = rh.TextEntity()
+            # self.tag = xxx.unroll_dict_f["tag"]
+            # ee.Text = xxx.unroll_dict_f["tag"]
+            # ee.TextHeight = s
 
-        # ee.Plane = self.pln
-        # ee.Font = Rhino.DocObjects.Font("TC_LaserSans")
-        # t = rh.Transform.Scale(ee.Plane, 1, 1, 1.0)
-        # self.text = ee
+            # ee.Plane = self.pln
+            # ee.Font = Rhino.DocObjects.Font("TC_LaserSans")
+            # t = rh.Transform.Scale(ee.Plane, 1, 1, 1.0)
+            # self.text = ee
 
-        # mxf = Rhino.Geometry.Transform.Mirror(Rhino.Geometry.Plane(center, tag.plane.ZAxis))
+            # mxf = Rhino.Geometry.Transform.Mirror(Rhino.Geometry.Plane(center, tag.plane.ZAxis))
 
-        # m2 = Rhino.Geometry.Transform.Mirror(Rhino.Geometry.Plane.WorldXY)
-        # curves = list(tag.generate_curves()) + list(tag.generate_curves_with_transform(mxf))
+            # m2 = Rhino.Geometry.Transform.Mirror(Rhino.Geometry.Plane.WorldXY)
+            # curves = list(tag.generate_curves()) + list(tag.generate_curves_with_transform(mxf))
 
-        self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
 
-        return self._cls
+            return self._cls
 
+        else:
+            crv = rh.Curve.Offset(self.spec[side], rh.Plane.WorldXY, -80, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+            center = crv.PointAtNormalizedLength(0.5)
+            param = crv.NormalizedLengthParameter(0.5)[1]
+            # tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            tagobj.plane = crv.FrameAt(param)[1]
+            tagobj.text = self._cls.unroll_dict_f["tag"]
 
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+            return self._cls
 class Tagger:
     _cls = None
     inst = None

@@ -3,6 +3,7 @@ __author__ = "sofyadobycina"
 import json
 from collections import namedtuple
 
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -70,6 +71,7 @@ def bound_rec(crv):
     join = rh.Curve.JoinCurves(crv)[0]
     bound_rec = rh.PolyCurve.GetBoundingBox(join, rh.Plane.WorldXY)
     return bound_rec
+
 
 
 def intersect(values):

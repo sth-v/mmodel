@@ -150,21 +150,28 @@ class P_3(SimplePanel):
         self.unrol_surf = self.unrol[0][0]
         self.edges = self.unrol_surf.Curves3D
         self.gen_side_types()
-        edge1_vector = rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart)
+        self.edge1_vector = rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart)
         edge0_pt = self.edges[0].PointAt(self.edges[0].GetLength() / 2)
         edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)
         # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
+        self.edge2_vector = rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1))
 
-        self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+        try:
+            self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+        except:
+            r = rh.Curve.GetBoundingBox(self.cut).Center
+            pl = rh.Plane(r, self.edge1_vector, self.edge2_vector)
+            self._bound_rect = rh.Curve.GetBoundingBox(self.cut, pl)
 
-    edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
-
-    edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
 
     @property
     def plane(self):
+        try:
+            return rh.Plane(self._bound_rect.Center, self.edge1_vector, self.edge2_vector)
+        except:
+            r = rh.Curve.GetBoundingBox(self.cut).Center
+            return rh.Plane(r, self.edge1_vector, self.edge2_vector)
 
-        return rh.Plane(self._bound_rect.Center, self.edge1_vector, self.edge2_vector)
 
     # edge2_vector.Unitize()
     def gen_side_types(self):
