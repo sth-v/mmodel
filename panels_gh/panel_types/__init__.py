@@ -124,14 +124,14 @@ class P_3(SimplePanel):
     def hole_one(self):
         unroll = self.unrol[2]
         cent = unroll[0:len(self.pins) / 2]
-        cent = cent[len(cent) / 2]
+        cent = cent[int((4 * len(cent)) / 5)]
         return cent
 
     @property
     def hole_two(self):
         unroll = self.unrol[2]
         cent = unroll[len(self.pins) / 2:]
-        cent = cent[len(cent) / 2]
+        cent = cent[int(len(cent) / 5)]
         return cent
 
     @property
