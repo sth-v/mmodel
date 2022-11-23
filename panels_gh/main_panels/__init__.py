@@ -143,10 +143,10 @@ class MainPanel(SimplePanel):
                 ii.Transform(self.bound_plane)
                 cut.append(ii)
 
-        if self.unrol[2] is not None:
-            for i, v in enumerate(self.unrol[2]):
-                p = rh.Circle(v, self.h_r[i]).ToNurbsCurve()
-                ii = p.DuplicateCurve()
+        if self.unrol[1] is not None:
+            for i, v in enumerate(self.unrol[1]):
+                #p = rh.Circle(v, self.h_r[i]).ToNurbsCurve()
+                ii = v.DuplicateCurve()
                 ii.Transform(self.bound_plane)
                 cut.append(ii)
 
@@ -178,8 +178,9 @@ class MainPanel(SimplePanel):
 
         unrol = rh.Unroller(self.surf)
         if self.h_p[0] is not None:
-            a = [self.surf.ClosestPoint(i) for i in self.h_p]
-            unrol.AddFollowingGeometry(points=a)
+            a = self.h_p
+            #a = [self.surf.ClosestPoint(i) for i in self.h_p]
+            unrol.AddFollowingGeometry(curves=a)
 
         self.unrol = unrol.PerformUnroll()
         self.unrol_surf = self.unrol[0][0]

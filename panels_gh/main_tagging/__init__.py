@@ -239,6 +239,8 @@ class TagTwo(Tag):
     def transform(self):
         trx1 = rh.Transform.Rotation(90, self.plane.ZAxis)
         trx2 = Rhino.Geometry.Transform.Scale(self.plane.Origin, self.hight)
+        #vec = Rhino.Geometry.Vector3D(self.plane.Origin, rh.Point3d(self.plane.Origin[0], self.plane.Origin[1]+150, 0))
+        #trx3 = Rhino.Geometry.Transform.Translation(vec)
 
         return rh.Transform.Multiply(trx2, trx1)
 
@@ -323,12 +325,19 @@ class Framer:
             return self._cls
 
         else:
-            crv = rh.Curve.Offset(self.spec[side], rh.Plane.WorldXY, -80, 0.01,
+            crv = rh.Curve.Offset(self.spec[side], rh.Plane.WorldXY, -80+u, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
             center = crv.PointAtNormalizedLength(0.5)
+
+            crv_check = rh.Curve.Offset(self.spec[side], rh.Plane.WorldXY, -110, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+            center_check = crv_check.PointAtNormalizedLength(0.5)
+            vec = Rhino.Geometry.Vector3d(center_check-center)
             param = crv.NormalizedLengthParameter(0.5)[1]
             # tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
-            tagobj.plane = crv.FrameAt(param)[1]
+            plane = crv.FrameAt(param)[1]
+            tagobj.plane = Rhino.Geometry.Plane(plane.Origin, plane.XAxis, vec)
             tagobj.text = self._cls.unroll_dict_f["tag"]
 
             self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))

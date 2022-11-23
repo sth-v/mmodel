@@ -110,7 +110,7 @@ class P_3(SimplePanel):
         h = []
         for i in unrol[0:len(self.pins) / 2]:
             c = rh.Circle(i, 5.25)
-            h.append(c)
+            h.append(c.ToNurbsCurve())
 
         for i in unrol[len(self.pins) / 2:]:
             vec = rh.Vector3d(i)

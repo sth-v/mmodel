@@ -100,7 +100,8 @@ class UnrollPackage:
                 setattr(self, key, MainFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-                self.m.append(det.panel.tag)
+                #self.m.append(det.panel.niche.join_region)
+                print(self.m)
 
 
 
@@ -118,7 +119,7 @@ class UnrollPackage:
                 setattr(self, key, MiniFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-                self.m.append(det.panel.tag)
+                #self.m.append(det.panel.tag)
 
             else:
                 new = self.panels_dict[key](**value)
