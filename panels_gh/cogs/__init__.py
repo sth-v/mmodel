@@ -62,6 +62,7 @@ class TT:
         plcrv = rg.PolyCurve()
         ln1 = self.tan[self.n]
         ln2 = copy.deepcopy(self.tan[self.n])
+        print(self.n)
         ln0 = rg.Line(self.pt2, ln1.From)
         pt3 = copy.deepcopy(self.pt2)
         pt3.Transform(self.mr)
