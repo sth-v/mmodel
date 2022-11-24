@@ -9,8 +9,7 @@ from typing import Any
 
 import numpy as np
 
-from mm.baseitems import Item
-from mm.meta.classes import BaseItem
+from mm.baseitems import BaseItem, Item
 
 
 def t(glb):

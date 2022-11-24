@@ -3,7 +3,6 @@ import gzip
 import json
 import os
 
-
 from cxm_remote.sessions import S3Session
 import argparse
 
@@ -30,7 +29,6 @@ def togzipone(name):
     sess.s3.put_object(Bucket=sess.bucket, Key=f"tmp/{name}", Body=gzip.compress(jsn, compresslevel=9))
     print(f"Success PUT {name}")
     print(f"exit")
-
 
 
 if __name__ == "__main__":
