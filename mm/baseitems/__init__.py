@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations, absolute_import
 
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'DictableItem',
            'DataviewInterface', 'Dataview', 'DataviewDescriptor', 'Metadata', 'ReprData', 'GeomConversionMap',
