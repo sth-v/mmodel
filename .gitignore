@@ -1,0 +1,12 @@
+/panels_gh/dumps/
+/panels_gh/gh_files
+/panels_gh/gh_files/
+/pyopennurbs/opennurbs/
+/pyopennurbs/vcpkg/
+/pyopennurbs/.idea
+/pyopennurbs/cmake-build-release/
+/pyopennurbs/cmake-build-debug/
+/tmp/
+/pyopennurbs/install/
+
+/pyopennurbs/opennurbs

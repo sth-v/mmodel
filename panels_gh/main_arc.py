@@ -7,32 +7,36 @@
 
 __author__ = "sofyadobycina"
 try:
-    rs=__import__("rhinoscriptsyntax")
+    rs = __import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
 
-otgib_side=globals()['otgib_side']
-otgib_niche=globals()['otgib_niche']
-panels=globals()['panels']
-import ghpythonlib.treehelpers as th
+otgib_side = globals()['otgib_side']
+otgib_niche = globals()['otgib_niche']
+panels = globals()['panels']
 import Rhino.Geometry as rh
+import ghpythonlib.treehelpers as th
 import math
 
-#a = th.tree_to_list(panels)
+
+# a = th.tree_to_list(panels)
 
 
 def angle_ofs(angle, side, met_left):
-    ang = math.radians((180-angle)/2)
-    rad = ((side/2)/math.cos(ang)) + met_left
+    ang = math.radians((180 - angle) / 2)
+    rad = ((side / 2) / math.cos(ang)) + met_left
     return rad
 
+
 def right_angle_ofs(side, met_left):
-    ang = math.radians(90/2)
-    rad = ((side/2)/math.cos(ang)) + met_left
+    ang = math.radians(90 / 2)
+    rad = ((side / 2) / math.cos(ang)) + met_left
     return rad
+
 
 def trim_with_frame(frame, surf):
     tr = rh.Brep.Trim()
+
 
 def get_plane(surf, edge, edge_point):
     point_surf = surf.Faces[0].ClosestPoint(edge_point)
@@ -53,7 +57,7 @@ class BendSide:
     @property
     def eval_frame(self):
         frame = get_plane(self.base_surf, self.edge, self.edge.PointAtStart)
-        self._eval_frame =rh.Plane(frame.Origin, frame.ZAxis, -frame.YAxis)
+        self._eval_frame = rh.Plane(frame.Origin, frame.ZAxis, -frame.YAxis)
         return self._eval_frame
 
     @property
@@ -112,12 +116,14 @@ class Niche(BendSide):
     def __init__(self, edge, base_surf):
         BendSide.__init__(self, edge, base_surf)
 
+
 class Schov(BendSide):
     side_offset = 1.25
     otgib = None
 
     def __init__(self, edge, base_surf):
-        BendSide.__init__(self,edge, base_surf)
+        BendSide.__init__(self, edge, base_surf)
+
 
 class Side(BendSide):
     angle = 90
@@ -161,9 +167,8 @@ class Panel:
     @property
     def surf_otgib(self):
         self._surf_otgib = [self.niche.trim_otgib, self.side[0].trim_otgib, self.side[1].trim_otgib]
-        #self._surf_otgib = [self.niche.surf_otgib, self.side[0].surf_otgib, self.side[1].surf_otgib]
+        # self._surf_otgib = [self.niche.surf_otgib, self.side[0].surf_otgib, self.side[1].surf_otgib]
         return self._surf_otgib
-
 
     def __init__(self, surface, type):
         self.surface = surface
@@ -199,27 +204,24 @@ class Panel:
             trimed = rh.Curve.Trim(v.edge, param[0], param[1])
             v.edge = trimed
 
-o_left=[]
-s_left=[]
+
+o_left = []
+s_left = []
 o_right = []
 s_right = []
-a=[]
+a = []
 
-
-
-for i in panels[0:6:2]:
+for i in panels[0::2]:
     pan = Panel(i, 0)
     s_left.append(pan.surf_top)
     o_left.append(pan.surf_otgib)
     a.append(pan.niche.eval_frame)
 
-
-for i in panels[1:7:2]:
+for i in panels[1::2]:
     pan = Panel(i, 1)
     s_right.append(pan.surf_top)
     o_right.append(pan.surf_otgib)
     a.append(pan.niche.eval_frame)
-
 
 o_left = th.list_to_tree(o_left)
 o_right = th.list_to_tree(o_right)

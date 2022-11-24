@@ -6,6 +6,7 @@
         a: The a output variable"""
 
 __author__ = "sofyadobycina"
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -82,7 +83,8 @@ class BendSide(object):
         self.fres = self.curve_offset(curve)
 
     def curve_offset(self, curve):
-        crv = rh.Curve.Offset(curve, rh.Plane.WorldXY, -self.side_offset, 0.01, rh.CurveOffsetCornerStyle.None)
+        crv = rh.Curve.Offset(curve, rh.Plane.WorldXY, -self.side_offset, 0.01, rh.CurveOffsetCornerStyle.
+                              None)
         return crv[0]
 
 
@@ -96,7 +98,8 @@ class Niche(BendSide):
         p_two = rh.Curve.LengthParameter(self.fres, self.fres.GetLength() - self.top_offset)
         trimed = rh.Curve.Trim(self.fres, p_one[1], p_two[1])
 
-        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.None)
+        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.
+                                         None)
         return self._top_part[0]
 
     def __init__(self, curve):
@@ -227,7 +230,8 @@ class Side(BendSide):
             p_one = rh.Curve.LengthParameter(self.fres, self.top_offset)
             trimed = rh.Curve.Trim(self.fres, p_one[1], self.fres.Domain[1])
 
-        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.None)
+        self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.
+                                         None)
         return self._top_part[0]
 
     def __init__(self, curve, reverse):
@@ -235,7 +239,7 @@ class Side(BendSide):
         self.reverse = reverse
 
 
-class Schov(BendSide):
+class Bottom(BendSide):
     side_offset = 1.25
 
     def __init__(self, curve):
@@ -246,7 +250,7 @@ class Panel:
 
     @property
     def bound_plane(self):
-        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.schov.fres])[0]
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
         if self.type == 0:
             fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[1])[1]
@@ -275,7 +279,8 @@ class Panel:
     def cut(self):
         if self.cogs_bend is True:
             side = \
-            rh.Curve.JoinCurves([self.side[0].join, self.niche.join_region[0], self.side[1].join, self.schov.fres])[0]
+                rh.Curve.JoinCurves(
+                    [self.side[0].join, self.niche.join_region[0], self.side[1].join, self.bottom.fres])[0]
             side.Transform(self.bound_plane)
 
             cut = [side]
@@ -287,7 +292,7 @@ class Panel:
                 ii.Transform(self.bound_plane)
                 cut.append(ii)
         else:
-            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.schov.fres])[0]
+            side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
             side.Transform(self.bound_plane)
             cut = [side]
         return cut
@@ -308,21 +313,21 @@ class Panel:
         self.unrol_surf = rh.Unroller(self.surf).PerformUnroll()[0][0]
         self.edges = self.unrol_surf.Curves3D
 
-        self.side_types()
+        self.gen_side_types()
 
-    def side_types(self):
+    def gen_side_types(self):
 
         if self.type == 0:
             self.niche = Niche(self.edges[0])
-            self.schov = Schov(self.edges[2])
+            self.bottom = Bottom(self.edges[2])
             self.side = [Side(self.edges[1], True), Side(self.edges[3], False)]
 
         else:
             self.niche = Niche(self.edges[2])
-            self.schov = Schov(self.edges[0])
+            self.bottom = Bottom(self.edges[0])
             self.side = [Side(self.edges[1], False), Side(self.edges[3], True)]
 
-        self.side_types = [self.niche, self.schov, self.side[0], self.side[1]]
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 
     def intersect(self):

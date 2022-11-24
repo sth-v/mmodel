@@ -11,6 +11,7 @@ import ghpythonlib.components as ghc
 
 R1 = 1.5
 W = 11.5
+
 Pat = namedtuple("Pat", ["contour", "hole"])
 
 
@@ -103,6 +104,73 @@ class Ptrn:
         return len(self.itr)
 
 
+
+class PatternSimple:
+    def __init__(self, unit, module_length=46, length=1000):
+        self.__unit = unit
+        self.unit = copy.deepcopy(unit)
+        self.u = self.unit.ln
+        self.__c = rg.Circle(rg.Point3d(-11.5, 16.9, 0), 1.75).ToNurbsCurve()
+        self.circ = copy.deepcopy(self.__c)
+        self.module_length = module_length
+        self.length = length
+        self._len = self.length
+        self._hole = self.u.hole
+        self._contour = self.u.contour
+
+        self.i = 1
+
+    def __iter__(self):
+        return self
+
+
+    def constrain(self):
+        return self._len > 0
+
+    @property
+    def transform(self):
+        return rg.Transform.Translation(self.module_length, 0, 0)
+
+    def next_transform(self):
+
+        _circ = copy.deepcopy(self.circ)
+        _hole = copy.deepcopy(self._hole)
+
+        self.circ.Transform(self.transform)
+        for j in self._hole:
+            j.Transform(self.transform)
+
+        if self.i % 2 != 0:
+            p = Pat(0, [_circ])
+            self.i += 1
+            return p
+        else:
+            p = Pat(0, _hole)
+            self.i += 1
+            return p
+
+
+    def next(self):
+        if self.constrain():
+            self._len -= self.module_length
+            return self.next_transform()
+        else:
+            raise StopIteration
+
+
+    def reload(self):
+
+        self._len = self.length
+        self.i = 0
+
+        self.hole = []
+        self.contour = []
+        self.unit = copy.deepcopy(self.__unit)
+        self.u = self.unit.ln
+        self._hole = self.u.hole
+        self._contour = self.u.contour
+
+
 class Pattern:
     def __init__(self, unit, modl=23, l=1000):
         self.__unit = unit
@@ -153,3 +221,24 @@ class Pattern:
         self.ln = self.__l // self.modl
         self._hole = self.u.hole
         self._contour = self.u.contour
+
+
+'''def main():
+    global x, y, circle
+
+    cog = TT(x, y, circle)
+    cu = PatternSimple(cog, 46, 1000)
+    cnt = []
+    for ii in cu:
+        print(ii)
+        h = ii[0]
+        cnt.append(h)
+        try:
+            v = ii[1]
+            cnt.append(v)
+        except:
+            pass
+    return cnt
+
+if __name__ == "__main__":
+    a = main()'''

@@ -7,31 +7,35 @@
 
 __author__ = "sofyadobycina"
 try:
-    rs=__import__("rhinoscriptsyntax")
+    rs = __import__("rhinoscriptsyntax")
 except:
     import rhinoscript as rs
 
-otgib_side=globals()['otgib_side']
-panels=globals()['panels']
-import ghpythonlib.treehelpers as th
+otgib_side = globals()['otgib_side']
+panels = globals()['panels']
 import Rhino.Geometry as rh
+import ghpythonlib.treehelpers as th
 import math
 
-#a = th.tree_to_list(panels)
+
+# a = th.tree_to_list(panels)
 
 
 def angle_ofs(angle, side, met_left):
-    ang = math.radians((180-angle)/2)
-    rad = ((side/2)/math.cos(ang)) + met_left
+    ang = math.radians((180 - angle) / 2)
+    rad = ((side / 2) / math.cos(ang)) + met_left
     return rad
 
+
 def right_angle_ofs(side, met_left):
-    ang = math.radians(90/2)
-    rad = ((side/2)/math.cos(ang)) + met_left
+    ang = math.radians(90 / 2)
+    rad = ((side / 2) / math.cos(ang)) + met_left
     return rad
+
 
 def trim_with_frame(frame, surf):
     tr = rh.Brep.Trim()
+
 
 def get_plane(surf, edge, edge_point):
     point_surf = surf.Faces[0].ClosestPoint(edge_point)
@@ -52,7 +56,7 @@ class BendSide:
     @property
     def eval_frame(self):
         frame = get_plane(self.base_surf, self.edge, self.edge.PointAtStart)
-        self._eval_frame =rh.Plane(frame.Origin, frame.ZAxis, -frame.YAxis)
+        self._eval_frame = rh.Plane(frame.Origin, frame.ZAxis, -frame.YAxis)
         return self._eval_frame
 
     @property
@@ -77,7 +81,6 @@ class BendSide:
         else:
             return curve
 
-
     def transpose_otgib(self):
 
         tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, self.eval_frame)
@@ -86,6 +89,7 @@ class BendSide:
         surf_otgib = rh.Brep.CreateContourCurves(otg, self.eval_frame)[0]
 
         return surf_otgib
+
 
 class Side(BendSide):
     side_offset = None
@@ -104,7 +108,6 @@ class OtgSide(BendSide):
 
     @property
     def trim_otgib(self):
-
         frame_one = get_plane(self.base_surf, self.edge, self.edge.PointAtStart)
         frame_one = rh.Plane(frame_one.Origin, frame_one.ZAxis, frame_one.YAxis)
         tr = rh.Transform.Rotation(math.radians(60), frame_one.XAxis, frame_one.Origin)
@@ -129,7 +132,8 @@ class Panel:
 
     @property
     def surf_top(self):
-        s = rh.Brep.CreateEdgeSurface([self.otg_side[0].edge, self.side[0].edge, self.otg_side[1].edge, self.side[1].edge])
+        s = rh.Brep.CreateEdgeSurface(
+            [self.otg_side[0].edge, self.side[0].edge, self.otg_side[1].edge, self.side[1].edge])
         self._surf_top = s
         return self._surf_top
 
@@ -137,7 +141,6 @@ class Panel:
     def surf_otgib(self):
         self._surf_otgib = [self.otg_side[0].trim_otgib, self.otg_side[1].trim_otgib]
         return self._surf_otgib
-
 
     def __init__(self, surface):
         self.surface = surface
@@ -169,9 +172,9 @@ class Panel:
             trimed = rh.Curve.Trim(v.edge, param[0], param[1])
             v.edge = trimed
 
-otgib=[]
-surf=[]
 
+otgib = []
+surf = []
 
 for i in panels:
     pan = Panel(i)
