@@ -228,16 +228,16 @@ class MainFrame:
     @property
     def all_elems(self):
 
-        _all_elems = [[], [], [], [], [], []]
+        _all_elems = [[], [], [], [], []]
 
         try:
             _all_elems[0].extend(self.region + self.panel.cut_holes)
         except AttributeError:
             _all_elems[0].extend(self.region)
 
-        _all_elems[1].extend([self.panel.fres[1]])
-        _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
-        _all_elems[4].extend(self.panel.grav)
+        _all_elems[1].extend(self.panel.fres)
+        #_all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
+        _all_elems[3].extend(self.panel.grav)
         ll = []
         for elem in _all_elems:
             arcs = []

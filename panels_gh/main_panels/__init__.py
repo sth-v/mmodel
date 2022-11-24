@@ -124,6 +124,12 @@ class MainPanel(SimplePanel):
         return [side]
 
     @property
+    def marker_curve(self):
+        crv = [self.bottom.fres.DuplicateCurve(), self.niche.fres.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in crv]
+        return crv
+
+    @property
     def niche_holes(self):
         cut = []
         reg = self.niche.region_holes
