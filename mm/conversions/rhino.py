@@ -1,5 +1,6 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import json
+import os
 import warnings
 
 import numpy as np
@@ -197,25 +198,32 @@ def polyline_from_pts(pts):
         warnings.warn("InValid Rhino Object")
         return polyline
 
+
 def model_from_json_file(path, modelpath=None):
-    model=rhino3dm.File3dm()
-    pth,_=path.split(".")
-    with open(f"{path}","r") as f:
+    model = rhino3dm.File3dm()
+    pth, _ = path.split(".")
+    with open(f"{path}", "r") as f:
         for l in json.load(f):
             l["archive3dm"] = 70
             model.Objects.Add(rhino3dm.GeometryBase.Decode(l))
     if modelpath:
-        model.Write(f"{modelpath}.3dm",7)
+        model.Write(f"{modelpath}.3dm", 7)
     else:
         model.Write(f"{pth}.3dm", 7)
 
-def model_from_multijson_file(paths, modelpath):
-    model=rhino3dm.File3dm()
-    for path in paths:
-        pth,_=path.split(".")
-        with open(f"{path}","r") as f:
+
+def model_from_dir_obj(directory):
+    model = rhino3dm.File3dm()
+    for path in os.scandir(directory):
+        pth, _ = path.name.split(".")
+        with open(f"{path}", "r") as f:
             for l in json.load(f):
                 l["archive3dm"] = 70
                 model.Objects.Add(rhino3dm.GeometryBase.Decode(l))
 
-    model.Write(f"{modelpath}.3dm",7)
+    return model
+
+
+def model_from_multijson_file(directory, modelpath):
+    model = model_from_dir_obj(directory)
+    model.Write(f"{modelpath}.3dm", 7)
