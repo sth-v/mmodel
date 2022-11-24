@@ -61,10 +61,9 @@ from main_framing import MainFrame, MiniFrame
 
 import main_tagging
 
-reload(main_tagging
-       )
+reload(main_tagging)
 
-sizes = []
+
 
 
 class UnrollPackage:
@@ -131,7 +130,7 @@ def main():
     global x, y, circle, bend_hole, p3_hole, cog_hole, crv
 
     a = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
-    side = th.list_to_tree(a.data)
+    #side = th.list_to_tree(a.data)
     m = a.m
 
     return a, side, m

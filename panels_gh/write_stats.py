@@ -1,23 +1,38 @@
-import pandas as pd
+#import pandas as pd
 import json
 
 
-with open('panels_gh/for_stats/niche_sizes.json', 'r') as out_file:
-    data = json.load(out_file)
+class Stats:
+
+    def __init__(self, unrolls):
+
+        self.unrolls = unrolls
+
+        self.sizes = {"name":[], "width":[], "height":[]}
+
+    def bound_frame(self):
+        for i in self.unrolls:
+
+            try:
+                frame = i.P_1
+
+            except AttributeError:
+                frame = i.P_2
+
+            self.sizes["name"].append(frame.panel.tag)
+            self.sizes["width"].append(round(frame.bound_stats.Width))
+            self.sizes["height"].append(round(frame.bound_stats.Height))
+
+        return self.sizes
 
 
-data = pd.DataFrame(data)
-data.to_csv('panels_gh/for_stats/221116_niche_sizes.csv', encoding='utf-8', index=True)
 
-'''data = pd.read_csv('panels_gh/for_stats/221031_niche_sizes.csv')
-new = {'1': [], '2': [], '3': [], '4': [], '5': [], '6': []}
+s = Stats(x)
 
-for i, v in enumerate(data['names']):
-    n = v[4]
-    val = data.iloc[i]
-    new[str(n)].append(list(val.values))
+a = s.bound_frame()
+with open('/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh/for_stats/panel_sizes.json', 'w') as out_file:
+    json.dump(a, out_file)
 
-right = pd.DataFrame.from_dict(right)
-left = pd.DataFrame.from_dict(left)
-data = pd.concat([right, left], ignore_index=True)
-data.to_csv('panels_gh/221012_panels_sizes.csv', encoding='utf-8', index=True)'''
+
+#data = pd.DataFrame(a)
+#data.to_csv('panels_gh/for_stats/221124_panel_sizes.csv', encoding='utf-8', index=True)
