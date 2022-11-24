@@ -10,8 +10,6 @@ except:
 import sys
 import imp
 import ghpythonlib.treehelpers as th
-import math
-import Rhino.Geometry as rh
 
 if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
@@ -59,8 +57,7 @@ main_framing.__init__("main_framing", "generic nodule")
 
 reload(main_framing)
 
-from main_framing import MainFrame
-import random
+from main_framing import MainFrame, MiniFrame
 
 import main_tagging
 
@@ -68,6 +65,8 @@ reload(main_tagging
        )
 
 sizes = []
+
+
 class UnrollPackage:
     panels_dict = {'P_1': P_1, 'P_2': P_2, 'P_3': P_3, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4}
 
@@ -81,9 +80,7 @@ class UnrollPackage:
         self.data = []
         self.m = []
 
-
-
-        #self.cogs_bend = random.choice([True, False])
+        # self.cogs_bend = random.choice([True, False])
 
         for key, value in elements.items():
 
@@ -103,7 +100,8 @@ class UnrollPackage:
                 setattr(self, key, MainFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-                self.m.append(det.panel.tag)
+                #self.m.append(det.panel.niche.join_region)
+                print(self.m)
 
 
 
@@ -118,10 +116,10 @@ class UnrollPackage:
             elif key == 'P_3':
                 new = self.panels_dict[key](**value)
                 new.hls = self.p3_hole
-                setattr(self, key, new)
+                setattr(self, key, MiniFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-                self.m.append(det.tag)
+                #self.m.append(det.panel.tag)
 
             else:
                 new = self.panels_dict[key](**value)
@@ -129,14 +127,12 @@ class UnrollPackage:
                 det = getattr(self, key)
 
 
-import json
 def main():
-    global x, y, circle, bend_hole, p3_hole, cog_hole,  crv
+    global x, y, circle, bend_hole, p3_hole, cog_hole, crv
 
     a = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
     side = th.list_to_tree(a.data)
     m = a.m
-
 
     return a, side, m
 

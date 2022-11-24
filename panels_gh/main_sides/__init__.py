@@ -8,7 +8,7 @@
 __author__ = "sofyadobycina"
 
 import os
-import copy
+
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -192,7 +192,7 @@ class Niche(BendSide):
                                                         0.01)
             try:
                 bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
-                                                        0.01)
+                                                            0.01)
                 if bb == aa == rh.RegionContainment.BInsideA:
                     self.hls.extend(ii.hole)
                     cnt.append(ii.contour)
@@ -201,7 +201,6 @@ class Niche(BendSide):
                 if aa == rh.RegionContainment.BInsideA:
                     self.hls.extend(ii.hole)
                     cnt.append(ii.contour)
-
 
         _cogs.extend(self.hls[2:-2])
 
@@ -213,6 +212,7 @@ class Niche(BendSide):
             _cogs.extend(ccnt)
             self._join_brep = br.Faces[0].Split(ccnt, 0.01).GetRegions()[0]
             _cogs.extend(list(self._join_brep.Brep.Faces)[-1].Brep.Edges)
+
 
         except TypeError:
             pass
@@ -252,7 +252,10 @@ class Niche(BendSide):
             p_one = trg.ClosestPoint(self.fres.PointAtStart)[1]
             p_two = trg.ClosestPoint(self.fres.PointAtEnd)[1]
             trim = trg.Trim(p_one, p_two)
-
+            if trim is None:
+                trg.MakeClosed(0.1)
+                trim = trg.Trim(p_one, p_two)
+            print(p_two, p_one, trim)
         else:
             trim = self.join
 
@@ -264,7 +267,6 @@ class Niche(BendSide):
             return self.hls[2:-2]
         else:
             return self.hls
-
 
     @property
     def cg(self):
@@ -339,7 +341,7 @@ class HolesSideOne(Side):
         circ = []
         for i in points:
             p = translate(i, line)
-            c = rh.Circle(2.5)
+            c = rh.Circle(2.25)
             c.Transform(p)
             circ.append(c.ToNurbsCurve())
         return circ
@@ -367,11 +369,17 @@ class HolesSideTwo(Side):
         points = divide(line)
 
         circ = []
-        for i in points:
-            p = translate(i, line)
-            c = self.hls.DuplicateCurve()
-            c.Transform(p)
-            circ.append(c)
+        for i, v in enumerate(points):
+            p = translate(v, line)
+            if i % 2 == 0:
+                c = self.hls.DuplicateCurve()
+                c.Transform(p)
+                circ.append(c)
+            else:
+                c = rh.Circle(2.25)
+                c.Transform(p)
+                circ.append(c.ToNurbsCurve())
+
         return circ
 
     def __init__(self, curve, reverse=None):
@@ -380,12 +388,12 @@ class HolesSideTwo(Side):
         self.holes = None
 
 
-
 class Bottom(BendSide):
     side_offset = None
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
+
 
 class BottomPanel(BendSide):
     side_offset = 1.25
@@ -401,13 +409,14 @@ class HeatSchov(BendSide):
 
     @property
     def top_part(self):
-        self._top_part = self.fres.Offset(rh.Plane.WorldXY, self.length, 0.01, rh.CurveOffsetCornerStyle.__dict__['None'])
+        self._top_part = self.fres.Offset(rh.Plane.WorldXY, self.length, 0.01,
+                                          rh.CurveOffsetCornerStyle.__dict__['None'])
         return self._top_part[0]
 
     @property
     def fres_shift(self):
         self._fres_shift = self.fres.Offset(rh.Plane.WorldXY, self.fres_offset, 0.01,
-                                          rh.CurveOffsetCornerStyle.__dict__['None'])
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])
         return self._fres_shift[0]
 
     def __init__(self, curve):

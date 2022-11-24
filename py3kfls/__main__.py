@@ -114,7 +114,7 @@ if __name__ == "__main__":
     os.mkdir(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}")
     os.mkdir(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}-dxf")
     # client = sessions.S3Client(bucket=os.getenv('BUCKET'), prefix="workspace/cxm/arc/")
-    with gzip.open(f"{os.getenv('PANELS_GH_DUMPS')}/build.cxmz", "rb", compresslevel=9) as gz:
+    with gzip.open(f"{os.getenv('PANELS_GH_DUMPS')}/input.gz", "rb", compresslevel=9) as gz:
         bts = gz.read()
         # client.s3.put_object(Bucket=client.bucket, Key=f"{client.bucket }/{client.prefix}/build{s}", Body=bts)
         for obj in json.loads(bts):
