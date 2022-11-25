@@ -14,10 +14,10 @@ class Stats:
         for i in self.unrolls:
 
             try:
-                frame = i.P_1
+                frame = i.N_2
 
             except AttributeError:
-                frame = i.P_2
+                frame = i.N_3
 
             self.sizes["name"].append(frame.panel.tag)
             self.sizes["width"].append(round(frame.bound_stats.Width))
@@ -30,9 +30,9 @@ class Stats:
 s = Stats(x)
 
 a = s.bound_frame()
-with open('/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh/for_stats/panel_sizes.json', 'w') as out_file:
+with open('/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh/for_stats/nicheback_sizes.json', 'w') as out_file:
     json.dump(a, out_file)
 
 
 #data = pd.DataFrame(a)
-#data.to_csv('panels_gh/for_stats/221124_panel_sizes.csv', encoding='utf-8', index=True)
+#data.to_csv('panels_gh/for_stats/221125_nicheside_sizes.csv', encoding='utf-8', index=True)

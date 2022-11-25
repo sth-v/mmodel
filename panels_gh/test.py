@@ -97,18 +97,26 @@ class UnrollPackage:
                 except AttributeError:
                     pass
                 setattr(self, key, MainFrame(new))
+                #setattr(self, key, new)
                 det = getattr(self, key)
-                self.data.append(det.all_elems)
-                #self.m.append(det.panel.niche.join_region)
-                print(self.m)
+                #self.data.append(det.all_elems)
+                #self.data.append(det.cut)
+                #self.data.append(det.fres)
+                #self.m = det.bound_stats
+
+
+
 
 
 
             elif key == 'N_2':
                 new = self.panels_dict[key](**value)
                 setattr(self, key, MainFrame(new))
+                #setattr(self, key, new)
                 det = getattr(self, key)
+                #self.data.append(det.panel.cut)
                 self.data.append(det.all_elems)
+
 
 
 
@@ -130,11 +138,12 @@ def main():
     global x, y, circle, bend_hole, p3_hole, cog_hole, crv
 
     a = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
-    #side = th.list_to_tree(a.data)
-    m = a.m
+    side = th.list_to_tree(a.data)
+    #m = th.list_to_tree(a.m)
+    #m=a.m
 
-    return a, side, m
+    return a, side
 
 
 if __name__ == "__main__":
-    a, side, m = main()
+    a, side = main()

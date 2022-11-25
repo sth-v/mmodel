@@ -328,7 +328,7 @@ class Framer:
             crv = rh.Curve.Offset(self.spec[side], rh.Plane.WorldXY, -80+u, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
             self.pl = [crv, self.spec[side]]
-            print(-80+u)
+
             center = crv.PointAtNormalizedLength(0.5)
 
             crv_check = rh.Curve.Offset(self.spec[side], rh.Plane.WorldXY, -150, 0.01,

@@ -293,11 +293,28 @@ class NichePanel(MainPanel):
         yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
             self.niche.fres.Domain[0] + 0.01))
         yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
-        bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), xaxis, yaxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
     @property
+    def fres(self):
+        fres = [self.side[0].fres.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
+                self.side[1].fres.DuplicateCurve()]
+
+        fr =[]
+
+        for i in fres:
+            i.Transform(self.bound_plane)
+            if i.IsValid is False:
+                print(False)
+                a = i.Rebuild(25, i.Degree, True)
+                fr.append(a)
+            else:
+                fr.append(i)
+        return fr
+
+    '''@property
     def mark_ribs(self):
         mark_ribs = self.ribs_offset()
         for i, v in enumerate(mark_ribs):
@@ -321,7 +338,7 @@ class NichePanel(MainPanel):
                 new.append(ii)
 
         new.append(self.mark_back)
-        return new
+        return new'''
 
     @property
     def unroll_dict(self):
@@ -343,8 +360,8 @@ class NichePanel(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf, tag=None, cogs_bend=None, pins=None, **kwargs):
-        MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, pins=pins)
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
+        MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
         self.__dict__.update(**kwargs)
 
         unrol = rh.Unroller(self.surf)
@@ -379,9 +396,9 @@ class NichePanel(MainPanel):
 
     def gen_side_types(self):
 
-        self.niche = NicheShortened(self.edges[2], self.cogs_bend)
-        self.bottom = Bottom(self.edges[0])
-        self.side = [HolesSideTwo(self.edges[1], False), HolesSideOne(self.edges[3], True)]
+        self.niche = NicheShortened(self.edges[3], self.cogs_bend)
+        self.bottom = Bottom(self.edges[1])
+        self.side = [HolesSideTwo(self.edges[2], False), HolesSideOne(self.edges[0], True)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
