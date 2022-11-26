@@ -3,12 +3,17 @@ import gzip
 import json
 import os
 import time
-
+import compute_rhino3d
 import rhino3dm
 import rhino3dm as rh
+import compute_rhino3d
+import compute_rhino3d.Util
+import compute_rhino3d.Grasshopper
+import compute_rhino3d.Surface
 os.environ['PANELS_GH_DUMPS']="/Users/andrewastakhov/Documents"
 class RH:
     def __init__(self, tag, time, layers, **kwargs):
+
         self.time = time
         super().__init__()
         # self.frame = frame
@@ -18,22 +23,38 @@ class RH:
         self.model2 = rhino3dm.File3dm()
         self.layers = []
         self.layers2 = []
+
         for l in copy.deepcopy(layers):
-            self.layers.append(Lay(model=self.model, **l))
+            try:
+                self.layers.append(Lay(model=self.model, **l))
+            except:
+                continue
+
         for l2 in layers:
-            self.layers2.append(Lay2(model=self.model2, **l2))
+
+            try:
+                self.layers2.append(Lay2(model=self.model2, **l2))
+            except:
+                continue
+
 
     def write(self):
+        spl=self.tag.split("-")
 
-        fp = f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cut/{self.tag}.3dm"
-        fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/frez/{self.tag}.3dm"
+        try:
+            os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cut/{self.tag[:-2]}", exist_ok=False)
+            os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/frez/{self.tag[:-2]}", exist_ok=False)
+        except:
+            pass
+        fp = f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cut/{self.tag[:-2]}/{self.tag}.3dm"
+        fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/frez/{self.tag[:-2]}/{self.tag}.3dm"
         self.model.Write(fp, 7)
         self.model2.Write(fpfrez, 7)
         # todxf(fp + ".3dm", fp2 + ".dxf")
 
         # self.model.Write(f"dumps/{self.tag}/{self.tag}"+".dxf")
         # client.s3.put_object(Bucket=client.bucket,Key=f"{client.bucket}/{client.prefix}/build{self.time}/{self.tag}/{self.time}", Body=self.model.Encode())
-        return f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cutr/{self.tag}.3dm"
+        return f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cut/{spl[:-1]}/{self.tag}.3dm"
 
 
 class Lay:
@@ -45,7 +66,10 @@ class Lay:
         self._lay.Name = kwargs["name"]
 
         self._lay.Color = tuple(kwargs["color"])
-        self._lay.Visible = (kwargs["visible"])
+        if kwargs["name"]=="Laser Cut":
+            self._lay.Visible=True
+        else:
+            self._lay.Visible = (kwargs["visible"])
 
         lay_index = self.model.Layers.Add(self._lay)
         m = rh.Transform.Mirror(rhino3dm.Plane.WorldYZ())
@@ -60,7 +84,7 @@ class Lay:
                 o["archive3dm"] = 70
                 obj = rhino3dm.CommonObject.Decode(o)
                 obj.Transform(m)
-                print(obj)
+                #print(obj)
                 self.model.Objects.Add(obj, attrs)
 
 
@@ -73,7 +97,12 @@ class Lay2:
         self._lay.Name = kwargs["name"]
 
         self._lay.Color = tuple(kwargs["color"] + [255])
-        self._lay.Visible = (not kwargs["visible"])
+        if kwargs["name"]=="Laser Cut":
+            self._lay.Visible=True
+        else:
+            self._lay.Visible = (kwargs["visible"])
+
+
 
         lay_index = self.model.Layers.Add(self._lay)
         m = rh.Transform.Mirror(rhino3dm.Plane.WorldYZ())
@@ -87,8 +116,8 @@ class Lay2:
                 attrs.LayerIndex = lay_index
                 o["archive3dm"] = 70
                 obj = rhino3dm.CommonObject.Decode(o)
-                obj.Transform(m)
-                print(obj)
+
+                #print(obj)
                 self.model.Objects.Add(obj, attrs)
 
 
@@ -99,11 +128,14 @@ if __name__ == "__main__":
     os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/frez")
     # client = sessions.S3Client(bucket=os.getenv('BUCKET'), prefix="workspace/cxm/arc/")
     for i in os.scandir(f"{os.getenv('PANELS_GH_DUMPS')}/1"):
-        with gzip.open(f"{os.getenv('PANELS_GH_DUMPS')}/1/{i.name}", "rb", compresslevel=9) as gz:
-            bts = gz.read()
+        with open(i.path, "rb") as gz:
+
+
+            print(i.name,end="", flush=True)
             # client.s3.put_object(Bucket=client.bucket, Key=f"{client.bucket }/{client.prefix}/build{s}", Body=bts)
-            for obj in json.loads(bts):
-                print(obj)
+            for obj in json.load(gz):
+                print(obj['tag'])
+                #print(obj)
                 a = RH(**obj, time=1)
 
-                os.environ['RHINO_TARGET'] = a.write()
+                a.write()

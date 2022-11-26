@@ -164,7 +164,7 @@ class MainFrame:
         self.cogs = self.panel.cogs_bend
 
         self.__dict__.update(self.panel.frame_dict)
-        self._text_geometry = [[], [], [], [], [], []]
+        self._text_geometry = [[], [], [], [], []]
         self.bottom_rec = self.panel.bottom_rec
         self.bend = self.panel.bend_ofs
         self.top = self.panel.top_ofs

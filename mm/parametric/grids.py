@@ -11,6 +11,9 @@ from mm.meta import MetaItem
 
 
 class Grid(ParametricType):
+    def evaluate(self, t):
+        pass
+
     start = ()
     stop = ()
     step = ()

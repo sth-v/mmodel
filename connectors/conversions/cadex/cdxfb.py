@@ -1,5 +1,5 @@
 import json
-im
+
 import rhino3dm
 from rhino3dm import _rhino3dm as rh
 import cadexchanger.CadExCore as cadex

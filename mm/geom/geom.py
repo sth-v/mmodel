@@ -4,7 +4,7 @@ from __future__ import absolute_import
 import compas.geometry as cg
 import numpy as np
 
-from mm.baseitems import DictableItem, Item
+from ..baseitems import DictableItem, Item
 from ..meta import MetaItem
 
 mesh_js_schema = {

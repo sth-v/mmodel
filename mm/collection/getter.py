@@ -2,12 +2,11 @@
 # Andrew Astkhov (sth-v) aa@contextmachine.ru
 import copy
 import itertools
-from typing import Any, Callable, TypeVar, Generic, Iterable, Container
-from collections import deque
+from typing import Any, Callable, TypeVar, Generic, Iterable
 
 
 # Multi Getter concept.
-# Simple functional and objective implementation for a generic collection getter.
+# Simple functional and objective implementation for a generic collections getter.
 # See more in original gist: https://gist.github.com/sth-v/7898cb37b9c56d11ca004936a823e366
 
 # Functional Implementation
@@ -95,11 +94,9 @@ class CollectionItemGetSetter(CollectionItemGetter[Seq, T]):
         super().__init__(seq)
         self._setter = multi_setter(seq)
 
-    def __setitem__(self, key:str, value):
+    def __setitem__(self, key: str, value):
         if hasattr(self._inst, key):
-            #print("v")
+            # print("v")
             self._setter(key, value)
         else:
             super(CollectionItemGetSetter, self).__setattr__(key, value)
-
-

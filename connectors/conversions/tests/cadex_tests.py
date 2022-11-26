@@ -4,6 +4,8 @@ from mm.conversions.rhino import model_from_multijson_file, model_from_json_file
 from mm.conversions.cadex import  cdxfb
 import subprocess
 CADEX_LICENSE="clicense.py"
+
+cadex.LicenseManager.Activate(aKey)
 source="/home/sthv/app/dumps/allark.3dm"
 jsonpath="/home/sthv/app/rhjs/"
 cadex_viewer_path="/home/sthv/cadexchanger-web-toolkit-examples/public/assets/models"
