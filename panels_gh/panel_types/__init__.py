@@ -97,7 +97,7 @@ class P_3(SimplePanel):
 
     @property
     def cut(self):
-        side = rh.Curve.JoinCurves([self.side[0].join, self.side[1].join, self.side[2].join, self.side[3].join])[0]
+        side = rh.Curve.JoinCurves([self.side[0].fres, self.side[1].join, self.side[2].fres, self.side[3].join])[0]
         return [side]
 
     @property
@@ -155,7 +155,7 @@ class P_3(SimplePanel):
         edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)
         # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
 
-        self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+        #self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
 
     edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
     edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
@@ -169,7 +169,7 @@ class P_3(SimplePanel):
 
     # edge2_vector.Unitize()
     def gen_side_types(self):
-        self.side = [HeatSchov(self.edges[0]), HeatSchov(self.edges[1]), HeatSchov(self.edges[2]),
+        self.side = [Bottom(self.edges[0]), HeatSchov(self.edges[1]), Bottom(self.edges[2]),
                      HeatSchov(self.edges[3])]
         self.side_types = self.side
         self.intersect()

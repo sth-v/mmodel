@@ -97,12 +97,10 @@ class UnrollPackage:
                 except AttributeError:
                     pass
                 setattr(self, key, MainFrame(new))
-                #setattr(self, key, new)
+
                 det = getattr(self, key)
-                #self.data.append(det.all_elems)
-                #self.data.append(det.cut)
-                #self.data.append(det.fres)
-                #self.m = det.bound_stats
+                self.data.append(det.all_elems)
+
 
 
 
@@ -114,7 +112,6 @@ class UnrollPackage:
                 setattr(self, key, MainFrame(new))
                 #setattr(self, key, new)
                 det = getattr(self, key)
-                #self.data.append(det.panel.cut)
                 self.data.append(det.all_elems)
 
 

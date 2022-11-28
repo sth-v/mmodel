@@ -405,11 +405,26 @@ class BottomPanel(BendSide):
 class HeatSchov(BendSide):
     side_offset = 6.3
     fres_offset = 4.0
-    length = 26.24
+    length = 23.24
+    fres_trim_dist = 7
+
+    @property
+    def join(self):
+        crv = self.fres_trim()
+        sm_tr = self.small_trim()
+        one = rh.Line(crv.PointAtStart, self.top_part.PointAtStart).ToNurbsCurve()
+        two = rh.Line(crv.PointAtEnd, self.top_part.PointAtEnd).ToNurbsCurve()
+
+        join = rh.Curve.JoinCurves([one, self.top_part, two])[0]
+        fillet = rh.Curve.CreateFilletCornersCurve(join, 5.0, 0.1, 0.1)
+
+        self._join = rh.Curve.JoinCurves([sm_tr[0], fillet, sm_tr[1]])
+        return self._join[0]
 
     @property
     def top_part(self):
-        self._top_part = self.fres.Offset(rh.Plane.WorldXY, self.length, 0.01,
+        crv = self.fres_trim()
+        self._top_part = crv.Offset(rh.Plane.WorldXY, self.length, 0.01,
                                           rh.CurveOffsetCornerStyle.__dict__['None'])
         return self._top_part[0]
 
@@ -421,3 +436,18 @@ class HeatSchov(BendSide):
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
+
+    def fres_trim(self):
+        p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
+        p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
+        tr = self.fres.Trim(p_one, p_two)
+        return tr
+
+    def small_trim(self):
+        p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
+        p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
+        tr_o = self.fres.Trim(self.fres.Domain[0], p_one)
+        tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
+        return [tr_o, tr_t]
+
+
