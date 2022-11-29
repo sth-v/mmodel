@@ -181,7 +181,7 @@ class Pattern:
         self.u = self.unit.ln
         self.modl = modl
         self.__l = l
-        self.ln = l // modl
+        self.ln = abs(l // modl)
 
         self._hole = self.u.hole
         self._contour = self.u.contour
@@ -219,10 +219,25 @@ class Pattern:
         self.contour = []
         self.unit = copy.deepcopy(self.__unit)
         self.u = self.unit.ln
-        self.ln = self.__l // self.modl
+        self.ln = abs(self.__l // self.modl)
         self._hole = self.u.hole
         self._contour = self.u.contour
 
+class ReversiblePattern(Pattern):
+    def __init__(self, unit, modl=23, l=1000):
+        Pattern.__init__(self, unit, modl, l)
+        self._contour.Transform(rg.Transform.Translation(l,0,0))
+        for j in self._hole:
+            j.Transform(rg.Transform.Translation(l,0,0))
+
+    @property
+    def trsf(self):
+        return rg.Transform.Translation(-self.modl, 0, 0)
+    def reload(self):
+        Pattern.reload(self)
+        self._contour.Transform(rg.Transform.Translation(self.__l, 0, 0))
+        for j in self._hole:
+            j.Transform(rg.Transform.Translation(self.__l, 0, 0))
 
 '''def main():
     global x, y, circle

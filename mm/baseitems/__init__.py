@@ -10,7 +10,7 @@ import base64
 import gzip
 import itertools
 from abc import ABCMeta, abstractmethod
-from collections.abc import Callable, Generator
+from collections import Callable, Generator
 from typing import Any, Union
 
 import numpy as np
