@@ -155,7 +155,8 @@ class P_3(SimplePanel):
         edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)
         # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
 
-        #self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+        self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+
 
     edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
     edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
@@ -211,9 +212,9 @@ class N_3(NichePanel):
         NichePanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
 
     def gen_side_types(self):
-        self.niche = NicheShortened(self.edges[0], self.cogs_bend)
-        self.bottom = Bottom(self.edges[2])
-        self.side = [HolesSideTwo(self.edges[1], True), HolesSideOne(self.edges[3], False)]
+        self.niche = NicheShortened(self.edges[1], self.cogs_bend)
+        self.bottom = Bottom(self.edges[3])
+        self.side = [HolesSideTwo(self.edges[2], True), HolesSideOne(self.edges[0], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()

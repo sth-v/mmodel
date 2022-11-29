@@ -102,15 +102,10 @@ class UnrollPackage:
                 self.data.append(det.all_elems)
 
 
-
-
-
-
-
             elif key == 'N_2':
                 new = self.panels_dict[key](**value)
                 setattr(self, key, MainFrame(new))
-                #setattr(self, key, new)
+
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
 
@@ -123,7 +118,6 @@ class UnrollPackage:
                 setattr(self, key, MiniFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-                #self.m.append(det.panel.tag)
 
             else:
                 new = self.panels_dict[key](**value)

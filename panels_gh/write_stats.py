@@ -14,7 +14,7 @@ class Stats:
         for i in self.unrolls:
 
             try:
-                frame = i.N_2
+                frame = i.N_1
 
             except AttributeError:
                 frame = i.N_3
@@ -30,7 +30,7 @@ class Stats:
 s = Stats(x)
 
 a = s.bound_frame()
-with open('/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh/for_stats/nicheback_sizes.json', 'w') as out_file:
+with open('/Users/sofyadobycina/Documents/GitHub/mmodel/panels_gh/for_stats/nicheside_sizes.json', 'w') as out_file:
     json.dump(a, out_file)
 
 

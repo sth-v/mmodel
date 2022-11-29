@@ -125,7 +125,7 @@ class MiniFrame(object):
             self._layers = json.load(f)
         self.all_elems = list(itertools.repeat([], len(self._layers)))
         self.all_elems[0] = panel.all_elems
-        self._text_geometry = [[], [], [], [], [], []]
+        self._text_geometry = [[], [], [], [], []]
         self._unroll_dict = {
             "frame": self.panel.bound_frame,
             "layers": self.all_elems
@@ -203,13 +203,13 @@ class MainFrame:
     @property
     def bound_stats(self):
         rec = bound_rec(self.frame_all())
-        rect = bound_rec([self.panel.cut[0]])
+        #rect = bound_rec([self.panel.cut[0]])
 
         min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
-        #max_transl = rh.Point3d(rec.Max[0] + self.side_rec + 5, rec.Max[1], 0)
+        max_transl = rh.Point3d(rec.Max[0] + self.side_rec + 5, rec.Max[1], 0)
 
-        #return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, max_transl)
-        return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, rect.Max)
+        return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, max_transl)
+        #return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, rect.Max)
 
     @property
     def region(self):
