@@ -30,8 +30,6 @@ class TT:
         self.ptk = rg.Point3d(0, 0, 0)
         self.pt2k = rg.Point3d(0, 0, 0)
 
-        self.ln
-
     @property
     def pt(self):
         return self._pt + self.ptk
@@ -105,7 +103,6 @@ class Ptrn:
         return len(self.itr)
 
 
-
 class PatternSimple:
     def __init__(self, unit, module_length=46, length=1000):
         self.__unit = unit
@@ -123,7 +120,6 @@ class PatternSimple:
 
     def __iter__(self):
         return self
-
 
     def constrain(self):
         return self._len > 0
@@ -150,14 +146,12 @@ class PatternSimple:
             self.i += 1
             return p
 
-
     def next(self):
         if self.constrain():
             self._len -= self.module_length
             return self.next_transform()
         else:
             raise StopIteration
-
 
     def reload(self):
 
@@ -172,8 +166,12 @@ class PatternSimple:
         self._contour = self.u.contour
 
 
-class Pattern:
+from collections import Iterator
+
+
+class Pattern(Iterator):
     def __init__(self, unit, modl=23, l=1000):
+        super(Iterator, self).__init__()
         self.__unit = unit
         self.name = "pattern_arc"
         self.unit = copy.deepcopy(unit)
@@ -181,7 +179,7 @@ class Pattern:
         self.u = self.unit.ln
         self.modl = modl
         self.__l = l
-        self.ln = l // modl
+        self.ln = abs(l // modl)
 
         self._hole = self.u.hole
         self._contour = self.u.contour
@@ -219,9 +217,46 @@ class Pattern:
         self.contour = []
         self.unit = copy.deepcopy(self.__unit)
         self.u = self.unit.ln
-        self.ln = self.__l // self.modl
+        self.ln = abs(self.__l // self.modl)
         self._hole = self.u.hole
         self._contour = self.u.contour
+
+
+class ReversiblePattern(Pattern):
+    def __init__(self, unit, modl=23, l=1000):
+
+        Pattern.__dict__["__init__"](self, unit, modl=modl, l=l)
+
+        # Pattern.__init__(self,unit, modl=modl, l=l)
+        self._contour.Transform(rg.Transform.Translation(l, 0, 0))
+
+        print self._contour
+
+        for j in self._hole:
+            j.Transform(rg.Transform.Translation(l, 0, 0))
+
+        print self._hole
+
+    def next(self):
+        if self.constrain():
+            self.ln -= 1
+            return self.mtr()
+        else:
+            raise StopIteration
+
+    def constrain(self):
+        return self.ln >= -23
+
+    @property
+    def trsf(self):
+        return rg.Transform.Translation(-self.modl, 0, 0)
+
+    def reload(self):
+        Pattern.reload(self)
+        self._contour.Transform(rg.Transform.Translation(self.__l, 0, 0))
+        print self._contour
+        for j in self._hole:
+            j.Transform(rg.Transform.Translation(self.__l, 0, 0))
 
 
 '''def main():

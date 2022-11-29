@@ -3,7 +3,6 @@ __author__ = "sofyadobycina"
 import json
 from collections import namedtuple
 
-
 try:
     rs = __import__("rhinoscriptsyntax")
 except:
@@ -73,7 +72,6 @@ def bound_rec(crv):
     return bound_rec
 
 
-
 def intersect(values):
     res = []
     for i, v in enumerate(values):
@@ -127,7 +125,7 @@ class MiniFrame(object):
             self._layers = json.load(f)
         self.all_elems = list(itertools.repeat([], len(self._layers)))
         self.all_elems[0] = panel.all_elems
-        self._text_geometry = [[], [], [], [], [], []]
+        self._text_geometry = [[], [], [], [], []]
         self._unroll_dict = {
             "frame": self.panel.bound_frame,
             "layers": self.all_elems
@@ -195,18 +193,23 @@ class MainFrame:
     @property
     def bound_frame(self):
         rec = bound_rec(self.frame_all())
+
         min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
         bound_frame = rh.Rectangle3d(rh.Plane.WorldXY, min_transl, rec.Max)
         self._bound_frame = bound_frame.ToNurbsCurve()
+
         return self._bound_frame
 
     @property
     def bound_stats(self):
         rec = bound_rec(self.frame_all())
+        #rect = bound_rec([self.panel.cut[0]])
+
         min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
         max_transl = rh.Point3d(rec.Max[0] + self.side_rec + 5, rec.Max[1], 0)
 
         return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, max_transl)
+        #return rh.Rectangle3d(rh.Plane.WorldXY, min_transl, rect.Max)
 
     @property
     def region(self):
@@ -236,8 +239,12 @@ class MainFrame:
             _all_elems[0].extend(self.region)
 
         _all_elems[1].extend(self.panel.fres)
-        #_all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
-        _all_elems[3].extend(self.panel.grav)
+        # _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
+
+        if hasattr(self.panel, "grav"):
+            _all_elems[3].extend(self.panel.grav)
+        else:
+            pass
         ll = []
         for elem in _all_elems:
             arcs = []

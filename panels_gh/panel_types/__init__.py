@@ -97,7 +97,7 @@ class P_3(SimplePanel):
 
     @property
     def cut(self):
-        side = rh.Curve.JoinCurves([self.side[0].join, self.side[1].join, self.side[2].join, self.side[3].join])[0]
+        side = rh.Curve.JoinCurves([self.side[0].fres, self.side[1].join, self.side[2].fres, self.side[3].join])[0]
         return [side]
 
     @property
@@ -157,6 +157,7 @@ class P_3(SimplePanel):
 
         self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
 
+
     edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
     edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
 
@@ -169,7 +170,7 @@ class P_3(SimplePanel):
 
     # edge2_vector.Unitize()
     def gen_side_types(self):
-        self.side = [HeatSchov(self.edges[0]), HeatSchov(self.edges[1]), HeatSchov(self.edges[2]),
+        self.side = [Bottom(self.edges[0]), HeatSchov(self.edges[1]), Bottom(self.edges[2]),
                      HeatSchov(self.edges[3])]
         self.side_types = self.side
         self.intersect()
@@ -177,8 +178,8 @@ class P_3(SimplePanel):
 
 class N_1(NichePanel):
 
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
 
 
 class N_3(NichePanel):
@@ -191,7 +192,7 @@ class N_3(NichePanel):
         yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
             self.niche.fres.Domain[0] + 0.01))
         yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
-        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), xaxis, yaxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
@@ -207,13 +208,13 @@ class N_3(NichePanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
 
     def gen_side_types(self):
-        self.niche = NicheShortened(self.edges[0], self.cogs_bend)
-        self.bottom = Bottom(self.edges[2])
-        self.side = [HolesSideTwo(self.edges[1], True), HolesSideOne(self.edges[3], False)]
+        self.niche = NicheShortened(self.edges[1], self.cogs_bend)
+        self.bottom = Bottom(self.edges[3])
+        self.side = [HolesSideTwo(self.edges[2], True), HolesSideOne(self.edges[0], False)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -280,15 +281,15 @@ class N_2(NichePanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf=None, pins=None, tag=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, pins=pins, tag=tag, **kwargs)
+    def __init__(self, surf, holes=None, tag=None, cogs_bend=False,  **kwargs):
+        NichePanel.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, **kwargs)
 
         self.__dict__.update(**kwargs)
-        self.surf_rev = self.surf.Duplicate()
-        self.surf_rev.Flip()
+        #self.surf_rev = self.surf.Duplicate()
+        #self.surf_rev.Flip()
         self.extend = self.extend_surf()
 
-        unrol = rh.Unroller(self.surf_rev)
+        unrol = rh.Unroller(self.surf)
 
         if hasattr(self, 'rebra'):
             self.intersections = self.rebra_intersect('b')
@@ -305,7 +306,7 @@ class N_2(NichePanel):
     def gen_side_types(self):
         self.top = Bottom(self.edges[0])
         self.bottom = Bottom(self.edges[2])
-        self.side = [Side(self.edges[1]), Side(self.edges[3])]
+        self.side = [Side(self.edges[3]), Side(self.edges[1])]
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
         self.intersect()
