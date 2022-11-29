@@ -33,7 +33,7 @@ cogs = imp.load_module("cogs", cogsfile, cogsfilename, (cogssuffix, cogsmode, co
 from functools import wraps
 
 cogs.__init__("cogs", "generic module")
-from cogs import Pattern, PatternSimple
+from cogs import Pattern, PatternSimple, ReversiblePattern
 
 reload(cogs)
 
@@ -142,7 +142,7 @@ class Niche(BendSide):
     angle = 30
     length = 35
     cogs_shift = -1.466
-
+    pattern = Pattern
     @property
     def top_part(self):
         p_one = rh.Curve.LengthParameter(self.fres, self.top_offset)
@@ -221,7 +221,7 @@ class Niche(BendSide):
     @property
     def cogs_unit(self):
         if self.init_cogs:
-            return Pattern(self._cg, 23, self.bend_axis.GetLength())
+            return self.__class__.pattern(self._cg, 23, self.bend_axis.GetLength())
         else:
             return PatternSimple(self._cg, 46, self.bend_axis.GetLength())
 
@@ -283,6 +283,7 @@ class NicheShortened(Niche):
     side_offset = niche_shift(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     cogs_shift = 0
+    pattern = ReversiblePattern
 
     def __init__(self, curve, init_cogs=False):
         Niche.__dict__['__init__'](self, curve, init_cogs=init_cogs)
@@ -295,6 +296,43 @@ class NicheShortened(Niche):
             return self.hls
 
 
+    def generate_cogs(self):
+        _cogs = []
+        cu = self.cogs_unit
+        br = self.join_cp.ToBrep()
+        self.hls = []
+        cnt = []
+        for ii in cu:
+            h = self.choles(self, ii)
+            aa = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[0], rh.Plane.WorldXY,
+                                                        0.01)
+            try:
+                bb = rh.Curve.PlanarClosedCurveRelationship(rh.Curve.JoinCurves(br.Curves3D)[0], h[1], rh.Plane.WorldXY,
+                                                            0.01)
+                if bb == aa == rh.RegionContainment.BInsideA:
+                    self.hls.extend(ii.hole)
+                    cnt.append(ii.contour)
+
+            except IndexError:
+                if aa == rh.RegionContainment.BInsideA:
+                    self.hls.extend(ii.hole)
+                    cnt.append(ii.contour)
+
+        _cogs.extend(self.hls[2:-2])
+
+        try:
+            ccnt = cnt[1:-1]
+
+            for cc in ccnt:
+                self.otgib_morph.Morph(cc)
+            _cogs.extend(ccnt)
+            self._join_brep = br.Faces[0].Split(ccnt, 0.01).GetRegions()[0]
+            _cogs.extend(list(self._join_brep.Brep.Faces)[-1].Brep.Edges)
+
+
+        except TypeError:
+            pass
+        self._cogs = _cogs
 class Side(BendSide):
     side_offset = 1.0
     angle = 30
@@ -436,6 +474,7 @@ class HeatSchov(BendSide):
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
+
 
     def fres_trim(self):
         p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
