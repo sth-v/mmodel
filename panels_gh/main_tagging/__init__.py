@@ -251,11 +251,38 @@ class TagThree(Tag):
         trx2 = Rhino.Geometry.Transform.Scale(self.plane.Origin, self.hight)
         return trx2
 
+class TagFour(Tag):
+    @property
+    def transform(self):
+        return Rhino.Geometry.Transform.Scale(self.plane.Origin, self.hight)
+
+    def generate_curves(self):
+        shpindel = ['4.58410865736586,0,0', '0,-4.451242716713182,0', '-19.853477782260782,-4.451242716713182,0',
+                    '-19.853477782260782,4.451242716713182,0', '0,4.451242716713182,0', '4.58410865736586,0,0']
+        shpindel_curve = rh.Polyline([rh.Point3d.TryParse(shp)[1] for shp in shpindel]).ToPolylineCurve()
+        shpindel_curve.Transform(rh.Transform.Translation(self.plane.Origin.X, self.plane.Origin.Y + 130, 0.0))
+        self.text = self.text[2:]
+        mxf = Rhino.Geometry.Transform.Mirror(
+            Rhino.Geometry.Plane(self.plane.Origin, self.plane.ZAxis, self.plane.YAxis))
+        res = [shpindel_curve]
+        for curve in list(Tag.generate_curves(self)):
+            res.extend([curve, not_inplace_transform(curve, mxf)])
+        return res
+
+class TagFive(Tag):
+    @property
+    def transform(self):
+        trx2 = Rhino.Geometry.Transform.Scale(self.plane.Origin, self.hight)
+        trx1 = Rhino.Geometry.Transform.Mirror(
+            Rhino.Geometry.Plane(self.plane.Origin, self.plane.ZAxis, self.plane.YAxis))
+        #return rh.Transform.Multiply(trx2, trx1)
+        return trx2
+
 
 class MiniFramer():
     def __init__(self, cls):
         self._cls = cls
-        self._cls.text_geometry = [[], [], [], [], [], []]
+        self._cls.text_geometry = [[], [], [], [], []]
         self.rect = self._cls.panel.bound_frame
         self.spec_center = [self._cls.panel.hole_one, self._cls.panel.hole_two]
         # Rhino.Display.CustomDisplay.AddLine(
@@ -298,6 +325,8 @@ class Framer:
             center = self.rect.PointAt(u * rW, v * rH)
             tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
             tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            self.pl = tagobj.plane
 
             # mw = r.Width / 4.0
             # mh = r.Height / 4.0
@@ -346,6 +375,46 @@ class Framer:
 
             self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
             return self._cls
+
+class FramerNiche:
+
+    def __init__(self, cls):
+        self._cls = cls
+        self._cls.text_geometry = [[], [], [], [], []]
+
+        _, vv = self._cls.unroll_dict_f["frame"].TryGetPolyline()
+
+        self.rect = rh.Rectangle3d.CreateFromPolyline(vv)
+        self.spec =  self._cls.panel.marker_curve
+
+    def __call__(self, u, v, tagobj, layer, ribs=None,  *args, **kwargs):
+
+        if ribs is not None:
+            center = self.rect.PointAt(1 - u,  1 - v)
+            tagobj.plane = rh.Plane(center, self.rect.Plane.XAxis, self.rect.Plane.YAxis)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            self.pl = tagobj.plane
+
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+
+            return self._cls
+
+        else:
+            rH, rW = 1 / self.rect.Height, 1 / self.rect.Width
+
+            center = self.rect.PointAt(u * rW, v * rH)
+            tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            self.pl = tagobj.plane
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+
+            return self._cls
+
+
+
+
 class Tagger:
     _cls = None
     inst = None

@@ -407,6 +407,7 @@ class HeatSchov(BendSide):
     fres_offset = 4.0
     length = 23.24
     fres_trim_dist = 7
+    fillet_r = 5
 
     @property
     def join(self):
@@ -416,7 +417,7 @@ class HeatSchov(BendSide):
         two = rh.Line(crv.PointAtEnd, self.top_part.PointAtEnd).ToNurbsCurve()
 
         join = rh.Curve.JoinCurves([one, self.top_part, two])[0]
-        fillet = rh.Curve.CreateFilletCornersCurve(join, 5.0, 0.1, 0.1)
+        fillet = rh.Curve.CreateFilletCornersCurve(join, self.fillet_r, 0.1, 0.1)
 
         self._join = rh.Curve.JoinCurves([sm_tr[0], fillet, sm_tr[1]])
         return self._join[0]
@@ -449,5 +450,16 @@ class HeatSchov(BendSide):
         tr_o = self.fres.Trim(self.fres.Domain[0], p_one)
         tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
         return [tr_o, tr_t]
+
+
+class RibsSide(HeatSchov):
+    side_offset = None
+    length = 25
+    fres_trim_dist = 30
+    fillet_r = 3
+
+    def __init__(self, curve):
+        HeatSchov.__dict__['__init__'](self, curve)
+
 
 

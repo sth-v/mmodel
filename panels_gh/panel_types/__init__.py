@@ -25,7 +25,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel
+from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, RibsSide
 
 reload(main_sides)
 
@@ -165,8 +165,6 @@ class P_3(SimplePanel):
     @property
     def plane(self):
         return rh.Plane(self._bound_rect.Center, self.edge1_vector, self.edge2_vector)
-
-
 
     # edge2_vector.Unitize()
     def gen_side_types(self):
@@ -320,3 +318,26 @@ class N_2(NichePanel):
         extr = rh.Surface.ToBrep(surf)
 
         return extr
+
+class N_4(SimplePanel):
+
+    @property
+    def cut(self):
+        side = rh.Curve.JoinCurves([self.side[0].fres, self.side[1].fres, self.side[2].fres, self.top.join])[0]
+        return [side]
+
+    def __init__(self, surf, pins=None, cogs_bend=None, tag=None, **kwargs):
+        SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
+        unrol = rh.Unroller(self.surf)
+
+        self.unrol = unrol.PerformUnroll()
+        self.unrol_surf = self.unrol[0][0]
+        self.edges = self.unrol_surf.Curves3D
+        self.gen_side_types()
+
+    def gen_side_types(self):
+        self.top = RibsSide(self.edges[3])
+        self.side = [Bottom(self.edges[0]), Bottom(self.edges[1]), Bottom(self.edges[2])]
+
+        self.side_types = [self.side[0], self.side[1], self.side[2], self.top]
+        self.intersect()

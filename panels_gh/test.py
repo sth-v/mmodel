@@ -38,7 +38,6 @@ pfile, pfilename, (psuffix, pmode, ptype) = imp.find_module("main_panels", path=
 main_panels = imp.load_module("main_panels", pfile, pfilename, (psuffix, pmode, ptype))
 
 main_panels.__init__("main_panels", "generic nodule")
-from main_panels import N_4
 
 reload(main_panels)
 
@@ -46,7 +45,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 panel_types.__init__("panel_types", "generic nodule")
-from panel_types import P_1, P_2, N_1, N_3, N_2, P_3
+from panel_types import P_1, P_2, N_1, N_3, N_2, P_3, N_4
 
 reload(panel_types)
 
@@ -123,6 +122,7 @@ class UnrollPackage:
                 new = self.panels_dict[key](**value)
                 setattr(self, key, new)
                 det = getattr(self, key)
+                self.data.append(det.cut)
 
 
 def main():

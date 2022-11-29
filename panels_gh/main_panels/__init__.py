@@ -33,6 +33,7 @@ def bound_rec(crv):
     bound_rec = rh.PolyCurve.GetBoundingBox(join, rh.Plane.WorldXY)
     return bound_rec
 
+
 def divide(crv, dist):
     st = crv.ClosestPoint(crv.PointAtLength(dist))[1]
     end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - dist))[1]
@@ -49,13 +50,14 @@ def translate(point, crv):
     tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, frame)
     return tr
 
+
 class SimplePanel:
     @property
     def unroll_dict(self):
         _unroll_dict = {'tag': self.tag, 'unroll': self.unrol_surf}
         return _unroll_dict
 
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+    def __init__(self, surf, pins=None, cogs_bend=None, tag=None, **kwargs):
         object.__init__(self)
 
         self.surf = surf
@@ -83,7 +85,6 @@ class SimplePanel:
 
             trimed = rh.Curve.Trim(v.fres, param[0], param[1])
             v.fres = trimed
-
 
 
 class MainPanel(SimplePanel):
@@ -119,7 +120,8 @@ class MainPanel(SimplePanel):
 
     @property
     def cut(self):
-        side = rh.Curve.JoinCurves([self.side[0].join, self.niche.join_region, self.side[1].join, self.bottom.fres])[0]
+        s = rh.Curve.JoinCurves([self.side[0].join, self.niche.join_region, self.side[1].join, self.bottom.fres])[0]
+        side = s.ToNurbsCurve()
         side.Transform(self.bound_plane)
         return [side]
 
@@ -151,13 +153,12 @@ class MainPanel(SimplePanel):
 
         if self.unrol[1] is not None:
             for i, v in enumerate(self.unrol[1]):
-                #p = rh.Circle(v, self.h_r[i]).ToNurbsCurve()
+                # p = rh.Circle(v, self.h_r[i]).ToNurbsCurve()
                 ii = v.DuplicateCurve()
                 ii.Transform(self.bound_plane)
                 cut.append(ii)
 
         return cut + self.niche_holes
-
 
     @property
     def unroll_dict(self):
@@ -185,7 +186,7 @@ class MainPanel(SimplePanel):
         unrol = rh.Unroller(self.surf)
         if self.h_p[0] is not None:
             a = self.h_p
-            #a = [self.surf.ClosestPoint(i) for i in self.h_p]
+            # a = [self.surf.ClosestPoint(i) for i in self.h_p]
             unrol.AddFollowingGeometry(curves=a)
 
         self.unrol = unrol.PerformUnroll()
@@ -193,6 +194,7 @@ class MainPanel(SimplePanel):
         self.edges = self.unrol_surf.Curves3D
 
         self.gen_side_types()
+
     def gen_side_types(self):
 
         self.niche = Niche(self.edges[0], self.cogs_bend)
@@ -215,6 +217,7 @@ class MainPanel(SimplePanel):
         self.diag = rh.Point3d.DistanceTo(i[2], crv_d) + 10
         return crv
 
+
 class ArcPanel(MainPanel):
 
     @property
@@ -231,6 +234,7 @@ class ArcPanel(MainPanel):
             p = rh.Polyline.CreateCircumscribedPolygon(c, 3).ToNurbsCurve()
             circ.append(p)
         return circ
+
     @property
     def grav(self):
         unrol = list(self.u_p[2])
@@ -243,7 +247,7 @@ class ArcPanel(MainPanel):
 
         return res
 
-    def __init__(self, surf, tag=None, cogs_bend=None, holes=None,  pins=None, pins_mark=None, **kwargs):
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, pins=None, pins_mark=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
 
         self.pins = pins
@@ -274,8 +278,6 @@ class ArcPanel(MainPanel):
         self.intersect()
 
 
-
-
 class NichePanel(MainPanel):
     bend_ofs = 45
     top_ofs = 0
@@ -302,12 +304,11 @@ class NichePanel(MainPanel):
         fres = [self.side[0].fres.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
                 self.side[1].fres.DuplicateCurve()]
 
-        fr =[]
+        fr = []
 
         for i in fres:
             i.Transform(self.bound_plane)
             if i.IsValid is False:
-                print(False)
                 a = i.Rebuild(25, i.Degree, True)
                 fr.append(a)
             else:
@@ -442,8 +443,7 @@ class NichePanel(MainPanel):
         return line
 
 
-
-class N_4:
+'''class N_4:
     def __init__(self, surf=None):
         self.cogs_bend = False
         self.surf = surf
@@ -493,4 +493,4 @@ class N_4:
         surf.Extend(0, interv)
         extr = rh.Surface.ToBrep(surf)
 
-        return extr
+        return extr'''
