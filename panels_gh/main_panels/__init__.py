@@ -315,31 +315,18 @@ class NichePanel(MainPanel):
                 fr.append(i)
         return fr
 
-    '''@property
-    def mark_ribs(self):
-        mark_ribs = self.ribs_offset()
-        for i, v in enumerate(mark_ribs):
-            v[0].Transform(self.bound_plane)
-            v[1].Transform(self.bound_plane)
-        return mark_ribs
-
-    @property
-    def mark_back(self):
-        one = self.unrol[1][-1].LengthParameter(1)[1]
-        two = self.unrol[1][-1].LengthParameter(self.unrol[1][-1].GetLength() - 1)[1]
-        mark_back = self.unrol[1][-1].Trim(one, two)
-        mark_back.Transform(self.bound_plane)
-        return mark_back
 
     @property
     def grav(self):
-        new = []
-        for i in self.mark_ribs:
-            for ii in i:
-                new.append(ii)
-
-        new.append(self.mark_back)
-        return new'''
+        g = []
+        if self.unrol_grav[1] is not None:
+            for i, v in enumerate(self.unrol_grav[1]):
+                ii = v.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                g.append(ii)
+            return g
+        else:
+            raise ValueError
 
     @property
     def unroll_dict(self):
@@ -361,39 +348,25 @@ class NichePanel(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
-        self.__dict__.update(**kwargs)
+        self.mark_crv = mark_crv
 
         unrol = rh.Unroller(self.surf)
 
-        if hasattr(self, 'rebra') and hasattr(self, 'back_side'):
-            self.intersections = self.unroll_intersection()
-            unrol.AddFollowingGeometry(curves=self.intersections)
+        unr_grav = rh.Unroller(self.surf)
+        if self.mark_crv is not None:
+            unr_grav.AddFollowingGeometry(curves=self.mark_crv)
         else:
             pass
 
         self.unrol = unrol.PerformUnroll()
+        self.unrol_grav = unr_grav.PerformUnroll()
 
         self.unrol_surf = self.unrol[0][0]
         self.edges = self.unrol_surf.Edges
         self.gen_side_types()
 
-    def __add__(self, other):
-
-        if other.__class__.__name__ == 'N_4':
-            if hasattr(self, 'back_side'):
-                return NichePanel(self.surf, self.cogs_bend, self.tag, back_side=self.back_side, rebra=other)
-            else:
-                return NichePanel(self.surf, self.cogs_bend, self.tag, rebra=other)
-
-        elif other.__class__.__name__ == 'N_2':
-            if hasattr(self, 'rebra'):
-                return NichePanel(self.surf, self.cogs_bend, self.tag, back_side=other, rebra=self.rebra)
-            else:
-                return NichePanel(self.surf, self.cogs_bend, self.tag, back_side=other)
-        else:
-            pass
 
     def gen_side_types(self):
 
@@ -404,43 +377,7 @@ class NichePanel(MainPanel):
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 
-    def ribs_offset(self):
-        r = self.unrol[1][0:len(self.unrol[1]) - 1]
-        ofset_rebra = []
-        for i in r:
-            if i.GetLength() > 3:
-                ofs_one = i.OffsetOnSurface(self.unrol_surf.Faces[0], 1.5, 0.1)
-                ofs_two = i.OffsetOnSurface(self.unrol_surf.Faces[0], -1.5, 0.1)
-                ofset_rebra.append([ofs_one[0], ofs_two[0]])
-        return ofset_rebra
 
-    def unroll_intersection(self):
-        r_inters = self.rebra_intersect('s')
-        [i.PullToBrepFace(self.surf.Faces[0], 0.01) for i in r_inters]
-
-        b_inters = self.back_intersect()
-        b_inters = rh.Intersect.Intersection.CurveBrepFace(b_inters, self.surf.Faces[0], 0.1)[1][0]
-
-        r_inters.append(b_inters)
-        return r_inters
-
-    def rebra_intersect(self, name):
-        intersect = []
-        if name == 's':
-            ext = self.rebra.extend
-        else:
-            ext = self.rebra.extend_bottom
-        for i in ext:
-            inters = rs.IntersectBreps(self.surf, i, 0.1)
-            line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
-            intersect.append(line)
-
-        return intersect
-
-    def back_intersect(self):
-        inters = rs.IntersectBreps(self.surf, self.back_side.extend, 0.1)
-        line = rh.LineCurve(rs.CurveStartPoint(inters[0]), rs.CurveEndPoint(inters[0]))
-        return line
 
 
 '''class N_4:

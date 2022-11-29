@@ -242,7 +242,7 @@ class MainFrame:
         # _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
 
         if hasattr(self.panel, "grav"):
-            _all_elems[3].extend(self.panel.grav)
+            _all_elems[2].extend(self.panel.grav)
         else:
             pass
         ll = []
