@@ -255,7 +255,7 @@ class TagThree(Tag):
 class MiniFramer():
     def __init__(self, cls):
         self._cls = cls
-        self._cls.text_geometry = [[], [], [], [], [], []]
+        self._cls.text_geometry = [[], [], [], [], []]
         self.rect = self._cls.panel.bound_frame
         self.spec_center = [self._cls.panel.hole_one, self._cls.panel.hole_two]
         # Rhino.Display.CustomDisplay.AddLine(

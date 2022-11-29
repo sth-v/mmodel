@@ -125,7 +125,7 @@ class MiniFrame(object):
             self._layers = json.load(f)
         self.all_elems = list(itertools.repeat([], len(self._layers)))
         self.all_elems[0] = panel.all_elems
-        self._text_geometry = [[], [], [], [], [], []]
+        self.text_geometry = list(itertools.repeat([], len(self._layers)))
         self._unroll_dict = {
             "frame": self.panel.bound_frame,
             "layers": self.all_elems
@@ -136,7 +136,7 @@ class MiniFrame(object):
     def layers(self):
         lays = []
         all_elems = self.all_elems
-
+        print(self._layers, all_elems, self.text_geometry)
         for lay, o, t in itertools.izip_longest(self._layers, all_elems, self.text_geometry, fillvalue=[]):
             lay["objects"] = o + t
             lays.append(lay)
