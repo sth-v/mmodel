@@ -78,23 +78,23 @@
 
 
 <script type="text/javascript">
-    var camera, scene, renderer, object, stats, container, shape_material;
-    var mouseX = 0;
-    var mouseXOnMouseDown = 0;
-    var mouseY = 0;
-    var mouseYOnMouseDown = 0;
-    var moveForward = false;
-    var moveBackward = false;
-    var moveLeft = false;
-    var moveRight = false;
-    var moveUp = false;
-    var moveDown = false;
-    var windowHalfX = window.innerWidth / 2;
-    var windowHalfY = window.innerHeight / 2;
-    var selected_target_color_r = 0;
-    var selected_target_color_g = 0;
-    var selected_target_color_b = 0;
-    var selected_target = null;
+    let camera, scene, renderer, object, stats, container, shape_material;
+    const mouseX = 0;
+    const mouseXOnMouseDown = 0;
+    const mouseY = 0;
+    const mouseYOnMouseDown = 0;
+    const moveForward = false;
+    const moveBackward = false;
+    const moveLeft = false;
+    const moveRight = false;
+    const moveUp = false;
+    const moveDown = false;
+    const windowHalfX = window.innerWidth / 2;
+    const windowHalfY = window.innerHeight / 2;
+    let selected_target_color_r = 0;
+    let selected_target_color_g = 0;
+    let selected_target_color_b = 0;
+    let selected_target = null;
     init();
     animate();
 
@@ -107,8 +107,8 @@
         //controls = new THREE.OrbitControls(camera);
         //controls = new THREE.OrbitControls(camera);
         // for selection
-        raycaster = new THREE.Raycaster();
-        mouse = new THREE.Vector2();
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
         // create scene
         scene = new THREE.Scene();
         scene.add(new THREE.AmbientLight(0x101010));
@@ -194,9 +194,9 @@
         }
         // perform selection
         raycaster.setFromCamera(mouse, camera);
-        var intersects = raycaster.intersectObjects(scene.children);
+        const intersects = raycaster.intersectObjects(scene.children);
         if (intersects.length > 0) {
-            var target = intersects[0].object;
+            const target = intersects[0].object;
             selected_target_color_r = target.material.color.r;
             selected_target_color_g = target.material.color.g;
             selected_target_color_b = target.material.color.b;
@@ -208,16 +208,16 @@
 
     function fit_to_scene() {
         // compute bounding sphere of whole scene
-        var center = new THREE.Vector3(0, 0, 0);
-        var radiuses = new Array();
-        var positions = new Array();
+        const center = new THREE.Vector3(0, 0, 0);
+        const radiuses = new Array();
+        const positions = new Array();
         // compute center of all objects
         scene.traverse(function (child) {
             if (child instanceof THREE.Mesh) {
                 child.geometry.computeBoundingBox();
-                var box = child.geometry.boundingBox;
-                var curCenter = new THREE.Vector3().copy(box.min).add(box.max).multiplyScalar(0.5);
-                var radius = new THREE.Vector3().copy(box.max).distanceTo(box.min) / 2.;
+                const box = child.geometry.boundingBox;
+                const curCenter = new THREE.Vector3().copy(box.min).add(box.max).multiplyScalar(0.5);
+                const radius = new THREE.Vector3().copy(box.max).distanceTo(box.min) / 2.;
                 center.add(curCenter);
                 positions.push(curCenter);
                 radiuses.push(radius);
@@ -226,26 +226,26 @@
         if (radiuses.length > 0) {
             center.divideScalar(radiuses.length * 0.7);
         }
-        var maxRad = 1.;
+        let maxRad = 1.;
         // compute bounding radius
-        for (var ichild = 0; ichild < radiuses.length; ++ichild) {
-            var distToCenter = positions[ichild].distanceTo(center);
-            var totalDist = distToCenter + radiuses[ichild];
+        for (let ichild = 0; ichild < radiuses.length; ++ichild) {
+            const distToCenter = positions[ichild].distanceTo(center);
+            const totalDist = distToCenter + radiuses[ichild];
             if (totalDist > maxRad) {
                 maxRad = totalDist;
             }
         }
         maxRad = maxRad * 0.7; // otherwise the scene seems to be too far away
         camera.lookAt(center);
-        var direction = new THREE.Vector3().copy(camera.position).sub(controls.target);
-        var len = direction.length();
+        const direction = new THREE.Vector3().copy(camera.position).sub(controls.target);
+        const len = direction.length();
         direction.normalize();
 
         // compute new distance of camera to middle of scene to fit the object to screen
-        var lnew = maxRad / Math.sin(camera.fov / 180. * Math.PI / 2.);
+        const lnew = maxRad / Math.sin(camera.fov / 180. * Math.PI / 2.);
         direction.multiplyScalar(lnew);
 
-        var pnew = new THREE.Vector3().copy(center).add(direction);
+        const pnew = new THREE.Vector3().copy(center).add(direction);
         // change near far values to avoid culling of objects
         camera.position.set(pnew.x, pnew.y, pnew.z);
         camera.far = lnew * 50;

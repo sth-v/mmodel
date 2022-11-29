@@ -6,7 +6,7 @@ import unittest
 
 import dotenv
 
-from mm.meta import RemoteType
+from ..meta import RemoteType
 
 dotenv.load_dotenv(dotenv.find_dotenv('.env', True))
 CHECK_VAL = 11

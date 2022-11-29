@@ -15,7 +15,7 @@ from OCC.Core.gp import gp_Pnt
 from pydantic import BaseModel
 from rhino3dm import Point3d
 
-from mm.baseitems import GeomConversionMap, GeomDataItem, ReprData
+from ..baseitems import GeomConversionMap, GeomDataItem, ReprData
 
 
 class BufferGeometryDataTypes(str, Enum):
@@ -219,6 +219,9 @@ class BI(BufferGeometryItem):
         return BufferGeometryBoundingSphere(center=self.centroid.array, radius=np.max(
             np.array([self.centroid.distance(BufferPoint(*r)) for r in self.array])))
 
+    def __array__(self, *args, **kw) -> np.ndarray:
+        pass
+
 
 class BufferFaceMap(GeomConversionMap):
     include = ["array"]
@@ -302,6 +305,9 @@ from mm.geom.utils import topo_converter, data_scheme
 
 
 class BufferGeometryOcc(BI):
+    def __array__(self, *args, **kw) -> np.ndarray:
+        pass
+
     __tree_js_convert_attrs__ = dict(
         export_edges=True,
         color=(0.65, 0.65, 0.7),

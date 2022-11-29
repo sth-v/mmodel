@@ -1,7 +1,7 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import numpy as np
 
-from mm.baseitems import Item
+from ..baseitems import Item
 
 
 def args_flatten(arg, *args):

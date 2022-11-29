@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations, absolute_import
 
 __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'DictableItem',
            'DataviewInterface', 'Dataview', 'DataviewDescriptor', 'Metadata', 'ReprData', 'GeomConversionMap',
@@ -16,7 +16,11 @@ from typing import Any, Union
 import numpy as np
 import pydantic
 
-from vcs.utils import HashVersion
+import time
+
+from versioning import Now
+
+time.localtime(time.time())
 
 
 class MultiDict(dict):
@@ -75,7 +79,7 @@ class Versioned(Base):
         super().__init__(*args, **kwargs)
 
     def _version(self):
-        self.version = HashVersion().__hex__()
+        self.version = Now()
 
     def __eq__(self, other):
         return hex(self.version) == hex(other.version)
@@ -90,7 +94,7 @@ class VersionedI(BaseI):
         super().__init__(*args, **kwargs)
 
     def _version(self):
-        self.version = HashVersion().__hex__()
+        self.version = Now()
 
     def __eq__(self, other):
         return hex(self.version) == hex(other.version)
