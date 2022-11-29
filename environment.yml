@@ -39,4 +39,5 @@ dependencies:
       - ujson==5.5.0
       - uvicorn
       - uvloop
+      - fastapi[all]
 prefix: $CONDA_PREFIX

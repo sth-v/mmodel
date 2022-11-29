@@ -1,6 +1,6 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import copy
-from abc import ABCMeta, abstractmethod
+from abc import ABC, ABCMeta, abstractmethod
 from functools import wraps
 
 import compas.geometry as cg
@@ -8,8 +8,8 @@ import numpy as np
 import rhino3dm
 from compas_occ.geometry.curves.nurbs import OCCNurbsCurve
 
-from mm.baseitems import Base, DictableItem, Item
-from mm.geom import Point
+from ..baseitems import Base, DictableItem, Item
+from ..geom import Point
 
 
 def to_cmp_point(func):
@@ -97,7 +97,7 @@ class PrmGenerator(Item, metaclass=ABCMeta):
         self._step = val
 
 
-class ParametricType(PrmGenerator):
+class ParametricType(PrmGenerator, ABC):
 
     @property
     def parameterisation(self):
@@ -116,7 +116,7 @@ class ParametricType(PrmGenerator):
         return l + f" -> ({literal}))"
 
 
-class Linear(ParametricType):
+class Linear(ParametricType, ABC):
     a = 1.0
     b = 0.0
 
@@ -128,6 +128,9 @@ class Linear(ParametricType):
 
     def __repr__(self):
         return self.__format__(self.a, self.b)
+
+    def evaluate(self, t):
+        pass
 
 
 class Circular(ParametricType):
@@ -147,6 +150,9 @@ class Circular(ParametricType):
     def __repr__(self):
         return self.__format__(self.r, self.x0, self.y0)
 
+    def evaluate(self, t):
+        pass
+
 
 class Quadratic(ParametricType):
     stop = 1 * np.pi
@@ -164,6 +170,9 @@ class Quadratic(ParametricType):
 
     def __repr__(self):
         return self.__format__(self.a, self.b, self.x0, self.y0)
+
+    def evaluate(self, t):
+        pass
 
 
 class ClassicLinear(Linear):

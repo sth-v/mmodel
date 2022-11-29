@@ -422,8 +422,8 @@ class BufferDescriptor(dict):
 class RemoteType(type):
 
     @classmethod
-    def __prepare__(metacls, name, bases, prefix=None, client=S3Client, default_descriptor=HookDescriptor, **kws):
-        dct = super(RemoteType, metacls).__prepare__(name, bases)
+    def __prepare__(mcs, name, bases, prefix=None, client=S3Client, default_descriptor=HookDescriptor, **kws):
+        dct = super(RemoteType, mcs).__prepare__(name, bases)
         print(dct)
 
         _client = client(**kws)
