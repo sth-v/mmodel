@@ -323,7 +323,13 @@ class NichePanel(MainPanel):
                 if v.GetLength() > 5:
                     ii = v.DuplicateCurve()
                     ii.Transform(self.bound_plane)
-                    g.append(ii)
+                    if v.GetLength() < 500:
+                        g.append(ii)
+                    else:
+                        p_one = ii.ClosestPoint(ii.PointAtLength(1.0))[1]
+                        p_two = ii.ClosestPoint(ii.PointAtLength(ii.GetLength() - 1.0))[1]
+                        tr = ii.Trim(p_one, p_two)
+                        g.append(tr)
             return g
         else:
             raise ValueError
@@ -369,8 +375,13 @@ class NichePanel(MainPanel):
             self.mark_name = self.m_c['rib_name']
 
         unrol = rh.Unroller(self.surf)
-
         unr_grav = rh.Unroller(self.surf)
+
+        if self.h_p[0] is not None:
+            a = self.h_p
+            # a = [self.surf.ClosestPoint(i) for i in self.h_p]
+            unrol.AddFollowingGeometry(curves=a)
+
         if self.mark_crv is not None:
             self.mark_crv = [i.ToNurbsCurve() for i in self.mark_crv]
             unr_grav.AddFollowingGeometry(curves=self.mark_crv)

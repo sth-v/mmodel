@@ -221,8 +221,8 @@ class TagOne(Tag):
         return Rhino.Geometry.Transform.Scale(self.plane.Origin, self.hight)
 
     def generate_curves(self):
-        shpindel = ['4.58410865736586,0,0', '0,-4.451242716713182,0', '-19.853477782260782,-4.451242716713182,0',
-                    '-19.853477782260782,4.451242716713182,0', '0,4.451242716713182,0', '4.58410865736586,0,0']
+        shpindel = ['0.58410865736586,0,0', '-4,-4.451242716713182,0', '-19.853477782260782,-4.451242716713182,0',
+                    '-19.853477782260782,4.451242716713182,0', '-4,4.451242716713182,0', '0.58410865736586,0,0']
         shpindel_curve = rh.Polyline([rh.Point3d.TryParse(shp)[1] for shp in shpindel]).ToPolylineCurve()
         shpindel_curve.Transform(rh.Transform.Translation(self.plane.Origin.X, self.plane.Origin.Y + 164, 0.0))
         self.text = "  " + self.text

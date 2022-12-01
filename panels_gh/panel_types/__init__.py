@@ -255,7 +255,18 @@ class N_2(NichePanel):
     def cut(self):
         cut = [rh.Curve.JoinCurves([self.side[0].join, self.top.fres, self.side[1].join, self.bottom.fres])[0].ToNurbsCurve()]
         [i.Transform(self.bound_plane) for i in cut]
-        return cut
+
+        if self.unrol[1] is not None:
+            cccc = []
+            for i, v in enumerate(self.unrol[1]):
+                # p = rh.Circle(v, self.h_r[i]).ToNurbsCurve()
+                ii = v.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cccc.append(ii)
+            return cut + cccc
+
+        else:
+            return cut
 
     @property
     def top_parts(self):
@@ -342,12 +353,23 @@ class N_4(SimplePanel):
 
     @property
     def all_elems(self):
-        return self.cut
+        if self.unrol[1] is not None:
+            crvs = []
+            for i in self.unrol[1]:
+                new = i.DuplicateCurve()
+                new.Transform(self.bound_plane)
+                crvs.append(new)
+            return self.cut + crvs
+        else:
+            return self.cut
 
 
-    def __init__(self, surf, pins=None, cogs_bend=None, tag=None, **kwargs):
+    def __init__(self, surf, pins=None, cogs_bend=None, tag=None, orient=None, rib_cut=None, **kwargs):
         SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
         unrol = rh.Unroller(self.surf)
+
+        if rib_cut[0] is not None:
+            unrol.AddFollowingGeometry(curves=rib_cut)
 
         self.unrol = unrol.PerformUnroll()
         self.unrol_surf = self.unrol[0][0]
@@ -355,6 +377,7 @@ class N_4(SimplePanel):
         self.gen_side_types()
 
         self._bound_rect = self.cut[0].GetBoundingBox(True)
+        self.orient = orient
 
     def gen_side_types(self):
         self.top = RibsSide(self.edges[3])
