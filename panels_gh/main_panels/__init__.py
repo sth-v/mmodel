@@ -126,12 +126,6 @@ class MainPanel(SimplePanel):
         return [side]
 
     @property
-    def marker_curve(self):
-        crv = [self.bottom.fres.DuplicateCurve(), self.niche.fres.DuplicateCurve()]
-        [i.Transform(self.bound_plane) for i in crv]
-        return crv
-
-    @property
     def niche_holes(self):
         cut = []
         reg = self.niche.region_holes
@@ -236,6 +230,12 @@ class ArcPanel(MainPanel):
         return circ
 
     @property
+    def marker_curve(self):
+        crv = [self.bottom.fres.DuplicateCurve(), self.niche.fres.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in crv]
+        return crv
+
+    @property
     def grav(self):
         unrol = list(self.u_p[2])
         circ = []
@@ -315,18 +315,27 @@ class NichePanel(MainPanel):
                 fr.append(i)
         return fr
 
-
     @property
     def grav(self):
         g = []
         if self.unrol_grav[1] is not None:
             for i, v in enumerate(self.unrol_grav[1]):
-                ii = v.DuplicateCurve()
-                ii.Transform(self.bound_plane)
-                g.append(ii)
+                if v.GetLength() > 5:
+                    ii = v.DuplicateCurve()
+                    ii.Transform(self.bound_plane)
+                    g.append(ii)
             return g
         else:
             raise ValueError
+
+    @property
+    def ribs_marker(self):
+        pairs = []
+        gr = self.grav[0:2] + self.grav[2:-1:2]
+        for n, c in zip(self.mark_name, gr):
+            cent = c.PointAtNormalizedLength(0.5)
+            pairs.append([n, cent])
+        return pairs
 
     @property
     def unroll_dict(self):
@@ -350,12 +359,20 @@ class NichePanel(MainPanel):
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
-        self.mark_crv = mark_crv
+        self.m_c = mark_crv
+        if self.m_c['diag_rib'][0] is not None:
+            self.mark_crv = self.m_c['diag_rib'] + self.m_c['rib']
+            self.mark_name = [self.m_c['rib_name'][0]] + [self.m_c['rib_name'][-1]] + self.m_c['rib_name'][1:-1]
+
+        else:
+            self.mark_crv = self.m_c['rib']
+            self.mark_name = self.m_c['rib_name']
 
         unrol = rh.Unroller(self.surf)
 
         unr_grav = rh.Unroller(self.surf)
         if self.mark_crv is not None:
+            self.mark_crv = [i.ToNurbsCurve() for i in self.mark_crv]
             unr_grav.AddFollowingGeometry(curves=self.mark_crv)
         else:
             pass

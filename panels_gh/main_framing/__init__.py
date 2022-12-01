@@ -126,6 +126,7 @@ class MiniFrame(object):
         self.all_elems = list(itertools.repeat([], len(self._layers)))
         self.all_elems[0] = panel.all_elems
         self._text_geometry = [[], [], [], [], []]
+        self.tag = self.panel.tag
         self._unroll_dict = {
             "frame": self.panel.bound_frame,
             "layers": self.all_elems
@@ -149,6 +150,13 @@ class MiniFrame(object):
     @text_geometry.setter
     def text_geometry(self, v):
         self._text_geometry = v
+
+    @property
+    def unroll_dict_f(self):
+        dct = self.panel.unroll_dict
+        dct.update(self._unroll_dict)
+
+        return dct
 
 
 class MainFrame:
@@ -234,9 +242,12 @@ class MainFrame:
         _all_elems = [[], [], [], [], []]
 
         try:
-            _all_elems[0].extend(self.region + self.panel.cut_holes)
+            _all_elems[0].extend(self.region + self.panel.cut_holes + self.panel.cut_podves)
         except AttributeError:
-            _all_elems[0].extend(self.region)
+            try:
+                _all_elems[0].extend(self.region + self.panel.cut_holes)
+            except AttributeError:
+                _all_elems[0].extend(self.region)
 
         _all_elems[1].extend(self.panel.fres)
         # _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])

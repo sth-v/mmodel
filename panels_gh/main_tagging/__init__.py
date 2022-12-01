@@ -257,11 +257,11 @@ class TagFour(Tag):
         return Rhino.Geometry.Transform.Scale(self.plane.Origin, self.hight)
 
     def generate_curves(self):
-        shpindel = ['4.58410865736586,0,0', '0,-4.451242716713182,0', '-19.853477782260782,-4.451242716713182,0',
-                    '-19.853477782260782,4.451242716713182,0', '0,4.451242716713182,0', '4.58410865736586,0,0']
+        shpindel = ['0.58410865736586,0,0', '-4,-4.451242716713182,0', '-19.853477782260782,-4.451242716713182,0',
+                    '-19.853477782260782,4.451242716713182,0', '-4,4.451242716713182,0', '0.58410865736586,0,0']
         shpindel_curve = rh.Polyline([rh.Point3d.TryParse(shp)[1] for shp in shpindel]).ToPolylineCurve()
         shpindel_curve.Transform(rh.Transform.Translation(self.plane.Origin.X, self.plane.Origin.Y + 130, 0.0))
-        self.text = self.text[2:]
+        self.text = " " + self.text[2:]
         mxf = Rhino.Geometry.Transform.Mirror(
             Rhino.Geometry.Plane(self.plane.Origin, self.plane.ZAxis, self.plane.YAxis))
         res = [shpindel_curve]
@@ -284,14 +284,17 @@ class MiniFramer():
         self._cls = cls
         self._cls.text_geometry = [[], [], [], [], []]
         self.rect = self._cls.panel.bound_frame
-        self.spec_center = [self._cls.panel.hole_one, self._cls.panel.hole_two]
+        try:
+            self.spec_center = [self._cls.panel.hole_one, self._cls.panel.hole_two]
+        except AttributeError:
+            self.spec_center = self._cls.panel.bound_frame
         # Rhino.Display.CustomDisplay.AddLine(
         #   rh.Line(self._cls.panel.edges[1].PointAtEnd, self._cls.panel.edges[1].PointAtStart))
 
         # edge2_vector.Unitize()
 
-    def __call__(self, u, v, tagobj, layer, spec=False, p=1, *args, **kwargs):
-        rH, rW = 1 / self.rect.Height, 1 / self.rect.Width
+    def __call__(self, u, v, tagobj, layer, spec=False, p=1, index=None, *args, **kwargs):
+        #rH, rW = 1 / self.rect.Height, 1 / self.rect.Width
         tagobj.plane = copy.deepcopy(self._cls.panel.plane)
         if spec is False:
             # center = self.rect.PointAt(u * rW, v * rH)
@@ -301,6 +304,10 @@ class MiniFramer():
             pp = self.spec_center[p]
             center = rh.Point3d(pp[0] + u, pp[1] + v, 0)
             tagobj.plane.Origin = center
+            if index is None:
+                tagobj.text = self._cls.unroll_dict_f["tag"][2:]
+            else:
+                tagobj.text = index
 
         # tagobj.plane.Origin = center
 
@@ -385,19 +392,89 @@ class FramerNiche:
         _, vv = self._cls.unroll_dict_f["frame"].TryGetPolyline()
 
         self.rect = rh.Rectangle3d.CreateFromPolyline(vv)
-        self.spec =  self._cls.panel.marker_curve
+        #self.spec =  self._cls.panel.marker_curve
 
-    def __call__(self, u, v, tagobj, layer, ribs=None,  *args, **kwargs):
+    def __call__(self, u, v, tagobj, layer, ribs=None, p_mark=None, *args, **kwargs):
 
         if ribs is not None:
-            center = self.rect.PointAt(1 - u,  1 - v)
+            for i in self._cls.panel.ribs_marker:
+                p = rh.Point3d(i[1][0]-u, i[1][1]-v, 0)
+                tagobj.plane =rh.Plane(p, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
+                tagobj.text = i[0][-1]
+
+                self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+
+            return self._cls
+
+        elif p_mark is not None:
+            center = self.rect.PointAt(1 - u, 1 - v)
             tagobj.plane = rh.Plane(center, self.rect.Plane.XAxis, self.rect.Plane.YAxis)
-            tagobj.text = self._cls.unroll_dict_f["tag"]
+            tagobj.text = self._cls.unroll_dict_f["tag"][2:]
 
             self.pl = tagobj.plane
 
             self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
 
+            return self._cls
+
+
+        else:
+            rH, rW = 1 / self.rect.Height, 1 / self.rect.Width
+
+            center = self.rect.PointAt(u * rW, v * rH)
+            tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            self.pl = tagobj.plane
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+
+            return self._cls
+
+
+class FramerBack:
+
+    def __init__(self, cls):
+        self._cls = cls
+        self._cls.text_geometry = [[], [], [], [], []]
+
+        _, vv = self._cls.unroll_dict_f["frame"].TryGetPolyline()
+
+        self.rect = rh.Rectangle3d.CreateFromPolyline(vv)
+        #self.spec =  self._cls.panel.marker_curve
+
+    def __call__(self, u, v, tagobj, layer, ribs=None, p_mark=None, *args, **kwargs):
+
+        if ribs is not None:
+            for i in self._cls.panel.ribs_marker:
+                p = rh.Point3d(i[1][0]-u, i[1][1]-v, 0)
+                tagobj.plane =rh.Plane(p, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
+                tagobj.text = i[0][-1]
+
+                self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+
+            return self._cls
+
+
+        elif p_mark is not None:
+            crv = rh.Curve.Offset(self._cls.panel.fres[1], rh.Plane.WorldXY, -80 + u, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+            center = crv.PointAtNormalizedLength(0.5)
+
+            crv_check = rh.Curve.Offset(self._cls.panel.fres[1], rh.Plane.WorldXY, -150, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+            center_check = crv_check.PointAtNormalizedLength(0.5)
+            vec = Rhino.Geometry.Vector3d(center_check - center)
+            param = crv.NormalizedLengthParameter(0.5)[1]
+            # tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            plane = crv.FrameAt(param)[1]
+            tagobj.plane = Rhino.Geometry.Plane(plane.Origin, plane.XAxis, vec)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            # self.pl = tagobj.plane
+
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
             return self._cls
 
         else:

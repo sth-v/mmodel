@@ -109,8 +109,6 @@ class UnrollPackage:
                 self.data.append(det.all_elems)
 
 
-
-
             elif key == 'P_3':
                 new = self.panels_dict[key](**value)
                 new.hls = self.p3_hole
@@ -118,11 +116,12 @@ class UnrollPackage:
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
 
+
             else:
                 new = self.panels_dict[key](**value)
-                setattr(self, key, new)
+                setattr(self, key, MiniFrame(new))
                 det = getattr(self, key)
-                self.data.append(det.cut)
+                #self.data.append(det.cut)
 
 
 def main():

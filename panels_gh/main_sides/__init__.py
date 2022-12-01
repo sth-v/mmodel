@@ -476,7 +476,6 @@ class HeatSchov(BendSide):
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
 
-
     def fres_trim(self):
         p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
         p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
@@ -493,7 +492,7 @@ class HeatSchov(BendSide):
 
 class RibsSide(HeatSchov):
     side_offset = None
-    length = 25
+    length = 26.73
     fres_trim_dist = 30
     fillet_r = 3
 
