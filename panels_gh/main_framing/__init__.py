@@ -234,7 +234,11 @@ class MainFrame:
         elems.append(self.panel.cut[0])
         new = list(rh.Curve.CreateBooleanUnion(elems, 0.1))
         new.extend(self.panel.cut[1:])
-        return new
+
+        if any([i.IsValid is False for i in new]):
+            raise TypeError
+        else:
+            return new
 
     @property
     def all_elems(self):
@@ -246,16 +250,21 @@ class MainFrame:
         except AttributeError:
             try:
                 _all_elems[0].extend(self.region + self.panel.cut_holes)
+
             except AttributeError:
                 _all_elems[0].extend(self.region)
+
 
         _all_elems[1].extend(self.panel.fres)
         # _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
 
         if hasattr(self.panel, "grav"):
-            _all_elems[2].extend(self.panel.grav)
+            _all_elems[3].extend(self.panel.grav)
         else:
             pass
+        if hasattr(self.panel, "grav_laser"):
+            _all_elems[4].extend(self.panel.grav_laser)
+
         ll = []
         for elem in _all_elems:
             arcs = []

@@ -103,6 +103,11 @@ class UnrollPackage:
 
             elif key == 'N_2':
                 new = self.panels_dict[key](**value)
+                try:
+                    for i in new.side:
+                        i.hls = self.bend_hole
+                except AttributeError:
+                    pass
                 setattr(self, key, MainFrame(new))
 
                 det = getattr(self, key)

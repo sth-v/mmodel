@@ -25,7 +25,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, RibsSide
+from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, RibsSide, HolesSideThree
 
 reload(main_sides)
 
@@ -177,15 +177,34 @@ class P_3(SimplePanel):
 class N_1(NichePanel):
 
     @property
+    def grav_laser(self):
+        g = []
+        if self.unrol_grav[1] is not None:
+            for i, v in enumerate(self.unrol_grav[1]):
+                if v.GetLength() > 5:
+                    ii = v.DuplicateCurve()
+                    ii.Transform(self.bound_plane)
+                    if v.GetLength() < 500:
+                        g.append(ii)
+                    else:
+                        p_one = ii.ClosestPoint(ii.PointAtLength(1.0))[1]
+                        p_two = ii.ClosestPoint(ii.PointAtLength(ii.GetLength() - 1.0))[1]
+                        tr = ii.Trim(p_one, p_two)
+                        g.append(tr)
+            return g
+        else:
+            raise ValueError
+
+    @property
     def cut_podves(self):
         cut = []
 
-        ofs = self.grav[0].Offset(rh.Plane.WorldXY, 40, 0.01,
+        ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, 40, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         p = ofs.PointAtLength(12)
         h_one = rh.Circle(p,4)
 
-        ofs = self.grav[1].Offset(rh.Plane.WorldXY, -40, 0.01,
+        ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, -40, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         p = ofs.PointAtLength(12)
         h_two = rh.Circle(p, 4)
@@ -198,15 +217,34 @@ class N_1(NichePanel):
 class N_3(NichePanel):
 
     @property
+    def grav_laser(self):
+        g = []
+        if self.unrol_grav[1] is not None:
+            for i, v in enumerate(self.unrol_grav[1]):
+                if v.GetLength() > 5:
+                    ii = v.DuplicateCurve()
+                    ii.Transform(self.bound_plane)
+                    if v.GetLength() < 500:
+                        g.append(ii)
+                    else:
+                        p_one = ii.ClosestPoint(ii.PointAtLength(1.0))[1]
+                        p_two = ii.ClosestPoint(ii.PointAtLength(ii.GetLength() - 1.0))[1]
+                        tr = ii.Trim(p_one, p_two)
+                        g.append(tr)
+            return g
+        else:
+            raise ValueError
+
+    @property
     def cut_podves(self):
         cut = []
 
-        ofs = self.grav[0].Offset(rh.Plane.WorldXY, 40, 0.01,
+        ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, 40, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         p = ofs.PointAtLength(ofs.GetLength()-12)
         h_one = rh.Circle(p,4)
 
-        ofs = self.grav[1].Offset(rh.Plane.WorldXY, -40, 0.01,
+        ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, -40, 0.01,
                                    rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         p = ofs.PointAtLength(ofs.GetLength()-12)
@@ -255,18 +293,24 @@ class N_2(NichePanel):
     def cut(self):
         cut = [rh.Curve.JoinCurves([self.side[0].join, self.top.fres, self.side[1].join, self.bottom.fres])[0].ToNurbsCurve()]
         [i.Transform(self.bound_plane) for i in cut]
+        return cut
+
+    @property
+    def cut_holes(self):
+        cut = []
+        for v in self.side:
+            for i in v.holes_curve:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
 
         if self.unrol[1] is not None:
-            cccc = []
             for i, v in enumerate(self.unrol[1]):
-                # p = rh.Circle(v, self.h_r[i]).ToNurbsCurve()
                 ii = v.DuplicateCurve()
                 ii.Transform(self.bound_plane)
-                cccc.append(ii)
-            return cut + cccc
+                cut.append(ii)
 
-        else:
-            return cut
+        return cut
 
     @property
     def top_parts(self):
@@ -282,6 +326,19 @@ class N_2(NichePanel):
             cent = c.PointAtNormalizedLength(0.5)
             pairs.append([n, cent])
         return pairs
+
+    @property
+    def grav(self):
+        g = []
+        if self.unrol_grav[1] is not None:
+            for i, v in enumerate(self.unrol_grav[1]):
+                if v.GetLength() > 5:
+                    ii = v.DuplicateCurve()
+                    ii.Transform(self.bound_plane)
+                    g.append(ii)
+            return g
+        else:
+            raise ValueError
 
     @property
     def frame_dict(self):
@@ -310,7 +367,7 @@ class N_2(NichePanel):
     def gen_side_types(self):
         self.top = Bottom(self.edges[0])
         self.bottom = Bottom(self.edges[2])
-        self.side = [Side(self.edges[3]), Side(self.edges[1])]
+        self.side = [HolesSideOne(self.edges[3], spec_dist=250), HolesSideThree(self.edges[1], spec_dist=250)]
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -366,6 +423,8 @@ class N_4(SimplePanel):
 
     def __init__(self, surf, pins=None, cogs_bend=None, tag=None, orient=None, rib_cut=None, **kwargs):
         SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
+
+        #if orient[]
         unrol = rh.Unroller(self.surf)
 
         if rib_cut[0] is not None:

@@ -315,32 +315,15 @@ class NichePanel(MainPanel):
                 fr.append(i)
         return fr
 
-    @property
-    def grav(self):
-        g = []
-        if self.unrol_grav[1] is not None:
-            for i, v in enumerate(self.unrol_grav[1]):
-                if v.GetLength() > 5:
-                    ii = v.DuplicateCurve()
-                    ii.Transform(self.bound_plane)
-                    if v.GetLength() < 500:
-                        g.append(ii)
-                    else:
-                        p_one = ii.ClosestPoint(ii.PointAtLength(1.0))[1]
-                        p_two = ii.ClosestPoint(ii.PointAtLength(ii.GetLength() - 1.0))[1]
-                        tr = ii.Trim(p_one, p_two)
-                        g.append(tr)
-            return g
-        else:
-            raise ValueError
 
     @property
     def ribs_marker(self):
         pairs = []
-        gr = self.grav[0:2] + self.grav[2:-1:2]
+        gr = self.grav_laser[0:2] + self.grav_laser[2:-1:2]
         for n, c in zip(self.mark_name, gr):
             cent = c.PointAtNormalizedLength(0.5)
             pairs.append([n, cent])
+
         return pairs
 
     @property

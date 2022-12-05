@@ -333,6 +333,7 @@ class NicheShortened(Niche):
         except TypeError:
             pass
         self._cogs = _cogs
+
 class Side(BendSide):
     side_offset = 1.0
     angle = 30
@@ -374,7 +375,10 @@ class HolesSideOne(Side):
     def holes_curve(self):
         line = self.top_part.Offset(rh.Plane.WorldXY, -self.length / 2, 0.01,
                                     rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-        points = divide(line)
+        if self.spec_dist is not None:
+            points = divide(line, dist=self.spec_dist)
+        else:
+            points = divide(line)
 
         circ = []
         for i in points:
@@ -384,10 +388,12 @@ class HolesSideOne(Side):
             circ.append(c.ToNurbsCurve())
         return circ
 
-    def __init__(self, curve, reverse=None, holes=True):
+    def __init__(self, curve, reverse=None, holes=True, spec_dist=None):
         Side.__dict__['__init__'](self, curve)
         self.reverse = reverse
         self.holes = holes
+
+        self.spec_dist = spec_dist
 
 
 class HolesSideTwo(Side):
@@ -404,7 +410,11 @@ class HolesSideTwo(Side):
     def holes_curve(self):
         line = self.top_part.Offset(rh.Plane.WorldXY, -self.length / 2, 0.01,
                                     rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-        points = divide(line)
+
+        if self.spec_dist is not None:
+            points = divide(line, dist=self.spec_dist)
+        else:
+            points = divide(line)
 
         circ = []
         for i, v in enumerate(points):
@@ -420,10 +430,50 @@ class HolesSideTwo(Side):
 
         return circ
 
-    def __init__(self, curve, reverse=None):
+    def __init__(self, curve, reverse=None, spec_dist=None):
         Side.__dict__['__init__'](self, curve)
         self.reverse = reverse
         self.holes = None
+
+        self.spec_dist = spec_dist
+
+
+class HolesSideThree(Side):
+
+    @property
+    def hls(self):
+        return self._hls
+
+    @hls.setter
+    def hls(self, v):
+        self._hls = v
+
+    @property
+    def holes_curve(self):
+        line = self.top_part.Offset(rh.Plane.WorldXY, -self.length / 2, 0.01,
+                                    rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        if self.spec_dist is not None:
+            points = divide(line, dist=self.spec_dist)
+        else:
+            points = divide(line)
+
+        circ = []
+        for i, v in enumerate(points):
+            p = translate(v, line)
+
+            c = self.hls.DuplicateCurve()
+            c.Transform(p)
+            circ.append(c)
+
+        return circ
+
+    def __init__(self, curve, reverse=None, spec_dist=None):
+        Side.__dict__['__init__'](self, curve)
+        self.reverse = reverse
+        self.holes = None
+
+        self.spec_dist = spec_dist
 
 
 class Bottom(BendSide):
