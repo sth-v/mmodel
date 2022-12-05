@@ -255,7 +255,6 @@ class Niche(BendSide):
             if trim is None:
                 trg.MakeClosed(0.1)
                 trim = trg.Trim(p_one, p_two)
-            print(p_two, p_one, trim)
         else:
             trim = self.join
 
@@ -321,7 +320,8 @@ class NicheShortened(Niche):
         _cogs.extend(self.hls[2:-2])
 
         try:
-            ccnt = cnt[1:-1]
+            '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+            ccnt = cnt[1:]
 
             for cc in ccnt:
                 self.otgib_morph.Morph(cc)
