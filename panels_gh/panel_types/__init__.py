@@ -25,7 +25,7 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, RibsSide, HolesSideThree
+from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, RibsSide, HolesSideThree, RibsSideTwo
 
 reload(main_sides)
 
@@ -379,11 +379,19 @@ class N_4(SimplePanel):
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].fres, self.side[1].fres, self.side[2].fres, self.top.join])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
-        if fr.YAxis[0] > 0:
-            bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), fr.XAxis, -fr.YAxis)
+
+        if self.orient[0] == '2':
+            fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
+            if fr.YAxis[0] > 0:
+                bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), fr.XAxis, -fr.YAxis)
+            else:
+                bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), fr.XAxis, fr.YAxis)
         else:
-            bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), fr.XAxis, fr.YAxis)
+            fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[1])[1]
+            if fr.YAxis[0] > 0:
+                bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), -fr.XAxis, -fr.YAxis)
+            else:
+                bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), -fr.XAxis, fr.YAxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 
@@ -424,7 +432,14 @@ class N_4(SimplePanel):
     def __init__(self, surf, pins=None, cogs_bend=None, tag=None, orient=None, rib_cut=None, **kwargs):
         SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
 
-        #if orient[]
+        if orient[0] == "2":
+            self.surf = surf
+        else:
+            a = surf.DuplicateBrep()
+            a.Flip()
+            self.surf = a
+            #print(self.surf)
+
         unrol = rh.Unroller(self.surf)
 
         if rib_cut[0] is not None:
@@ -433,14 +448,20 @@ class N_4(SimplePanel):
         self.unrol = unrol.PerformUnroll()
         self.unrol_surf = self.unrol[0][0]
         self.edges = self.unrol_surf.Curves3D
+        self.orient = orient
         self.gen_side_types()
 
         self._bound_rect = self.cut[0].GetBoundingBox(True)
-        self.orient = orient
+
 
     def gen_side_types(self):
-        self.top = RibsSide(self.edges[3])
-        self.side = [Bottom(self.edges[0]), Bottom(self.edges[1]), Bottom(self.edges[2])]
+        if self.orient[0] == '2':
+            self.top = RibsSide(self.edges[3])
+            self.side = [Bottom(self.edges[0]), Bottom(self.edges[1]), Bottom(self.edges[2])]
+
+        else:
+            self.top = RibsSideTwo(self.edges[3])
+            self.side = [Bottom(self.edges[0]), Bottom(self.edges[1]), Bottom(self.edges[2])]
 
         self.side_types = [self.side[0], self.side[1], self.side[2], self.top]
         self.intersect()

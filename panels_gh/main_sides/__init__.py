@@ -549,5 +549,14 @@ class RibsSide(HeatSchov):
     def __init__(self, curve):
         HeatSchov.__dict__['__init__'](self, curve)
 
+class RibsSideTwo(HeatSchov):
+    side_offset = None
+    length = -26.73
+    fres_trim_dist = 30
+    fillet_r = 3
+
+    def __init__(self, curve):
+        HeatSchov.__dict__['__init__'](self, curve)
+
 
 
