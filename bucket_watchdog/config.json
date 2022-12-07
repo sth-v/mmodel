@@ -1,7 +1,0 @@
-{
-  "bucket":"https://storage.yandexcloud.net/lahta.contextmachine.online/workspace/unk/UNK_St19_Tw_Fd_R21.ifc",
-  "prefix": "workspace",
-  "postfix": "ifc",
-  "url": "http://mmodel.contextmachine.online:8181/update"
-
-}

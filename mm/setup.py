@@ -12,8 +12,10 @@ setup(
     author_email='aa@contextmachine.ru',
     description='Here is the best of what we wrote while working on the mmodel',
 
-
     long_description="",
     long_description_content_type="text/markdown",
     python_requires=">=3.10",
 )
+import uvicorn
+
+uvicorn.run()

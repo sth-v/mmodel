@@ -9,37 +9,74 @@ __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'Dictabl
 import base64
 import gzip
 import itertools
-from abc import ABCMeta, abstractmethod
-from collections import Callable, Generator
-from typing import Any, Union
-
 import numpy as np
+import pickle
 import pydantic
-
+import redis
+import redis_om
 import time
+import uuid
+from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
+from json import JSONEncoder
+from typing import Callable, Generator, Union
 
 from versioning import Now
 
-time.localtime(time.time())
+
+class StateExtras(redis_om.JsonModel):
+    uuid: str
+    type: str
 
 
-class MultiDict(dict):
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
-
-    def __setitem__(self, k, v):
-
+class MatchableType(type):
+    def __new__(mcs, name, bases, dct, with_slots=True, **kws):
         try:
-            l = dict.__getitem__(self, k)
-            l.append(v)
+            assert dct["__match_args__"]
+            if with_slots:
+                dct["__slots__"] = dct["__match_args__"]
+            return super().__new__(mcs, name, bases + (object,), dct, **kws)
+        except KeyError as err:
+            print(err)
+            raise
 
-        except:
-            l = [v]
 
-        dict.__setitem__(self, k, l)
+class Matchable(object):
+    __match_args__ = "first", "second"
 
-    def __getitem__(self, __k):
-        return dict.__getitem__(self, __k)
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self.__call__(*args, **kwargs)
+
+    def __setstate__(self, state: OrderedDict | dict) -> None:
+
+        for k, arg in state.items():
+            self.__setattr__(k, arg)
+
+    def __getstate__(self) -> dict:
+        state = {
+            "uuid": id(self)
+        }
+        for arg in self.__match_args__:
+            state[arg] = self.__getattribute__(arg)
+        return state
+
+    def __call__(self, *args, **kwargs):
+        if args:
+            if len(self.__match_args__) < len(args):
+                raise TypeError(
+                    f"length self.__match_args__ = {len(self.__match_args__)} > length *args = {len(args)}, {args}")
+            else:
+                kwargs |= dict(zip(self.__match_args__[:len(args)], args))
+
+        for k, v in kwargs.items():
+            self.__setattr__(k, v)
+        return self
+
+
+class WithSlots(Matchable):
+    __match_args__ = "first", "second"
+    __slots__ = __match_args__
 
 
 class BaseI:
@@ -90,8 +127,8 @@ class Versioned(Base):
 
 
 class VersionedI(BaseI):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def _version(self):
         self.version = Now()
@@ -100,17 +137,14 @@ class VersionedI(BaseI):
         return hex(self.version) == hex(other.version)
 
     def __call__(self, *args, **kwargs):
-        super().__call__(*args, **kwargs)
+        super().__call__(**kwargs)
         self._version()
 
 
-import uuid
-
-
 class IdentifiableI(VersionedI):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self._uuid = uuid.uuid4()
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
     @property
     def uid(self):
@@ -238,9 +272,6 @@ class ItemFormatter:
         return f"< {self.__format__()} at {hex(id(self))} >"
 
 
-from json import JSONEncoder
-
-
 class ItemEncoder(JSONEncoder):
 
     def default(self, o):
@@ -281,38 +312,6 @@ class GeometryItem(Item):
 
     def to_compas(self) -> Union[list[float], Generator]:
         ...
-
-
-class member_table(dict):
-    def __init__(self):
-        self.members = []
-        self.methods = []
-
-    def __setitem__(self, key, value: list[Any]):
-        # if the key is not already defined, add to the
-        # list of keys.
-
-        ml = []
-        for m, v in zip(self.members, value):
-            setattr(m, key, v)
-
-            ml.append(getattr(m, key))
-            dict.__setitem__(self, m, {key: ml})
-
-    def __getitem__(self, item):
-        for m in self.members:
-            yield getattr(m, item)
-
-    def reload(self):
-        del self.names_irerator
-        self.names_irerator()
-
-    def __setattr__(self, key, value):
-        self[next(self.names_irerator)[self]].__setattr__(key, value)
-        # print(key, value)
-
-    def __getattr__(self, k):
-        return self[next(self.names_irerator)[self]].__getattr__(k)
 
 
 class DataItem(Item):

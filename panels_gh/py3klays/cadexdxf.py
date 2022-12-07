@@ -7,8 +7,9 @@ import time
 sys.path.extend(["/Users/andrewastakhov/PycharmProjects", "/Users/andrewastakhov/PycharmProjects/mmodel/panels_gh"])
 
 import rhino3dm
+import compute_rhino3d.Util
 from rhino3dm import _rhino3dm as rh
-import cadex_license as license
+from py3klays import cadex_license as license
 import cadexchanger.CadExCore as cadex
 import cadexchanger.CadExRhino as rhino
 import cadexchanger.CadExDXF as dxf

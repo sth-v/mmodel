@@ -8,5 +8,5 @@
 /pyopennurbs/cmake-build-debug/
 /tmp/
 /pyopennurbs/install/
-
+/secrets/
 /pyopennurbs/opennurbs

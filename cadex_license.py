@@ -3,3 +3,10 @@
 # When your license key expires you may no longer rebuild your application with CAD Exchanger SDK.
 # If you already received a newer version of the license key then please use it to replace the expired license key.
 # Otherwise please contact sales@cadexchanger.com to renew your license.
+
+
+from setupsecrets import setup_secrets
+
+
+def Value() -> str:
+    return setup_secrets()["CADEX_LICENSE"]

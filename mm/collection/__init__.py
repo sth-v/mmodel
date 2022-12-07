@@ -1,8 +1,7 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
-from __future__ import annotations, absolute_import
+from __future__ import absolute_import, annotations
 
 import inspect
-
 from collections.abc import Iterator
 from functools import wraps
 
@@ -40,6 +39,28 @@ def clsmap(seq, item):
     else:
         raise "It is not method"
 
+
+# To accomplish this, subclass list in such a manner that each list element is
+# really a two tuple, where the first tuple value is the actual value and the
+# second tuple value is a reference to the itemlist node for that value. Users
+# only interact with the first tuple values, the actual values, but behind the
+# scenes when an element is modified, deleted, inserted, etc, the according
+# itemlist nodes are modified, deleted, inserted, etc accordingly. In this
+# manner, users can manipulate omdict objects directly through direct list
+# manipulation.
+#
+# Once accomplished, some methods become redundant and should be removed in
+# favor of the more intuitive direct value list manipulation. Such redundant
+# methods include getlist() (removed in favor of values()?), addlist(), and
+# setlist().
+#
+# With the removal of many of the 'list' methods, think about renaming all
+# remaining 'list' methods to 'values' methods, like poplist() -> popvalues(),
+# poplistitem() -> popvaluesitem(), etc. This would be an easy switch for most
+# methods, but wouldn't fit others so well. For example, iterlists() would
+# become itervalues(), a name extremely similar to iterallvalues() but quite
+# different in function.
+#
 
 class BaseCollection(Item, Iterator):
     def __init__(self, seq, *args, **kwargs):
@@ -147,3 +168,24 @@ class BaseCollection(Item, Iterator):
     def __repr__(self):
         return f"<{self.dtype}({self.state} in {self.seq}) at {self.uid}>"
 
+
+class MultiDict(dict):
+    """"""
+
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+
+    def __setitem__(self, k, v):
+
+        try:
+            item = dict.__getitem__(self, k)
+            item.append(v)
+        except KeyError:
+            item = [v]
+            dict.__setitem__(self, k, item)
+        except Exception as err:
+            print(f"Unexpected {err=}, {type(err)=}")
+            raise
+
+    def __getitem__(self, __k):
+        return dict.__getitem__(self, __k)
