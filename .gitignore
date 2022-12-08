@@ -10,3 +10,5 @@
 /pyopennurbs/install/
 /secrets/
 /pyopennurbs/opennurbs
+/tests/absnumbering.json
+/tests/*.json

@@ -1,10 +1,8 @@
-import json
-
-import numpy as np
 import rhino3dm
 from compute_rhino3d import Util
 from rhino3dm import _rhino3dm
 
+from geom import MmPoint
 from plugins.compute import ComputeBinder
 
 
@@ -125,31 +123,6 @@ class SectMask:
 
 
 SectMask()
-from scipy.spatial.distance import euclidean
-
-
-class MmPoint(WithSlots):
-    __match_args__ = "x", "y", "z"
-    _i = -1
-
-    @property
-    def xyz(self) -> tuple[float, float, float]:
-        return self.x, self.y, self.z
-
-    def __array__(self, *args, **kwargs) -> np.ndarray[(1, 3), np.dtype[float]]:
-        return np.ndarray.__array__(np.ndarray(self.xyz), *args, **kwargs)
-
-    def distance(self, other):
-        return euclidean(np.asarray(self.xyz), np.asarray(other))
-
-    def transform(self, trfm):
-        self.x, self.y, self.z, _ = trfm @ np.array(self.xyz + (1,)).T
-
-    def __len__(self):
-        return len(self.xyz)
-
-    def __getitem__(self, item):
-        return self.xyz[item]
 
 
 class TrianglePanel(WithSlots):
@@ -169,7 +142,19 @@ class TrianglePanel(WithSlots):
 
     @property
     def triangle(self) -> rhino3dm.Polyline:
-        self._triangle.SetAllX(self.a_rh.X, self.b_rh.X, self.c_rh.X)
-        self._triangle.SetAllY(self.a_rh.Y, self.b_rh.Y, self.c_rh.Y)
-        self._triangle.SetAllZ(self.a_rh.Z, self.b_rh.Z, self.c_rh.Z)
+        self._triangle.Add(*self.a), self._triangle.Add(*self.b), self._triangle.Add(*self.c)
         return self._triangle
+
+
+import pandas as pd
+import json
+
+l2 = pd.read_json("L2.json")
+centers = []
+for ll2 in l2.L2:
+    a, (b,) = ll2
+    centers.append(MmPoint(*a, subtype=b))
+
+from mm.collection.getter import CollectionItemGetSetter
+
+centers_collection = CollectionItemGetSetter(centers)
