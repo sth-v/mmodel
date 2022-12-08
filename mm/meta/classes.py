@@ -6,8 +6,8 @@ import json
 
 import pandas as pd
 
-from connectors.gzjson import gzip_encoder
-from mm.meta import ItemEncoder, MetaItem
+from ...connectors.gzjson import gzip_encoder
+from ...mm.meta import ItemEncoder, MetaItem
 
 
 class _Item(metaclass=MetaItem, encoder=ItemEncoder):

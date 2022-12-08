@@ -6,11 +6,10 @@ from fastapi import FastAPI
 app = FastAPI()
 from fastapi.responses import JSONResponse
 
-import redis_om
-
+from .connect import bootstrap_local
 REDIS_URL = os.getenv('REDIS_URL')
 PRIMARY_KEY = ""
-REDIS_CONN = redis_om.get_redis_connection(url=REDIS_URL)
+REDIS_CONN = bootstrap_local(REDIS_URL)
 
 
 @app.get("/take/task/{uid}")

@@ -10,9 +10,9 @@ from functools import partial, wraps
 from typing import Any, Callable, Optional
 
 function_type = type(lambda: None)
-from cxm_remote.sessions import S3Client
+from ...cxm_remote.sessions import S3Client
 
-from mm.descriptors import HookDescriptor
+from ...mm.descriptors import HookDescriptor
 
 from json import JSONEncoder
 

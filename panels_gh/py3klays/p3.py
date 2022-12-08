@@ -2,13 +2,13 @@ import copy
 import gzip
 import json
 import os
-import sys
 import time
-
-#sys.path.extend(["/Users/andrewastakhov/PycharmProjects", "/Users/andrewastakhov/PycharmProjects/mmodel/panels_gh"])
 
 import rhino3dm
 from rhino3dm import _rhino3dm as rh
+
+
+# sys.path.extend(["/Users/andrewastakhov/PycharmProjects", "/Users/andrewastakhov/PycharmProjects/mmodel/panels_gh"])
 
 
 #os.environ['PANELS_GH_DUMPS']="panels_gh/dumps"
@@ -27,25 +27,27 @@ class RH:
         self.layers = []
         self.layers2 = []
         for l in copy.deepcopy(layers):
-            try: self.layers.append(Lay(model=self.model, **l))
-            except: pass
+            try:
+                self.layers.append(Lay(model=self.model, **l))
+            except:
+                pass
         for l2 in layers:
-            try:self.layers2.append(Lay2(model=self.model2, **l2))
-            except: pass
+            try:
+                self.layers2.append(Lay2(model=self.model2, **l2))
+            except:
+                pass
+
     def write(self):
 
-        os.mkdir(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cut/{self.tag}")
-        os.mkdir(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/frez/{self.tag}")
+        fp = f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag}[:-2]/{self.tag}"
 
-        fp = f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cut/{self.tag}/{self.tag}"
-
-        fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/frez/{self.tag}/{self.tag}.3dm"
+        fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag}[:-2]/{self.tag}.3dm"
         self.model.Write(fp + ".3dm", 7)
         self.model2.Write(fpfrez, 7)
 
         # self.model.Write(f"dumps/{self.tag}/{self.tag}"+".dxf")
         # client.s3.put_object(Bucket=client.bucket,Key=f"{client.bucket}/{client.prefix}/build{self.time}/{self.tag}/{self.time}", Body=self.model.Encode())
-        return f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cut/{self.tag}/{self.tag}.3dm"
+        return f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag}[:-2]/{self.tag}.3dm"
 
    
 
@@ -108,16 +110,15 @@ class Lay2:
 if __name__ == "__main__":
 
     s = round(time.time())
-    os.mkdir(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}")
-    os.mkdir(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cut")
-    os.mkdir(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/frez")
+    ## os.mkdir(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/cut")
+    # os.mkdir(f"{os.getenv('PANELS_GH_DUMPS')}/build{s}/frez")
     # client = sessions.S3Client(bucket=os.getenv('BUCKET'), prefix="workspace/cxm/arc/")
-    for i in ["1"]:
+    for i in ["build1670414928"]:
         with gzip.open(f"{os.getenv('PANELS_GH_DUMPS')}/{i}.gz", "rb", compresslevel=9) as gz:
             bts = gz.read()
             # client.s3.put_object(Bucket=client.bucket, Key=f"{client.bucket }/{client.prefix}/build{s}", Body=bts)
             for obj in json.loads(bts):
                 print(obj)
                 a = RH(**obj, time=1)
-    
+
                 os.environ['RHINO_TARGET'] = a.write()
