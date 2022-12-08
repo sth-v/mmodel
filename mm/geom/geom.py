@@ -3,13 +3,10 @@ from __future__ import absolute_import
 
 import compas.geometry as cg
 import numpy as np
-
-from ..baseitems import DictableItem, Item
-from ..meta import MetaItem
-import numpy as np
 from scipy.spatial.distance import euclidean
 
 from baseitems import WithSlots
+from ..baseitems import DictableItem
 
 mesh_js_schema = {
     "metadata": dict(),
@@ -45,24 +42,6 @@ class Point(DictableItem):
     def __array__(self, *args):
         return np.asarray([self.x, self.y, self.z])
 
-
-class PointT(metaclass=MetaItem):
-    x, y, z = 1, 1, 1
-
-    def __array__(self):
-        return np.array([self.x, self.y, self.z])
-
-    def to_compas(self):
-        return cg.Point(self.x, self.y, self.z)
-
-
-class Triangle(Item, metaclass=MetaItem):
-    a: Point
-    b: Point
-    c: Point
-
-    def __array__(self, *args):
-        return np.asarray([self.a, self.b, self.c])
 
 
 class MmPoint(WithSlots):

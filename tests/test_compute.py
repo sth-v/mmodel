@@ -1,8 +1,6 @@
 import rhino3dm
-from compute_rhino3d import Util
 from rhino3dm import _rhino3dm
 
-from geom import MmPoint
 from plugins.compute import ComputeBinder
 
 
@@ -122,7 +120,7 @@ class SectMask:
         return wrap
 
 
-SectMask()
+from mm.geom.geom import MmPoint
 
 
 class TrianglePanel(WithSlots):
@@ -149,12 +147,41 @@ class TrianglePanel(WithSlots):
 import pandas as pd
 import json
 
-l2 = pd.read_json("L2.json")
-centers = []
-for ll2 in l2.L2:
-    a, (b,) = ll2
-    centers.append(MmPoint(*a, subtype=b))
-
 from mm.collection.getter import CollectionItemGetSetter
+from compute_rhino3d import Util
 
-centers_collection = CollectionItemGetSetter(centers)
+
+class Rhino3dmDecoder(json.JSONDecoder):
+    def decode(self, s, *args, **kwargs):
+        o = super().decode(s, *args, **kwargs)
+        if isinstance(o, dict):
+            match list(o.keys()):
+                case ["X", "Y", "Z"]:
+                    return Util.DecodeToPoint3d(o)
+                case ["From", "To"]:
+                    return Util.DecodeToLine(o)
+                case ['Min', 'Max']:
+                    return Util.DecodeToBoundingBox(o)
+
+                case ['version', 'archive3dm', 'opennurbs', 'data']:
+                    return Util.DecodeToCommonObject(o)
+                case [_]:
+                    return o
+        elif isinstance(o, list):
+            return [self.decode(obj, *args, **kwargs) for obj in o]
+        else:
+            return o
+
+
+class SubtypeCollection(CollectionItemGetSetter):
+    def __init__(self, target="L2.json", firstkey="L2"):
+        l = pd.read_json(target)
+        centers = []
+        for ll in l[firstkey]:
+            a, (b,) = ll
+            centers.append(MmPoint(*a, subtype=b))
+        super().__init__(centers)
+
+
+L1Subtypes = SubtypeCollection(target="L1.json")
+L2ubtypes = SubtypeCollection(target="L2.json")

@@ -2,9 +2,7 @@
 # Andrew Astkhov (sth-v) aa@contextmachine.ru
 import copy
 import itertools
-
-from typing import Any, Callable, TypeVar, Generic, Iterable, Container
-
+from typing import Any, Callable, Generic, Iterable, TypeVar
 
 
 # Multi Getter concept.
@@ -97,12 +95,9 @@ class CollectionItemGetSetter(CollectionItemGetter[Seq, T]):
         super().__init__(seq)
         self._setter = multi_setter(seq)
 
-
-    def __setitem__(self, key:str, value):
+    def __setitem__(self, key: str, value):
         if hasattr(self._inst, key):
-            #print("v")
+            # print("v")
             self._setter(key, value)
         else:
             super(CollectionItemGetSetter, self).__setattr__(key, value)
-
-
