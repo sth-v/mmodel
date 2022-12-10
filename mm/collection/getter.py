@@ -1,8 +1,7 @@
 # Copyright (c) CONTEXTMACHINE
 # Andrew Astkhov (sth-v) aa@contextmachine.ru
-import copy
 import itertools
-from typing import Any, Callable, Generic, Iterable, TypeVar
+from typing import Any, Callable, Generic, Iterable, Type, TypeVar
 
 
 # Multi Getter concept.
@@ -91,7 +90,7 @@ class CollectionItemGetSetter(CollectionItemGetter[Seq, T]):
     """
 
     def __init__(self, seq: Generic[Seq, T]):
-        self._inst = copy.deepcopy(seq[0])
+        self._inst: Type[T] = type(seq[0])
         super().__init__(seq)
         self._setter = multi_setter(seq)
 
@@ -101,3 +100,21 @@ class CollectionItemGetSetter(CollectionItemGetter[Seq, T]):
             self._setter(key, value)
         else:
             super(CollectionItemGetSetter, self).__setattr__(key, value)
+
+
+class MultiFieldQuery:
+    fields: tuple[str]
+
+    def __init__(self, *fields: str):
+        super().__init__()
+        self.fields = fields
+
+    def __get__(self, instance, owner) -> dict[str, Iterable]:
+        return dict([(field, instance[field]) for field in self.fields])
+
+
+def query(instance: CollectionItemGetSetter):
+    def wrp(*fields):
+        return dict([(field, instance[field]) for field in fields])
+
+    return wrp

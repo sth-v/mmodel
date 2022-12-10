@@ -9,17 +9,15 @@ __all__ = ['Base', 'Versioned', 'Identifiable', 'Item', 'GeometryItem', 'Dictabl
 import base64
 import gzip
 import itertools
-import numpy as np
-import pickle
-import pydantic
-import redis
-import redis_om
-import time
 import uuid
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from json import JSONEncoder
 from typing import Callable, Generator, Union
+
+import numpy as np
+import pydantic
+import redis_om
 
 from versioning import Now
 
@@ -42,8 +40,7 @@ class MatchableType(type):
 
 
 class Matchable(object):
-    __match_args__ = "first", "second"
-
+    __match_args__: tuple[str]
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.__call__(*args, **kwargs)
@@ -63,7 +60,7 @@ class Matchable(object):
 
     def __call__(self, *args, **kwargs):
         if args:
-            if len(self.__match_args__) < len(args):
+            if len(self.__match_args__) + 1 < len(args):
                 raise TypeError(
                     f"length self.__match_args__ = {len(self.__match_args__)} > length *args = {len(args)}, {args}")
             else:
@@ -75,7 +72,7 @@ class Matchable(object):
 
 
 class WithSlots(Matchable):
-    __match_args__ = "first", "second"
+    __match_args__ = ()
     __slots__ = __match_args__
 
 

@@ -1,3 +1,12 @@
+import collections
+from abc import ABC
+from typing import ContextManager
+
+try:
+    import Rhino
+except:
+    pass
+from compute_rhino3d import AreaMassProperties
 import rhino3dm
 from rhino3dm import _rhino3dm
 
@@ -105,7 +114,14 @@ class TriangleCelling(CollectionItemGetSetter[list, Triangle]):
 
 
 class SectMask:
-    __blob__ = "import Rhino.Geometry as rg\nimport json\ndef check(x, y, eps=50.0):\n    x.Transform(rg.Transform.PlanarProjection(rg.Plane.WorldXY))\n    [yy.Transform(rg.Transform.PlanarProjection(rg.Plane.WorldXY)) for yy in y]\n    ap=rg.AreaMassProperties.Compute(x)\n    dst=list(map(lambda yy: (yy, ap.Centroid.DistanceTo(yy.ClosestPoint(ap.Centroid))),  y))\n    dst.sort(key=lambda xx: xx[1])\n    if dst[0][1]<eps:\n        return all([not rg.Curve.PlanarCurveCollision(x, crv, rg.Plane.WorldXY, 0.1) for crv in list(rg.Curve.JoinCurves(dst[0][0].Edges))])\n    else:\n        return False\ndef main_func(aa,bb,eps=50.0):\n    for aaa in aa:\n        yield check(aaa, bb, eps=eps)\nans=json.dumps(list(main_func(x,y, eps=40)))"
+    __blob__ = "import Rhino.Geometry as rg\nimport json\ndef check(x, y, eps=50.0):\n    x.Transform(" \
+               "rg.Transform.PlanarProjection(rg.Plane.WorldXY))\n    [yy.Transform(rg.Transform.PlanarProjection(" \
+               "rg.Plane.WorldXY)) for yy in y]\n    ap=rg.AreaMassProperties.Compute(x)\n    dst=list(map(lambda yy: " \
+               "(yy, ap.Centroid.DistanceTo(yy.ClosestPoint(ap.Centroid))),  y))\n    dst.sort(key=lambda xx: xx[" \
+               "1])\n    if dst[0][1]<eps:\n        return all([not rg.Curve.PlanarCurveCollision(x, crv, " \
+               "rg.Plane.WorldXY, 0.1) for crv in list(rg.Curve.JoinCurves(dst[0][0].Edges))])\n    else:\n        " \
+               "return False\ndef main_func(aa,bb,eps=50.0):\n    for aaa in aa:\n        yield check(aaa, bb, " \
+               "eps=eps)\nans=json.dumps(list(main_func(x,y, eps=40))) "
 
     def __set_name__(self, owner, name):
         self.name = name
@@ -117,13 +133,14 @@ class SectMask:
                                     ["ans"])["ans"])
 
         wrap.__name__ = self.name
+
         return wrap
 
 
 from mm.geom.geom import MmPoint
 
 
-class TrianglePanel(WithSlots):
+class _TrianglePanel(WithSlots):
     __match_args__ = "a", "b", "c", "subtype", "extratype", "flatindex", "gridindex"
     mask = SectMask()
 
@@ -183,5 +200,110 @@ class SubtypeCollection(CollectionItemGetSetter):
         super().__init__(centers)
 
 
-L1Subtypes = SubtypeCollection(target="L1.json")
-L2ubtypes = SubtypeCollection(target="L2.json")
+class MaskCollection(CollectionItemGetSetter):
+    def __init__(self, target="L2.json", firstkey="L2"):
+        l = pd.read_json(target)
+        centers = []
+        for ll in l[firstkey]:
+            a, (b,) = ll
+            centers.append(MmPoint(*a, subtype=b))
+        super().__init__(centers)
+
+
+L1Subtypes = SubtypeCollection(target="tests/L1.json")
+L2ubtypes = SubtypeCollection(target="tests/L2.json")
+
+from plugins.compute import setup_secrets
+
+setup_secrets()
+
+
+class TrianglePanel(WithSlots):
+    __match_args__ = "index", "pairtype", "cont"
+    _area_mass_props = None
+
+    def __call__(self, *args, **kwargs):
+        super().__call__(self, *args, **kwargs)
+
+    def __setattr__(self, key, value):
+        super().__setattr__(key, value)
+        match key:
+            case "cont":
+                self._recompute_props()
+
+    def _recompute_props(self):
+        self._area_mass_props = AreaMassProperties.Compute(self.triangle)
+
+    @property
+    def area_mass_props(self) -> 'Rhino.Geometry.AreaMassProperties':
+        return self._area_mass_props
+
+    @area_mass_props.setter
+    def area_mass_props(self, value):
+        raise AttributeError("Can not set this attribute")
+
+    @property
+    def triangle(self):
+        return Util.DecodeToCommonObject(self.cont["array"])
+
+    @property
+    def centroid(self):
+        return self.area_mass_props.Centroid
+
+    @property
+    def area(self):
+        return self.area_mass_props.Area
+
+
+class CollectionFieldManager(ContextManager, ABC):
+    def __init__(self, clls, fields: collections.OrderedDict):
+        super().__init__()
+        self._cls = clls
+        self.fields = fields
+        print(fields)
+
+    def __enter__(self):
+        dct = []
+        for k, path in self.fields.items():
+            with open(path, "r") as fl:
+                dct.append(json.load(fl))
+        print(dct)
+        self.table = CollectionItemGetSetter([self._cls(*dts) for dts in zip(*dct)])
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return super().__exit__(exc_type, exc_val, exc_tb)
+
+
+class Mask(ContextManager, ABC):
+    def __init__(self, masked, constrains):
+        self._masked = CollectionItemGetSetter(masked)
+
+    def __call__(self, initial_mask, *args, **kwargs):
+        self._mask = initial_mask
+
+    def __enter__(self): ...
+
+    def __exit__(self, exc_type, exc_val, exc_tb): ...
+
+
+pd.to_cs
+"""
+@get
+async def dynamic_table():
+    with FieldManager(obj, field1, field2, field3, ...) cl:
+        yield from cl
+
+-- indexi
+-- PM
+-- ij
+    ?
+-- mask
+-- subtypes
+-- table 
+| type | count
+| index | index ij | type 
+| index | index ij | type | mask
+
+"""
