@@ -3,10 +3,11 @@ from __future__ import absolute_import
 
 import compas.geometry as cg
 import numpy as np
-from scipy.spatial.distance import euclidean
 
 from baseitems import WithSlots
 from ..baseitems import DictableItem
+from mm.baseitems import DictableItem, Item
+
 
 mesh_js_schema = {
     "metadata": dict(),
@@ -52,17 +53,18 @@ class MmPoint(WithSlots):
     def xyz(self) -> tuple[float, float, float]:
         return self.x, self.y, self.z
 
-    def __array__(self, *args, **kwargs) -> np.ndarray[(1, 3), np.dtype[float]]:
-        return np.ndarray.__array__(np.ndarray(self.xyz), *args, **kwargs)
 
     def distance(self, other):
         return euclidean(np.asarray(self.xyz), np.asarray(other))
 
-    def transform(self, trfm):
-        self.x, self.y, self.z, _ = trfm @ np.array(self.xyz + (1,)).T
+    def __array__(self, *args):
+        return np.asarray([self.a, self.b, self.c])
 
     def __len__(self):
         return len(self.xyz)
 
-    def __getitem__(self, item):
-        return self.xyz[item]
+'''class Quad(Vector):
+    a: Point
+    b: Point
+    c: Point
+    d: Point'''
