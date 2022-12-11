@@ -102,19 +102,30 @@ class CollectionItemGetSetter(CollectionItemGetter[Seq, T]):
             super(CollectionItemGetSetter, self).__setattr__(key, value)
 
 
-class MultiFieldQuery:
-    fields: tuple[str]
-
-    def __init__(self, *fields: str):
-        super().__init__()
-        self.fields = fields
-
-    def __get__(self, instance, owner) -> dict[str, Iterable]:
-        return dict([(field, instance[field]) for field in self.fields])
+from collection.masks import Mask
 
 
-def query(instance: CollectionItemGetSetter):
-    def wrp(*fields):
-        return dict([(field, instance[field]) for field in fields])
+class MultiDescriptorMask(Mask):
+    @staticmethod
+    def wrapper(mask, instance, owner, constrains,
+                **kwargs):  # Strong, very strong, functional programming ... 💪🏼💪🏼💪🏼
+        return lambda key: list(filter(constrains(instance[key], **kwargs), instance))  # 💄💋 By, baby
 
-    return wrp
+
+class MaskedGetSetter(CollectionItemGetSetter):
+    masks = {}
+
+    def set_mask(self, name: str, mask: MultiDescriptorMask):
+        self.__dict__[name] = mask
+        mask.__set_name__(self, "_" + name)
+        self.masks[name] = mask
+
+    def get_mask(self, name):
+        return self.masks[name]
+
+
+class MultiDescriptor(MaskedGetSetter):
+    """
+    Common class
+    """
+    ...
