@@ -2,6 +2,21 @@ import typing
 from abc import abstractmethod
 from typing import Callable
 
+class HashedSeq(list):
+    """ This class guarantees that hash() will be called no more than once
+        per element.  This is important because the lru_cache() will hash
+        the key multiple times on a cache miss.
+
+    """
+
+    __slots__ = 'hashvalue'
+
+    def __init__(self, tup, hash=hash):
+        self[:] = tup
+        self.hashvalue = hash(tup)
+
+    def __hash__(self):
+        return self.hashvalue
 
 class _wrapper:
     def __init__(self, mask, instance, owner, **kwargs):
@@ -11,7 +26,7 @@ class _wrapper:
         self.__dict__ |= kwargs
 
     def __call__(self, constrains, *args, **kwargs):
-        return self.mask.wrapper(self.mask, self.instance, self.owner, constrains, *args, **kwargs)
+        return self.mask.wrapper(self.mask, self.instance, self.owner, tuple(constrains), **kwargs)
 
 
 class MaskType(type):
@@ -106,5 +121,5 @@ class Mask(_Mask, metaclass=MaskType):
     Common Mask class
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, constrains=None, **kwargs):
+        super().__init__(constrains=constrains, **kwargs)

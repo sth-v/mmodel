@@ -91,21 +91,23 @@ class CollectionItemGetSetter(CollectionItemGetter[Seq, T]):
 
     def __init__(self, seq: Generic[Seq, T]):
         self._inst: Type[T] = type(seq[0])
+
         super().__init__(seq)
-        self._setter = multi_setter(seq)
+        self._setter = multi_setter(self._seq)
 
     def __setitem__(self, key: str, value):
-        if hasattr(self._inst, key):
-            # print("v")
-            self._setter(key, value)
-        else:
-            super(CollectionItemGetSetter, self).__setattr__(key, value)
+        # print("v")
+        self._setter(key, value)
 
 
 from collection.masks import Mask
+import hashlib
 
 
 class MultiDescriptorMask(Mask):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @staticmethod
     def wrapper(mask, instance, owner, constrains,
                 **kwargs):  # Strong, very strong, functional programming ... 💪🏼💪🏼💪🏼
@@ -115,17 +117,20 @@ class MultiDescriptorMask(Mask):
 class MaskedGetSetter(CollectionItemGetSetter):
     masks = {}
 
-    def set_mask(self, name: str, mask: MultiDescriptorMask):
+    def set_mask(self, name: str, mask: Mask):
         self.__dict__[name] = mask
-        mask.__set_name__(self, "_" + name)
+        mask.__set_name__(self, name)
         self.masks[name] = mask
 
     def get_mask(self, name):
         return self.masks[name]
 
 
-class MultiDescriptor(MaskedGetSetter):
+class MultiDescriptor(CollectionItemGetSetter):
     """
     Common class
     """
-    ...
+
+    def __hash__(self):
+        self.sha = hashlib.sha256(f"{self['__dict__']}".encode())
+        return int(self.sha.hexdigest(), 36)
