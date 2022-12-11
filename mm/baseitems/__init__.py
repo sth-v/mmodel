@@ -39,41 +39,7 @@ class MatchableType(type):
             raise
 
 
-class Matchable(object):
-    __match_args__: tuple[str]
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self.__call__(*args, **kwargs)
 
-    def __setstate__(self, state: OrderedDict | dict) -> None:
-
-        for k, arg in state.items():
-            self.__setattr__(k, arg)
-
-    def __getstate__(self) -> dict:
-        state = {
-            "uuid": id(self)
-        }
-        for arg in self.__match_args__:
-            state[arg] = self.__getattribute__(arg)
-        return state
-
-    def __call__(self, *args, **kwargs):
-        if args:
-            if len(self.__match_args__) + 1 < len(args):
-                raise TypeError(
-                    f"length self.__match_args__ = {len(self.__match_args__)} > length *args = {len(args)}, {args}")
-            else:
-                kwargs |= dict(zip(self.__match_args__[:len(args)], args))
-
-        for k, v in kwargs.items():
-            self.__setattr__(k, v)
-        return self
-
-
-class WithSlots(Matchable):
-    __match_args__ = ()
-    __slots__ = __match_args__
 
 
 class BaseI:
@@ -490,6 +456,62 @@ class GeomDataItem(DictableItem, GeometryItem):
         dct["data"] = self.data["data"]
         return dct
 
+
 # New Style Classes
 # ----------------------------------------------------------------------------------------------------------------------
 
+class Matchable(object):
+    """
+    New style baseclass version.
+    Matchable can be initialized from *args if they are listed in the __matched_args__ field.
+    Generic __repr__ use __match_args__ by default, but you can use __repr_ignore__ from change.
+
+    """
+    __match_args__: tuple[str] = ("self",)
+    __repr_ignore__: tuple[str | None]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self._uuid = uuid.uuid4()
+        self.__call__(*args, **kwargs)
+
+    def __setstate__(self, state: OrderedDict | dict) -> None:
+
+        for k, arg in state.items():
+            self.__setattr__(k, arg)
+
+    def __getstate__(self) -> dict:
+        state = {
+            "uuid": id(self)
+        }
+        for arg in self.__match_args__:
+            state[arg] = self.__getattribute__(arg)
+        return state
+
+    def __call__(self, *args, **kwargs):
+        if args:
+            if len(self.__match_args__) + 1 < len(args):
+                raise TypeError(
+                    f"length self.__match_args__ = {len(self.__match_args__)} > length *args = {len(args)}, {args}")
+            else:
+                kwargs |= dict(zip(self.__match_args__[:len(args)], args))
+
+        for k, v in kwargs.items():
+            self.__setattr__(k, v)
+        return self
+
+    @property
+    def uuid(self):
+        return self._uuid
+
+    def __repr__(self) -> str:
+        s = f"{self.__class__.__name__}("
+        for k in self.__match_args__:
+            if k not in type(self).__repr_ignore__:
+                s += f"{k}={self.__getattribute__(k)}, "
+        return s[:-2] + ")"
+
+
+class WithSlots(Matchable):
+    __match_args__ = ()
+    __slots__ = __match_args__
