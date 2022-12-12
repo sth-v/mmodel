@@ -4,6 +4,8 @@ from abc import ABC
 from collections import OrderedDict
 from typing import ContextManager
 
+import numpy as np
+
 from collection.masks import Mask
 
 try:
@@ -12,13 +14,13 @@ except:
     pass
 import pandas as pd
 import rhino3dm
-from compute_rhino3d import AreaMassProperties, Util
+from compute_rhino3d import AreaMassProperties
 
 from baseitems import Base, Matchable
 from collection.multi_description import CollectionItemGetSetter, MultiDescriptor
 
 from mm.geom.base import MmPoint
-
+from plugins.compute import Util
 from functools import lru_cache
 
 
@@ -76,14 +78,11 @@ class AreaMassProps(Base):
 class TrianglePanel(Matchable):
     __match_args__ = "index", "pairtype", "cont"
     __repr_ignore__ = "cont"
-    _area_mass_props = None
-
-    def recompute_props(self):
-        self._area_mass_props = AreaMassProps(**AreaMassProperties.Compute1(self.triangle, 0.1))
+    _area_mass_props = {}
 
     @property
     def area_mass_props(self) -> AreaMassProps:
-        return self._area_mass_props
+        return AreaMassProps(**self._area_mass_props)
 
     @area_mass_props.setter
     def area_mass_props(self, value):
@@ -130,8 +129,9 @@ class CollectionFieldManager(ContextManager, ABC):
         for k, path in self.fields.items():
             with open(path, "rb") as fl:
                 dct.append(json.load(fl))
-        return MDL2([self._cls(*dts) for dts in zip(*dct)])
-
+        mm = MDL2([self._cls(*dts) for dts in zip(*dct)])
+        mm["area_mass_props"] = AreaMassProperties.Compute(mm["triangle"], multiple=True)
+        return mm
     def __exit__(self, exc_type, exc_val, exc_tb):
         return super().__exit__(exc_type, exc_val, exc_tb)
 
@@ -141,3 +141,4 @@ with CollectionFieldManager(TrianglePanel,
                                         subtype="tests/L2-subtype.json",
                                         cont="tests/L2-triangles.json")) as items:
     print(len(items.main_mask("triangle")), len(items["triangle"]))
+    print(np.sum(np.asarray(items.main_mask("area"))) * 1e-6, np.sum(np.asarray(items["area"])) * 1e-6)

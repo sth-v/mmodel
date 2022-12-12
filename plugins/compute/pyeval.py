@@ -36,7 +36,7 @@ class ComputeBinder(Callable):
     def __init__(self, meth: Type[Callable]):
         self._method = meth
         self._lines = dill.source.getsourcelines(self._method)[0]
-        print(self._lines)
+        # print(self._lines)
         self.inputs = set(extract_inputs(self._method, True))
         self.out = set(extract_out(self._lines))
         self.intern = set(self._method.__code__.co_varnames) - self.inputs.union(self.out)

@@ -20,7 +20,7 @@ class HashedSeq(list):
 
 class _wrapper:
     def __init__(self, mask, instance, owner, **kwargs):
-        print(mask, instance, owner)
+        # print(mask, instance, owner)
 
         self.mask, self.instance, self.owner = mask, instance, owner
         self.__dict__ |= kwargs

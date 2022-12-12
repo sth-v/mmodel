@@ -14,7 +14,7 @@ from typing import Any, Callable, Generic, Iterable, Type, TypeVar
 
 def multi_getter(z): return lambda y: map(lambda x: getattr(x, y), z)
 
-
+def multi_getitem(z): return lambda y: map(lambda x: x[y], z)
 # Уместен ли здесь сеттер -- спорное утверждение. Не факт что этот метод будет пользоваться популярностью.
 # Тем не менее мне хотелось бы предоставить возможность и инструмент
 # для простого назначения атрибутивной строки всем элементам сразу.
@@ -27,6 +27,11 @@ def multi_setter(y) -> Callable[[str, Any], None]:
     return wrap
 
 
+def multi_setitem(y) -> Callable[[str, Any], None]:
+    def wrap(k: str, v: Any) -> None:
+        list(itertools.starmap(lambda xz, zz: xz.__setitem__(k, zz), zip(y, v)))
+
+    return wrap
 # Class Implementation
 # -----------------------------------------------------------------------------------------------------------------------
 
@@ -64,7 +69,10 @@ class CollectionItemGetter(Generic[Seq, T]):
     def __init__(self, seq: Generic[Seq, T]):
         super().__init__()
         self._seq = seq
-        self._getter = multi_getter(self._seq)
+        if isinstance(seq[0], dict):
+            self._getter = multi_getitem(self._seq)
+        else:
+            self._getter = multi_getter(self._seq)
 
     def __getitem__(self, k) -> Seq:
         return list(self._getter(k))
@@ -93,7 +101,10 @@ class CollectionItemGetSetter(CollectionItemGetter[Seq, T]):
         self._inst: Type[T] = type(seq[0])
 
         super().__init__(seq)
-        self._setter = multi_setter(self._seq)
+        if isinstance(seq[0], dict):
+            self._setter = multi_setitem(self._seq)
+        else:
+            self._setter = multi_setter(self._seq)
 
     def __setitem__(self, key: str, value):
         # print("v")
