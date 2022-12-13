@@ -208,7 +208,7 @@ class N_1(NichePanel):
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         p = ofs.PointAtLength(12)
         h_two = rh.Circle(p, 4)
-        return [h_one, h_two]
+        return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
         NichePanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv, **kwargs)
@@ -249,7 +249,7 @@ class N_3(NichePanel):
 
         p = ofs.PointAtLength(ofs.GetLength()-12)
         h_two = rh.Circle(p, 4)
-        return [h_one, h_two]
+        return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
 
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
@@ -322,7 +322,7 @@ class N_2(NichePanel):
     def ribs_marker(self):
         pairs = []
         gr = self.grav
-        for n, c in zip(self.mark_name, gr):
+        for n, c in zip(self.mark_name, gr[0::2]):
             cent = c.PointAtNormalizedLength(0.5)
             pairs.append([n, cent])
         return pairs

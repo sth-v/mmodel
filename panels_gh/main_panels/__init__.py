@@ -354,7 +354,7 @@ class NichePanel(MainPanel):
             self.mark_name = [self.m_c['rib_name'][0]] + [self.m_c['rib_name'][-1]] + self.m_c['rib_name'][1:-1]
 
         else:
-            self.mark_crv = self.m_c['rib']
+            self.mark_crv = [i.PullToBrepFace(self.surf.Faces[0], 0.1)[0] for i in self.m_c['rib']]
             self.mark_name = self.m_c['rib_name']
 
         unrol = rh.Unroller(self.surf)
