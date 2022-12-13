@@ -34,27 +34,6 @@ class A:
         return self.rhcmp(polyline=self.polyline, x=f'{x}', y=f'{y}', z=f'{z}')["ans"][0]
 
 
-class SweepRail1:
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __get__(self, instance, owner):
-        return self.blob(instance, instance.profile, *instance.rail)
-
-    @ComputeBinder
-    def blob(self, polyline: rhino3dm.Polyline = None, x=None, y=None, z=None):
-        import Rhino.Geometry as rg
-        rail = rg.NurbsCurve.CreateControlPointCurve \
-            ([rg.Point3d(xx, yy, zz) for xx, yy, zz in zip(eval(x), eval(y), eval(z))], 2)
-        _, pln = rail.FrameAt(0.0)
-
-        plnn = rg.Plane(pln.Origin, pln.YAxis,
-                        pln.ZAxis)
-        polyline.Transform(rg.Transform.PlaneToPlane(rg.Plane.WorldXY, plnn))
-        swp = rg.SweepOneRail()
-        ans = swp.PerformSweep(rail, polyline)
-        return ans
-
 
 def test1():
     profile = {"version": 10000, "archive3dm": 70, "opennurbs": -1879014534,

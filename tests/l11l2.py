@@ -24,6 +24,12 @@ m_model = L1L2()
 m_model.reload("")
 
 
+def newl1(path, **kwargs):
+    d = do_request(path, **kwargs)
+    data = json.loads(json.loads(list(d["values"][0]['InnerTree'].values())))
+    return data
+
+
 def get_summary():
     return m_model.summary
 

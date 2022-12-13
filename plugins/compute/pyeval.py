@@ -23,7 +23,6 @@ def sort_vars(func: Type[Callable]) -> tuple[set[str], set[str], set[str]]:
     intern = set(func.__code__.co_varnames) - inputs.union(out)
     return inputs, intern, out
 
-
 class ComputeBinder(Callable):
     """
     result = Util.PythonEvaluate("import Rhino.Geometry as rg\nres=rg.NurbsCurve.CreateControlPointCurve([rg.Point3d(xx,yy,zz) for xx,yy,zz in zip(eval(x),eval(y),eval(z))], 3)",

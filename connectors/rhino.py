@@ -11,7 +11,6 @@ def get_model_geometry(path):
     return [o.Geometry for o in rr.Objects]
 
 
-# noinspection PyUnresolvedReferences
 def get_model_attributes(path):
     rr = rhino3dm.File3dm().Read(path)
     return [o.Geometry for o in rr.Attributes]

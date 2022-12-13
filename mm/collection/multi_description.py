@@ -14,7 +14,10 @@ from typing import Any, Callable, Generic, Iterable, Type, TypeVar
 
 def multi_getter(z): return lambda y: map(lambda x: getattr(x, y), z)
 
+
 def multi_getitem(z): return lambda y: map(lambda x: x[y], z)
+
+
 # Уместен ли здесь сеттер -- спорное утверждение. Не факт что этот метод будет пользоваться популярностью.
 # Тем не менее мне хотелось бы предоставить возможность и инструмент
 # для простого назначения атрибутивной строки всем элементам сразу.
@@ -32,6 +35,8 @@ def multi_setitem(y) -> Callable[[str, Any], None]:
         list(itertools.starmap(lambda xz, zz: xz.__setitem__(k, zz), zip(y, v)))
 
     return wrap
+
+
 # Class Implementation
 # -----------------------------------------------------------------------------------------------------------------------
 

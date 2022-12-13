@@ -76,7 +76,7 @@ class AreaMassProps(Base):
 
 
 class TrianglePanel(Matchable):
-    __match_args__ = "index", "pairtype", "cont"
+    __match_args__ = "index", "pairtype", "subtype", "cont"
     __repr_ignore__ = "cont"
     _area_mass_props = {}
 
@@ -105,7 +105,11 @@ class TrianglePanel(Matchable):
 
     @property
     def area(self) -> float:
-        return self.area_mass_props.Area
+        return self.area_mass_props.Area * 1e-6
+
+    @property
+    def tag(self):
+        return self.subtype + "-" + self.pairtype
 
 
 # --------------------------------------------------------------------------------------------------------------
@@ -132,13 +136,19 @@ class CollectionFieldManager(ContextManager, ABC):
         mm = MDL2([self._cls(*dts) for dts in zip(*dct)])
         mm["area_mass_props"] = AreaMassProperties.Compute(mm["triangle"], multiple=True)
         return mm
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         return super().__exit__(exc_type, exc_val, exc_tb)
 
 
 with CollectionFieldManager(TrianglePanel,
                             OrderedDict(index="tests/L2-indexing.json",
+                                        pairtype="tests/L2-subtype.json",
                                         subtype="tests/L2-subtype.json",
                                         cont="tests/L2-triangles.json")) as items:
-    print(len(items.main_mask("triangle")), len(items["triangle"]))
-    print(np.sum(np.asarray(items.main_mask("area"))) * 1e-6, np.sum(np.asarray(items["area"])) * 1e-6)
+
+    len(items.main_mask("triangle")), len(items["triangle"])
+    print(items.main_mask("area"))
+    import pandas as pd
+
+    pd.read_json("tests/L1L2summ.json").to_csv("tests/tables/L1L2summ.csv")

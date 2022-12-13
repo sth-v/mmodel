@@ -1,5 +1,7 @@
 import json
 
+import rhino3dm
+
 
 def DecodeToCommonObject(item):
     if item is None:
