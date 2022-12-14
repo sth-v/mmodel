@@ -3,6 +3,8 @@
 import itertools
 from typing import Any, Callable, Generic, Iterable, Type, TypeVar
 
+MapType = type(map)
+
 
 # Multi Getter concept.
 # Simple functional and objective implementation for a generic collections getter.
@@ -15,7 +17,45 @@ from typing import Any, Callable, Generic, Iterable, Type, TypeVar
 def multi_getter(z): return lambda y: map(lambda x: getattr(x, y), z)
 
 
-def multi_getitem(z): return lambda y: map(lambda x: x[y], z)
+def multi_getitem(sequence): return lambda y: map(lambda x: x[y], sequence)
+
+
+def get_with_applicate(function) -> Callable[[Iterable, ...], Callable[[str], MapType]]:
+    """
+    Извлечь по ключу, применить функцию к каждому элементу последовательности перед и вернуть значение.
+    Пример:
+    >>> from dataclasses import dataclass
+
+    >>> @dataclass
+    ... class ExampleNamespace:
+    ...     foo: str
+    ...     some: dict
+
+    >>> ex1 = ExampleNamespace(foo="bar", some={"message":"hello"})
+    >>> ex2 = ExampleNamespace(foo="nothing", some={"message":"github"})
+    >>> exs = ex1, ex2
+
+    >>> def make_upper(x):
+    ...     if isinstance(x, str): return x.upper()
+    ...     elif isinstance(x, dict): return dict([(k.upper(), make_upper(v)) for k, v in x.items()])
+    ...     else: return x
+
+    >>> getter=get_with_applicate(make_upper)(exs)
+    >>> list(getter("foo"))
+    ['BAR', 'NOTHING']
+    >>> list(getter("some")
+    [{'MESSAGE': 'HELLO'}, {'MESSAGE': 'GITHUB'}]
+
+    :param function:
+    :return: multi_getitem/multi_getattr
+
+    """
+
+    def wrp(sequence):
+        curried = multi_getitem(sequence) if isinstance(sequence[0], dict) else multi_getter(sequence)
+        return lambda key: map(function, curried(key))
+
+    return wrp
 
 
 # Уместен ли здесь сеттер -- спорное утверждение. Не факт что этот метод будет пользоваться популярностью.
