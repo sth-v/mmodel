@@ -1,8 +1,9 @@
 import json
-
-from mm.conversions.rhino import model_from_multijson_file, model_from_json_file
-from mm.conversions.cadex import  cdxfb
 import subprocess
+
+from mm.conversions.cadex import cdxfb
+from mm.conversions.rhino import model_from_multijson_file
+
 CADEX_LICENSE="clicense.py"
 
 cadex.LicenseManager.Activate(aKey)

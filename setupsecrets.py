@@ -1,11 +1,11 @@
 
-
-
 def setup_secrets(update=False):
     import json, subprocess, base64, shutil, os
-
+    print("Starting setup secrets")
     if update or not os.path.isfile("env.json"):
-        subprocess.Popen(["git", "clone", "https://github.com/contextmachine/secrets.git"])
+        shutil.rmtree("secrets", ignore_errors=True)
+        proc = subprocess.Popen(["git", "clone", "https://github.com/contextmachine/secrets.git"])
+        proc.wait()
         shutil.move("secrets/env.json", "env.json")
     with open("env.json", "r") as f:
         data = json.load(f)

@@ -6,11 +6,11 @@
 """
 
 import io
+
 from geomdl import BSpline
 from geomdl import utilities
 # from gmdl.visualization import VisMPL
 from geomdl.visualization import VisPlotly
-
 from mm.conversions.gmdl import txt
 
 if __name__ == "__main__":

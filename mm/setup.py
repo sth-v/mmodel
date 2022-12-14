@@ -1,7 +1,6 @@
 import setuptools
-from setuptools import setup
 
-setup(
+setuptools.setup(
     name='mm',
     version='0.0.1',
     packages=['geom', 'geom.utils', 'meta', 'utils', 'xforms', 'generics', 'baseitems', 'objective',
@@ -16,6 +15,3 @@ setup(
     long_description_content_type="text/markdown",
     python_requires=">=3.10",
 )
-import uvicorn
-
-uvicorn.run()

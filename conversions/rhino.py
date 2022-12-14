@@ -2,11 +2,63 @@
 import json
 import os
 import warnings
+from typing import Any
 
 import numpy as np
 import rhino3dm
 
 from mm.baseitems import Item
+
+
+def DecodeToCommonObject(item):
+    if item is None:
+        return None
+    elif isinstance(item, str):
+        return DecodeToCommonObject(json.loads(item))
+    elif isinstance(item, list):
+        return [DecodeToCommonObject(x) for x in item]
+    return rhino3dm.CommonObject.Decode(item)
+
+
+def EncodeFromCommonObject(item):
+    if item is None:
+        return None
+    elif isinstance(item, rhino3dm.CommonObject):
+        return rhino3dm.CommonObject.Encode(item)
+    elif isinstance(item, list):
+        return [EncodeFromCommonObject(x) for x in item]
+    else:
+        pass
+
+
+from json import JSONEncoder, JSONDecoder
+
+
+def encode_dict(item: Any):
+    return rhino3dm.ArchivableDictionary.EncodeDict({"type": item.__class__.__name__, "data": item})
+
+
+def decode_dict(item: str):
+    return rhino3dm.ArchivableDictionary.EncodeDict(json.loads(item))["data"]
+
+
+class RhinoEncoder(JSONEncoder):
+    def default(self, o: Any) -> dict:
+        return encode_dict({"type": o.__class__.__name__, "data": o})
+
+    def encode(self, o: Any) -> str:
+        return json.dumps(self.default(o))
+
+
+class RhinoDecoder(JSONDecoder):
+    def __init__(self, *, object_hook=None, parse_float=None, parse_int=None, parse_constant=None, strict=True,
+                 object_pairs_hook=None):
+        super().__init__(object_hook=object_hook, parse_float=parse_float, parse_int=parse_int,
+                         parse_constant=parse_constant, strict=strict, object_pairs_hook=object_pairs_hook)
+
+    def decode(self, s: str, *args, **kwargs) -> dict:
+        dct = super().decode(s, *args, **kwargs)
+        return decode_dict(dct)
 
 
 class RhinoBind(Item):
@@ -227,3 +279,19 @@ def model_from_dir_obj(directory):
 def model_from_multijson_file(directory, modelpath):
     model = model_from_dir_obj(directory)
     model.Write(f"{modelpath}.3dm", 7)
+
+
+def get_model_objects(path):
+    rr = rhino3dm.File3dm().Read(path)
+    return list(rr.Objects)
+
+
+def get_model_geometry(path):
+    rr = rhino3dm.File3dm().Read(path)
+    return [o.Geometry for o in rr.Objects]
+
+
+# noinspection PyUnresolvedReferences
+def get_model_attributes(path):
+    rr = rhino3dm.File3dm().Read(path)
+    return [o.Geometry for o in rr.Attributes]
