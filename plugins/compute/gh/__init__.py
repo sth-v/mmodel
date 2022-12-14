@@ -68,9 +68,10 @@ def do_request(path="example.json", **kwargs):
             "Accept": "application/json",
             "RhinoComputeKey": "84407047-8380-441c-9c76-a07ca394b88e",
         })
-    js = resp.json()
-    return js
+    #js = resp.json()
+    return resp
 
 
 class LResp(Matchable):
     __match_args__ = "table", "summary", "mesh"
+do_request()

@@ -35,16 +35,16 @@ from json import JSONEncoder, JSONDecoder
 
 
 def encode_dict(item: Any):
-    return rhino3dm.ArchivableDictionary.EncodeDict({"type": item.__class__.__name__, "data": item})
+    return rhino3dm.ArchivableDictionary.EncodeDict({"data": item})
 
 
 def decode_dict(item: str):
-    return rhino3dm.ArchivableDictionary.EncodeDict(json.loads(item))["data"]
+    return rhino3dm.ArchivableDictionary.DecodeDict(item)["data"]
 
 
 class RhinoEncoder(JSONEncoder):
     def default(self, o: Any) -> dict:
-        return encode_dict({"type": o.__class__.__name__, "data": o})
+        return EncodeFromCommonObject(o)
 
     def encode(self, o: Any) -> str:
         return json.dumps(self.default(o))
@@ -58,7 +58,7 @@ class RhinoDecoder(JSONDecoder):
 
     def decode(self, s: str, *args, **kwargs) -> dict:
         dct = super().decode(s, *args, **kwargs)
-        return decode_dict(dct)
+        return DecodeToCommonObject(dct)
 
 
 class RhinoBind(Item):
