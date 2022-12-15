@@ -1,6 +1,6 @@
 #  Copyright (c) 2022. Computational Geometry, Digital Engineering and Optimizing your construction processe"
 import ast
-from collections.abc import Iterator
+from collections import Iterator
 
 import rhino3dm
 

@@ -3,7 +3,7 @@
 import compas.geometry as cg
 import numpy as np
 
-from mm.parametric import Arc
+from ..parametric import Arc
 
 js = {}
 

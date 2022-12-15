@@ -38,9 +38,7 @@ class S3Session(WatchSession):
 
 sess = AppSession(buck="bucket.contextmachine.online")
 
-app = FastAPI(debug=True,
-
-              )
+app = FastAPI(debug=True)
 
 
 @app.get("/config")
@@ -76,8 +74,6 @@ async def patch(name: str, data: typing.Any):
 if __name__ == "__main__":
     uvicorn.run(
         '__main__:app', port=443, host='0.0.0.0',
-
         ssl_keyfile="/home/sthv/private_key.pem",
-        ssl_certfile="/home/sthv/certificate_full_chain.pem",
-
+        ssl_certfile="/home/sthv/certificate_full_chain.pem"
     )

@@ -10,9 +10,8 @@ from functools import partial, wraps
 from typing import Any, Callable, Optional
 
 function_type = type(lambda: None)
-from cxm_remote.sessions import S3Client
 
-from mm.descriptors import HookDescriptor
+from ...mm.descriptors import HookDescriptor
 
 from json import JSONEncoder
 
@@ -422,8 +421,8 @@ class BufferDescriptor(dict):
 class RemoteType(type):
 
     @classmethod
-    def __prepare__(metacls, name, bases, prefix=None, client=S3Client, default_descriptor=HookDescriptor, **kws):
-        dct = super(RemoteType, metacls).__prepare__(name, bases)
+    def __prepare__(mcs, name, bases, prefix=None, client=S3Client, default_descriptor=HookDescriptor, **kws):
+        dct = super(RemoteType, mcs).__prepare__(name, bases)
         print(dct)
 
         _client = client(**kws)

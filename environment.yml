@@ -15,6 +15,7 @@ dependencies:
   - setuptools
   - shapely
   - wheel
+  - ifcopenshell
   - pip:
       - cmake
       - boto3

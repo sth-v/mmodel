@@ -8,5 +8,7 @@
 /pyopennurbs/cmake-build-debug/
 /tmp/
 /pyopennurbs/install/
-
+/secrets/
 /pyopennurbs/opennurbs
+/tests/absnumbering.json
+/tests/*.json

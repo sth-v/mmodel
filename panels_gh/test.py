@@ -61,10 +61,9 @@ from main_framing import MainFrame, MiniFrame
 
 import main_tagging
 
-reload(main_tagging
-       )
+reload(main_tagging)
 
-sizes = []
+
 
 
 class UnrollPackage:
@@ -98,18 +97,18 @@ class UnrollPackage:
                 except AttributeError:
                     pass
                 setattr(self, key, MainFrame(new))
+
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-                #self.m.append(det.panel.niche.join_region)
-                print(self.m)
-
 
 
             elif key == 'N_2':
                 new = self.panels_dict[key](**value)
                 setattr(self, key, MainFrame(new))
+
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
+
 
 
 
@@ -119,7 +118,6 @@ class UnrollPackage:
                 setattr(self, key, MiniFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
-                #self.m.append(det.panel.tag)
 
             else:
                 new = self.panels_dict[key](**value)
@@ -132,10 +130,11 @@ def main():
 
     a = UnrollPackage(x, y, circle, bend_hole, p3_hole, cog_hole, crv.__dict__)
     side = th.list_to_tree(a.data)
-    m = a.m
+    #m = th.list_to_tree(a.m)
+    #m=a.m
 
-    return a, side, m
+    return a, side
 
 
 if __name__ == "__main__":
-    a, side, m = main()
+    a, side = main()

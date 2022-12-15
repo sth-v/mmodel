@@ -6,8 +6,8 @@ from typing import Any, MutableSequence
 
 import numpy as np
 
-from mm.baseitems import DefaultFildItem, DictableItem
-from mm.baseitems import FieldItem, Item
+from ..baseitems import DefaultFildItem, DictableItem
+from ..baseitems import FieldItem, Item
 from mm.exceptions import MModelException
 from mm.meta import FieldsMeta
 from tools.temps import AXIS_NAMES
@@ -214,7 +214,7 @@ class Structure(tuple):
 
 class StructMeta(type):
 
-    def __new__(cls, classname, bases, attrs, target_element=None, structure=None, **kws):
+    def __new__(mcs, classname, bases, attrs, target_element=None, structure=None, **kws):
         attrs['structure'] = structure
         attrs['target_element'] = target_element
         attrs["__call__"] = lambda x, *args, **kw: x.target_element.__call__(x, *args, **kw)
@@ -226,7 +226,7 @@ class StructMeta(type):
 
         attrs["__init__"] = __init__
 
-        return super().__new__(cls, classname, bases, attrs)
+        return super().__new__(mcs, classname, bases, attrs)
 
 
 class BiStructure(Structure):

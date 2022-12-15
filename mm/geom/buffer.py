@@ -15,7 +15,7 @@ from OCC.Core.gp import gp_Pnt
 from pydantic import BaseModel
 from rhino3dm import Point3d
 
-from mm.baseitems import GeomConversionMap, GeomDataItem, ReprData
+from baseitems import GeomConversionMap, GeomDataItem, ReprData
 
 
 class BufferGeometryDataTypes(str, Enum):
@@ -219,6 +219,9 @@ class BI(BufferGeometryItem):
         return BufferGeometryBoundingSphere(center=self.centroid.array, radius=np.max(
             np.array([self.centroid.distance(BufferPoint(*r)) for r in self.array])))
 
+    def __array__(self, *args, **kw) -> np.ndarray:
+        pass
+
 
 class BufferFaceMap(GeomConversionMap):
     include = ["array"]
@@ -274,7 +277,7 @@ class BufferOCCMap(BufferGmMap):
         return instance._pydantic.dict()
 
 
-class BufferFace(BufferGeometryItem):
+class BufferFace(BI):
     data = BufferGmMap()
     reparesentation = ReprData("array")
     vertices: list[BufferPoint] = [BufferPoint(0, 1, 0), BufferPoint(1, 0, 0), BufferPoint(0, 0, 1)]
@@ -298,10 +301,13 @@ class BufferFace(BufferGeometryItem):
         return dct_
 
 
-from mm.geom.utils import topo_converter, data_scheme
+from geom.geomutils import topo_converter, data_scheme
 
 
 class BufferGeometryOcc(BI):
+    def __array__(self, *args, **kw) -> np.ndarray:
+        pass
+
     __tree_js_convert_attrs__ = dict(
         export_edges=True,
         color=(0.65, 0.65, 0.7),
@@ -319,7 +325,7 @@ class BufferGeometryOcc(BI):
         return self.data
 
 
-from mm.geom.mat import TreeJsPhongMaterial
+from geom.mat import TreeJsPhongMaterial
 
 
 class BufferGeometryObjProperty:
@@ -456,6 +462,7 @@ class TrimmingCone(BufferGeometryOcc):
 
 
 if __name__ == "__main__":
+    BufferGeometryMetadata.update_forward_refs()
     tc = TrimmingCone([1, 2, 3], [12, 15, 8], 5, 7)
     print(tc.data)
     print(tc.to_dict())

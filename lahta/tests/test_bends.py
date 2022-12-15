@@ -30,7 +30,7 @@ class TestPanels(unittest.TestCase):
                  [-611.357509, 8.40237, 736.439278]]]
 
 class TestExtrusion(unittest.TestCase):
-    ooo = BendSegmentFres(36, 0.8, 90, in_rad=0.3)
+
     ttt = BendSegment(18, 1.0, 90)
     thh = BendSegment(7, 1.0, 90)
     one = Bend([ooo, ttt, thh])
