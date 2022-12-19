@@ -44,9 +44,25 @@ def divide(crv, dist):
     points = [curve.PointAt(i) for i in param]
     return points
 
+def divide_dist_two(crv, dist=0):
+    st = crv.ClosestPoint(crv.PointAtLength(dist))[1]
+    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - dist))[1]
+    curve = crv.Trim(st, end)
+
+    num = math.ceil(curve.GetLength() / 275)
+    param = curve.DivideByCount(num, True)
+    points = [curve.PointAt(i) for i in param]
+    return points
+
 
 def translate(point, crv):
     frame = crv.FrameAt(crv.ClosestPoint(point)[1])[1]
+    tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, frame)
+    return tr
+
+def translate_two(point, crv):
+    frame = crv.FrameAt(crv.ClosestPoint(point)[1])[1]
+    frame = rh.Plane(frame.Origin, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
     tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, frame)
     return tr
 
@@ -346,6 +362,65 @@ class NichePanel(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
+    @property
+    def cut_holes(self):
+        cut = []
+        for v in self.side:
+            for i in v.holes_curve:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
+
+        if self.unrol[1] is not None:
+            for i, v in enumerate(self.unrol[1]):
+
+                ii = v.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+
+                points = divide_dist_two(self.fres[1], dist=0)[1:-1]
+
+                r = []
+
+                crv = ii.DuplicateCurve()
+                for o, vv in enumerate(points):
+                    p = translate_two(vv, self.fres[1])
+
+                    rect = rh.Rectangle3d(rh.Plane.WorldXY, rh.Point3d(-3.75, -13, 0),
+                                      rh.Point3d(3.75, 200, 0)).ToNurbsCurve()
+                    rect.Transform(p)
+
+                    tr = list(rh.Curve.CreateBooleanDifference(crv, rect))
+                    print(len(tr))
+                    r.append(tr[1])
+
+                    crv = tr[0]
+
+
+                r.append(crv)
+                cut.extend(r)
+
+        return cut + self.niche_holes
+
+    @property
+    def grav(self):
+        if self.unrol[1] is not None:
+
+            points = divide_dist_two(self.fres[1], dist=0)[1:-1]
+            circ = []
+            for i, v in enumerate(points):
+                p = translate_two(v, self.fres[1])
+                c = self.pattern()
+                [i.Transform(p) for i in c]
+
+
+                circ.extend(c)
+
+            return circ
+
+        else:
+            pass
+
+
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
         self.m_c = mark_crv
@@ -387,6 +462,14 @@ class NichePanel(MainPanel):
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
+
+    def pattern(self):
+
+        line = rh.Line(rh.Point3d(0,0,0), rh.Point3d(0,172.75,0)).ToNurbsCurve()
+
+        holes = [line.PointAtLength(20), line.PointAtLength(72.5), line.PointAtLength(135.25), line.PointAtLength(172.75)]
+        holes = [rh.Circle(i, 3.25).ToNurbsCurve() for i in holes]
+        return holes
 
 
 
