@@ -465,9 +465,9 @@ class NichePanel(MainPanel):
 
     def pattern(self):
 
-        line = rh.Line(rh.Point3d(0,0,0), rh.Point3d(0,172.75,0)).ToNurbsCurve()
+        line = rh.Line(rh.Point3d(0,0,0), rh.Point3d(0,174.25,0)).ToNurbsCurve()
 
-        holes = [line.PointAtLength(20), line.PointAtLength(72.5), line.PointAtLength(135.25), line.PointAtLength(172.75)]
+        holes = [line.PointAtLength(20), line.PointAtLength(74.0), line.PointAtLength(136.75), line.PointAtLength(174.25)]
         holes = [rh.Circle(i, 3.25).ToNurbsCurve() for i in holes]
         return holes
 
