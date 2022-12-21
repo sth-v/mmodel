@@ -253,15 +253,18 @@ class ArcPanel(MainPanel):
 
     @property
     def grav(self):
-        unrol = list(self.u_p[2])
-        circ = []
-        for i in unrol:
-            c = rh.Circle(i, 3.25)
-            c.Transform(self.bound_plane)
-            circ.append(c.ToNurbsCurve())
-        res = circ + self.pins_marker
+        if self.u_p[2] is not None:
+            unrol = list(self.u_p[2])
+            circ = []
+            for i in unrol:
+                c = rh.Circle(i, 3.25)
+                c.Transform(self.bound_plane)
+                circ.append(c.ToNurbsCurve())
+            res = circ + self.pins_marker
 
-        return res
+            return res
+        else:
+            pass
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, pins=None, pins_mark=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
