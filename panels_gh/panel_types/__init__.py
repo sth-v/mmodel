@@ -33,7 +33,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 main_panels = imp.load_module("main_panels", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 main_panels.__init__("main_panels", "generic nodule")
-from main_panels import NichePanel, SimplePanel, ArcPanel
+from main_panels import NichePanel, SimplePanel, ArcPanel, BoardPanel
 
 reload(main_panels)
 import main_tagging
@@ -469,3 +469,9 @@ class N_4(SimplePanel):
     @property
     def plane(self):
         return rh.Plane(self._bound_rect.Center, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
+
+
+class B_1(BoardPanel):
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
+        BoardPanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
+

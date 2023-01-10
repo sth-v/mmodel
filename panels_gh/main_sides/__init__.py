@@ -395,6 +395,12 @@ class HolesSideOne(Side):
 
         self.spec_dist = spec_dist
 
+class BoardHolesOne(HolesSideOne):
+    side_offset = None
+    def __init__(self, curve, reverse=None, holes=True, spec_dist=None):
+        HolesSideOne.__dict__['__init__'](self, curve, reverse=reverse, holes=holes, spec_dist=spec_dist)
+
+
 
 class HolesSideTwo(Side):
 
@@ -436,6 +442,13 @@ class HolesSideTwo(Side):
         self.holes = None
 
         self.spec_dist = spec_dist
+
+
+class BoardHolesTwo(HolesSideTwo):
+    side_offset = None
+
+    def __init__(self, curve, reverse=None, spec_dist=None):
+        HolesSideTwo.__dict__['__init__'](self, curve, reverse=reverse, spec_dist=spec_dist)
 
 
 class HolesSideThree(Side):
@@ -485,6 +498,13 @@ class Bottom(BendSide):
 
 class BottomPanel(BendSide):
     side_offset = 1.25
+
+    def __init__(self, curve):
+        BendSide.__dict__['__init__'](self, curve)
+
+
+class BottomBoard(BendSide):
+    side_offset = 0.5
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
