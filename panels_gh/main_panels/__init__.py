@@ -306,6 +306,24 @@ class BoardPanel(MainPanel):
         return join
 
     @property
+    def cut_holes(self):
+        cut = []
+        for v in self.side:
+            for i in v.holes_curve:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
+
+        if self.unrol[1] is not None:
+            for i, v in enumerate(self.unrol[1]):
+                # p = rh.Circle(v, self.h_r[i]).ToNurbsCurve()
+                ii = v.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
+
+        return cut + self.niche_holes + self.extra_panel.cut_holes
+
+    @property
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
