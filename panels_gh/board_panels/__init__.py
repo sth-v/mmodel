@@ -128,8 +128,11 @@ class BoardPanel(MainPanel):
     def fres(self):
         s_o = rh.Curve.JoinCurves([self.side[1].fres, self.extra_panel.fres[0]], 0.1)[0]
         s_t = rh.Curve.JoinCurves([self.side[0].fres, self.extra_panel.fres[2]], 0.1)[0]
-        fres = [s_o.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
-                s_t.DuplicateCurve(), self.extra_panel.fres[1].DuplicateCurve(), self.bottom.fres.DuplicateCurve()]
+        fres = rh.Curve.JoinCurves([s_o.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
+                s_t.DuplicateCurve(), self.extra_panel.fres[1].DuplicateCurve()], 0.1)[0]
+
+        tr = rh.Curve.Trim(self.bottom.fres.DuplicateCurve(), self.bottom.fres.Domain[0]+0.02,  self.bottom.fres.Domain[1]-0.02)
+        fres = [fres, tr]
 
         [i.Transform(self.bound_plane) for i in fres]
         return fres
@@ -184,7 +187,7 @@ class BoardPanel(MainPanel):
 
     @property
     def frame_dict(self):
-        diag = self.diag_side([self.top_parts[2].PointAtEnd, self.top_parts[1].PointAtStart, self.fres[1].PointAtStart])
+        diag = self.diag_side([self.top_parts[2].PointAtEnd, self.top_parts[1].PointAtStart, self.fres_for_frame[1].PointAtStart])
         top = self.top_side()
         p_niche = self.fres_for_frame[1]
         p_bend = self.fres_for_frame[2]

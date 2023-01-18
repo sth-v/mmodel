@@ -34,7 +34,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 main_panels = imp.load_module("main_panels", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 main_panels.__init__("main_panels", "generic nodule")
-from main_panels import NichePanel, SimplePanel, ArcPanel, BoardPanel
+from main_panels import NichePanel, SimplePanel, ArcPanel
 
 reload(main_panels)
 
