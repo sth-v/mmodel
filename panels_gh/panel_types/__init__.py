@@ -15,7 +15,8 @@ if os.getenv("USER") == "sofyadobycina":
     PWD = os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh"
     sys.path.extend([os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh",
                      os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh/main_sides",
-                     os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh/main_panels"])
+                     os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh/main_panels",
+                     os.getenv("HOME") + "/Documents/GitHub/mmodel/panels_gh/board_panels"])
 else:
     PWD = os.getenv("MMODEL_DIR") + "/panels_gh"
     sys.path.extend(
@@ -36,6 +37,14 @@ main_panels.__init__("main_panels", "generic nodule")
 from main_panels import NichePanel, SimplePanel, ArcPanel, BoardPanel
 
 reload(main_panels)
+
+boardfile, boardfilename, (boardsuffix, boardmode, boardtype) = imp.find_module("board_panels", path=[PWD])
+board_panels = imp.load_module("board_panels", boardfile, boardfilename, (boardsuffix, boardmode, boardtype))
+
+board_panels.__init__("board_panels", "generic nodule")
+from board_panels import BoardPanel
+
+reload(board_panels)
 import main_tagging
 
 reload(main_tagging)

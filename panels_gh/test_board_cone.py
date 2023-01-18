@@ -63,10 +63,8 @@ import main_tagging
 reload(main_tagging)
 
 
-
-
 class UnrollPackage:
-    panels_dict = {'P_1': P_1, 'P_2': P_2, 'P_3': P_3, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4, 'B_1': B_1}
+    panels_dict = {'P_1': P_1, 'P_2': P_2, 'B_1': B_1}
 
     def __init__(self, x, y, circle, bend_hole, p3_hole, cog_hole, elements):
         self.cog = TT(x, y, circle)
@@ -78,29 +76,9 @@ class UnrollPackage:
         self.data = []
         self.m = []
 
-        # self.cogs_bend = random.choice([True, False])
-
         for key, value in elements.items():
 
-            if key != 'N_4' and key != 'N_2' and key != 'P_3' and key != 'B_1':
-
-                new = self.panels_dict[key](**value)
-
-                new.niche.cg = self.cog
-                new.niche.cog_hole = self.cog_hole
-                new.niche.generate_cogs()
-
-                try:
-                    for i in new.side:
-                        i.hls = self.bend_hole
-                except AttributeError:
-                    pass
-                setattr(self, key, MainFrame(new))
-
-                det = getattr(self, key)
-                self.data.append(det.all_elems)
-
-            elif key =='B_1':
+            if key =='B_1':
                 new = self.panels_dict[key](**value)
                 new.niche.cg = self.cog
                 new.niche.cog_hole = self.cog_hole
@@ -120,34 +98,8 @@ class UnrollPackage:
                 #self.data.append(det.all_elems)
                 self.data.append(det.cut)
 
-
-            elif key == 'N_2':
-                new = self.panels_dict[key](**value)
-                try:
-                    for i in new.side:
-                        i.hls = self.bend_hole
-                except AttributeError:
-                    pass
-                setattr(self, key, MainFrame(new))
-
-                det = getattr(self, key)
-                self.data.append(det.all_elems)
-
-
-            elif key == 'P_3':
-                new = self.panels_dict[key](**value)
-                new.hls = self.p3_hole
-                setattr(self, key, MiniFrame(new))
-                det = getattr(self, key)
-                self.data.append(det.all_elems)
-
-
             else:
-                new = self.panels_dict[key](**value)
-                setattr(self, key, MiniFrame(new))
-                det = getattr(self, key)
-                #self.data.append(det.cut)
-
+                pass
 
 def main():
     global x, y, circle, bend_hole, p3_hole, cog_hole, crv
@@ -162,3 +114,7 @@ def main():
 
 if __name__ == "__main__":
     a, side = main()
+
+
+
+

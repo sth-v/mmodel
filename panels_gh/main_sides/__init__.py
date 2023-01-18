@@ -504,7 +504,7 @@ class BottomPanel(BendSide):
 
 
 class BottomBoard(BendSide):
-    side_offset = 0.5
+    side_offset = 0.25
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
