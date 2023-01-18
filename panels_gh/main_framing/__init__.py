@@ -100,9 +100,14 @@ def offset_side(elem, dist, extend='st'):
     elif extend == 'e':
         det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 200])
     elif extend == 'both':
-        det = offset(elem, dist, extend=[elem.Domain[0] + 200, elem.Domain[1] - 200])
-        if det is None:
-            det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1] + 200])
+        if elem.Domain[1] > 1:
+            det = offset(elem, dist, extend=[elem.Domain[0] + 200, elem.Domain[1] - 200])
+            if det is None:
+                det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1] + 200])
+        else:
+            det = offset(elem, dist, extend=[elem.Domain[0] + 0.5, elem.Domain[1] - 0.5])
+            if det is None:
+                det = offset(elem, dist, extend=[elem.Domain[0] - 0.5, elem.Domain[1] + 0.5])
     else:
         det = offset(elem, dist)
     return det
@@ -362,3 +367,30 @@ class MainFrame:
                                                     offset.PointAtEnd[2])).ToNurbsCurve()
         frame_offset = rh.Curve.JoinCurves([offset, crv])
         return frame_offset
+
+
+class BoardFrame(MainFrame):
+
+    def __init__(self, panel):
+        MainFrame.__dict__['__init__'](self, panel)
+
+    @property
+    def region(self):
+        ofs_sides = self.all_offset()
+        o, t, th = ofs_sides[self.bridge[0][0]], ofs_sides[self.bridge[1][0]], ofs_sides[self.bridge[2][0]]
+        spec = self.bridge[0][2]
+
+        if self.cogs is True:
+            elems = self.cogs_points(o) + self.simple_points(t, self.bridge[1][1], spec) + self.simple_points(th, self.bridge[2][1], spec)
+        else:
+            elems = self.simple_points(o, self.bridge[0][1], spec) + self.simple_points(t, self.bridge[1][1], spec) + self.simple_points(th, self.bridge[2][1], spec)
+
+        elems.append(self.frame_offset)
+        elems.extend(self.panel.cut)
+        new = list(rh.Curve.CreateBooleanUnion(elems, 0.1))
+        new.extend(self.panel.cut[1:])
+
+        if any([i.IsValid is False for i in new]):
+            raise TypeError
+        else:
+            return new
