@@ -24,7 +24,7 @@ main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffi
 
 main_sides.__init__("main_sides", "generic nodule")
 from main_sides import BendSide, Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, BottomPanel, BoardHolesOne, \
-    BoardHolesTwo, BottomBoard
+    BoardHolesTwo, BottomBoard, BoardEdgeOne
 
 reload(main_sides)
 
@@ -35,6 +35,40 @@ main_panels.__init__("main_panels", "generic nodule")
 from main_panels import NichePanel, SimplePanel, ArcPanel, MainPanel
 
 reload(main_panels)
+
+
+
+
+
+class ArcConePanel(ArcPanel):
+
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, pins=None, pins_mark=None, cone_mark=None, **kwargs):
+        ArcPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes, pins=pins, pins_mark=pins_mark)
+
+        self.pins = pins
+        self.pins_mark = pins_mark
+        self.c_mark = cone_mark
+
+        u_pins = rh.Unroller(self.surf)
+        if self.pins is not None:
+            a = [self.surf.ClosestPoint(i) for i in self.pins]
+            u_pins.AddFollowingGeometry(points=a)
+
+        self.u_p = u_pins.PerformUnroll()
+
+        u_pins_mark = rh.Unroller(self.surf)
+        if self.pins is not None:
+            u_pins_mark.AddFollowingGeometry(curves=self.pins_mark)
+
+        self.u_p_m = u_pins_mark.PerformUnroll()
+        self.gen_side_types()
+
+
+
+
+
+
+
 
 
 class BendLikePanel(SimplePanel):
@@ -131,7 +165,7 @@ class BoardPanel(MainPanel):
         fres = rh.Curve.JoinCurves([s_o.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
                 s_t.DuplicateCurve(), self.extra_panel.fres[1].DuplicateCurve()], 0.1)[0]
 
-        tr = rh.Curve.Trim(self.bottom.fres.DuplicateCurve(), self.bottom.fres.Domain[0]+0.02,  self.bottom.fres.Domain[1]-0.02)
+        tr = rh.Curve.Trim(self.bottom.fres.DuplicateCurve(), self.bottom.fres.Domain[0],  self.bottom.fres.Domain[1]-0.015 )
         fres = [fres, tr]
 
         [i.Transform(self.bound_plane) for i in fres]
@@ -222,4 +256,62 @@ class BoardPanel(MainPanel):
         bound_rec = rh.PolyCurve.GetBoundingBox(join, rh.Plane.WorldXY)
         top_side = bound_rec.GetEdges()[2]
         return top_side.ToNurbsCurve()
+
+
+
+class BoardEdge(SimplePanel):
+    @property
+    def fres(self):
+        fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[1].fres_shift.DuplicateCurve()]
+        return fres
+
+    @property
+    def cut(self):
+        #side = rh.Curve.JoinCurves([self.side[0].join, self.side[1].join, self.side[2].fres, self.side[3].fres],
+        #                           self.side[4].fres.DuplicateCurve())[0]
+
+        side = [self.side[0].join, self.side[1].join, self.side[2].fres, self.side[3].fres,
+    self.side[4].fres]
+        return side
+
+    @property
+    def bound_frame(self):
+        return self._bound_rect
+
+    @property
+    def all_elems(self):
+        return self.cut + self.fres
+
+    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None):
+        SimplePanel.__dict__['__init__'](self, surf, holes, cogs_bend, tag)
+        unrol = rh.Unroller(self.surf)
+
+
+        self.unrol = unrol.PerformUnroll()
+        self.unrol_surf = self.unrol[0][0]
+        self.edges = self.unrol_surf.Curves3D
+        self.gen_side_types()
+        edge1_vector = rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart)
+        edge0_pt = self.edges[0].PointAt(self.edges[0].GetLength() / 2)
+        edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)
+        # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
+
+        #self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+
+
+    edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
+    edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
+
+
+    @property
+    def plane(self):
+        return rh.Plane(self._bound_rect.Center, self.edge1_vector, self.edge2_vector)
+
+    # edge2_vector.Unitize()
+    def gen_side_types(self):
+        print(list(self.edges))
+        self.side = [BoardEdgeOne(self.edges[0]), BoardEdgeOne(self.edges[3]), Bottom(self.edges[2]),
+                     Bottom(self.edges[4]), Bottom(self.edges[1])]
+        self.side_types = self.side
+        self.intersect()
 

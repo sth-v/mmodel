@@ -26,7 +26,8 @@ sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype) = imp.find_module(
 main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffix, sidesmode, sidestype))
 
 main_sides.__init__("main_sides", "generic nodule")
-from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, RibsSide, HolesSideThree, RibsSideTwo
+from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, \
+    RibsSide, HolesSideThree, RibsSideTwo
 
 reload(main_sides)
 
@@ -42,7 +43,7 @@ boardfile, boardfilename, (boardsuffix, boardmode, boardtype) = imp.find_module(
 board_panels = imp.load_module("board_panels", boardfile, boardfilename, (boardsuffix, boardmode, boardtype))
 
 board_panels.__init__("board_panels", "generic nodule")
-from board_panels import BoardPanel
+from board_panels import BoardPanel, BoardEdge
 
 reload(board_panels)
 import main_tagging
@@ -166,10 +167,8 @@ class P_3(SimplePanel):
 
         self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
 
-
     edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
     edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
-
 
     @property
     def plane(self):
@@ -209,18 +208,19 @@ class N_1(NichePanel):
         cut = []
 
         ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, 40, 0.01,
-                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         p = ofs.PointAtLength(12)
-        h_one = rh.Circle(p,4)
+        h_one = rh.Circle(p, 4)
 
         ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, -40, 0.01,
-                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         p = ofs.PointAtLength(12)
         h_two = rh.Circle(p, 4)
         return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv, **kwargs)
+        NichePanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
+                                        **kwargs)
 
 
 class N_3(NichePanel):
@@ -249,20 +249,20 @@ class N_3(NichePanel):
         cut = []
 
         ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, 40, 0.01,
-                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-        p = ofs.PointAtLength(ofs.GetLength()-12)
-        h_one = rh.Circle(p,4)
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+        p = ofs.PointAtLength(ofs.GetLength() - 12)
+        h_one = rh.Circle(p, 4)
 
         ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, -40, 0.01,
-                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
-        p = ofs.PointAtLength(ofs.GetLength()-12)
+        p = ofs.PointAtLength(ofs.GetLength() - 12)
         h_two = rh.Circle(p, 4)
         return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
 
-
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv, **kwargs)
+        NichePanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
+                                        **kwargs)
 
     def gen_side_types(self):
         self.niche = NicheShortened(self.edges[3], self.cogs_bend)
@@ -294,13 +294,15 @@ class N_2(NichePanel):
 
     @property
     def fres(self):
-        fres = [rh.Curve.DuplicateCurve(self.side[0].fres.ToNurbsCurve()), rh.Curve.DuplicateCurve(self.side[1].fres.ToNurbsCurve())]
+        fres = [rh.Curve.DuplicateCurve(self.side[0].fres.ToNurbsCurve()),
+                rh.Curve.DuplicateCurve(self.side[1].fres.ToNurbsCurve())]
         [i.Transform(self.bound_plane) for i in fres]
         return fres
 
     @property
     def cut(self):
-        cut = [rh.Curve.JoinCurves([self.side[0].join, self.top.fres, self.side[1].join, self.bottom.fres])[0].ToNurbsCurve()]
+        cut = [rh.Curve.JoinCurves([self.side[0].join, self.top.fres, self.side[1].join, self.bottom.fres])[
+                   0].ToNurbsCurve()]
         [i.Transform(self.bound_plane) for i in cut]
         return cut
 
@@ -369,7 +371,8 @@ class N_2(NichePanel):
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
     def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv, **kwargs)
+        NichePanel.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
+                                        **kwargs)
 
         self.gen_side_types()
 
@@ -437,7 +440,6 @@ class N_4(SimplePanel):
         else:
             return self.cut
 
-
     def __init__(self, surf, pins=None, cogs_bend=None, tag=None, orient=None, rib_cut=None, **kwargs):
         SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
 
@@ -447,7 +449,7 @@ class N_4(SimplePanel):
             a = surf.DuplicateBrep()
             a.Flip()
             self.surf = a
-            #print(self.surf)
+            # print(self.surf)
 
         unrol = rh.Unroller(self.surf)
 
@@ -461,7 +463,6 @@ class N_4(SimplePanel):
         self.gen_side_types()
 
         self._bound_rect = self.cut[0].GetBoundingBox(True)
-
 
     def gen_side_types(self):
         if self.orient[0] == '2':
@@ -484,3 +485,7 @@ class B_1(BoardPanel):
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
         BoardPanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
 
+
+class B_2(BoardEdge):
+    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, **kwargs):
+        BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
