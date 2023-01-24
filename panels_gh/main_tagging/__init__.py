@@ -318,7 +318,7 @@ class MiniFramer():
 class Framer:
     def __init__(self, cls):
         self._cls = cls
-        self._cls.text_geometry = [[], [], [], [], []]
+        self._cls.text_geometry = [[], [], [], [], [], []]
 
         _, vv = self._cls.unroll_dict_f["frame"].TryGetPolyline()
 

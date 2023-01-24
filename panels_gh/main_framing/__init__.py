@@ -130,7 +130,7 @@ class MiniFrame(object):
             self._layers = json.load(f)
         self.all_elems = list(itertools.repeat([], len(self._layers)))
         self.all_elems[0] = panel.all_elems
-        self._text_geometry = [[], [], [], [], []]
+        self._text_geometry = [[], [], [], [], [],[]]
         self.tag = self.panel.tag
         self._unroll_dict = {
             "frame": self.panel.bound_frame,
@@ -175,7 +175,7 @@ class MainFrame:
         self.cogs = self.panel.cogs_bend
 
         self.__dict__.update(self.panel.frame_dict)
-        self._text_geometry = [[], [], [], [], []]
+        self._text_geometry = [[], [], [], [], [], []]
         self.bottom_rec = self.panel.bottom_rec
         self.bend = self.panel.bend_ofs
         self.top = self.panel.top_ofs
@@ -248,7 +248,7 @@ class MainFrame:
     @property
     def all_elems(self):
 
-        _all_elems = [[], [], [], [], []]
+        _all_elems = [[], [], [], [], [], []]
 
         try:
             _all_elems[0].extend(self.region + self.panel.cut_holes + self.panel.cut_podves)
@@ -269,6 +269,9 @@ class MainFrame:
             pass
         if hasattr(self.panel, "grav_laser"):
             _all_elems[4].extend(self.panel.grav_laser)
+
+        if hasattr(self.panel, "grav_cone"):
+            _all_elems[5].extend(self.panel.grav_cone)
 
         ll = []
         for elem in _all_elems:

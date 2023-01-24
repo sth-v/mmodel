@@ -40,28 +40,81 @@ reload(main_panels)
 
 
 
-class ArcConePanel(ArcPanel):
+class ArcConePanel(MainPanel):
+
+    @property
+    def pins_marker(self):
+        unrol = list(self.marks[2][len(self.pins):len(self.pins)+len(self.pins_mark)])
+        circ = []
+        for i in unrol:
+            c = rh.Circle(i, 5.0)
+            c.Transform(self.bound_plane)
+            circ.append(c.ToNurbsCurve())
+        return circ
+
+    @property
+    def marker_curve(self):
+        crv = [self.side[0].fres.DuplicateCurve(), self.side[1].fres.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in crv]
+        return crv
+
+    @property
+    def grav(self):
+        if self.marks[2] is not None:
+            unrol = list(self.marks[2][0:len(self.pins)])
+            circ = []
+            for i in unrol:
+                c = rh.Circle(i, 3.25)
+                c.Transform(self.bound_plane)
+                circ.append(c.ToNurbsCurve())
+            res = circ + self.pins_marker
+            return res
+        else:
+            pass
+
+    @property
+    def grav_cone(self):
+        if self.marks[1] is not None:
+            unrol = list(self.marks[1])
+            crv = []
+            for i in unrol:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                crv.append(ii)
+            return crv
+        else:
+            pass
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, pins=None, pins_mark=None, cone_mark=None, **kwargs):
-        ArcPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes, pins=pins, pins_mark=pins_mark)
+        MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
 
         self.pins = pins
         self.pins_mark = pins_mark
         self.c_mark = cone_mark
 
-        u_pins = rh.Unroller(self.surf)
+        marks = rh.Unroller(self.surf)
         if self.pins is not None:
-            a = [self.surf.ClosestPoint(i) for i in self.pins]
-            u_pins.AddFollowingGeometry(points=a)
+            p = [self.surf.ClosestPoint(i) for i in self.pins]
+            marks.AddFollowingGeometry(points=p)
 
-        self.u_p = u_pins.PerformUnroll()
+            a = [self.surf.ClosestPoint(i) for i in self.pins_mark]
+            marks.AddFollowingGeometry(points=a)
 
-        u_pins_mark = rh.Unroller(self.surf)
-        if self.pins is not None:
-            u_pins_mark.AddFollowingGeometry(curves=self.pins_mark)
+            marks.AddFollowingGeometry(curves=self.c_mark)
 
-        self.u_p_m = u_pins_mark.PerformUnroll()
+        self.marks = marks.PerformUnroll()
+
         self.gen_side_types()
+
+    def gen_side_types(self):
+
+        self.niche = Niche(self.edges[0], self.cogs_bend)
+        self.bottom = BottomPanel(self.edges[2])
+        self.side = [HolesSideOne(self.edges[1], True), HolesSideTwo(self.edges[3], False)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
 
 
 

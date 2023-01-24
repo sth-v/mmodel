@@ -53,5 +53,16 @@
       0,
       255
     ]
+  },
+   {
+    "objects": [],
+    "name": "Markirovka Cone Freser",
+    "visible": false,
+    "color": [
+      0,
+      255,
+      255,
+      255
+    ]
   }
 ]

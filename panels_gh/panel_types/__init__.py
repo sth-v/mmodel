@@ -43,7 +43,7 @@ boardfile, boardfilename, (boardsuffix, boardmode, boardtype) = imp.find_module(
 board_panels = imp.load_module("board_panels", boardfile, boardfilename, (boardsuffix, boardmode, boardtype))
 
 board_panels.__init__("board_panels", "generic nodule")
-from board_panels import BoardPanel, BoardEdge
+from board_panels import BoardPanel, BoardEdge, ArcConePanel
 
 reload(board_panels)
 import main_tagging
@@ -55,6 +55,46 @@ def bound_rec(crv):
     join = rh.Curve.JoinCurves(crv)[0]
     bound_rec = rh.PolyCurve.GetBoundingBox(join, rh.Plane.WorldXY)
     return bound_rec
+
+
+class PC_1(ArcConePanel):
+    def __init__(self, surf, tag=None, pins=None, cogs_bend=None, holes=None, cone_mark=None, **kwargs):
+        ArcConePanel.__dict__['__init__'](self, surf=surf, tag=tag, pins=pins, cogs_bend=cogs_bend, holes=holes, cone_mark=cone_mark, **kwargs)
+
+class PC_2(ArcConePanel):
+    @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
+        bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    @property
+    def frame_dict(self):
+        diag = self.diag_side([self.top_parts[1].PointAtEnd, self.top_parts[2].PointAtStart, self.fres[1].PointAtEnd])
+        top = self.top_side()
+        p_niche = self.fres[1]
+        p_bend = self.fres[2]
+        order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[2, self.top_parts[1], None], [0, self.top_parts[2], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+    def __init__(self, surf, tag=None, pins=None, cogs_bend=None, holes=None, cone_mark=None, **kwargs):
+        ArcConePanel.__dict__['__init__'](self, surf=surf, tag=tag, pins=pins, cogs_bend=cogs_bend, holes=holes, cone_mark=cone_mark, **kwargs)
+
+    def gen_side_types(self):
+        self.niche = Niche(self.edges[2], self.cogs_bend)
+        self.bottom = BottomPanel(self.edges[0])
+        self.side = [HolesSideOne(self.edges[1], False), HolesSideTwo(self.edges[3], True)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+
 
 
 class P_1(ArcPanel):
