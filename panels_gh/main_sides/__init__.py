@@ -81,6 +81,16 @@ def translate(point, crv):
     tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, frame)
     return tr
 
+def divide_edge(crv, ofs=20, num=2):
+    st = crv.ClosestPoint(crv.PointAtLength(ofs))[1]
+    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
+    curve = crv.Trim(st, end)
+
+    param = curve.DivideByCount(num, True)
+    points = [curve.PointAt(i) for i in param]
+    return points
+
+
 
 def morph_decore(fun):
     @wraps(fun)
@@ -580,14 +590,16 @@ class RibsSideTwo(HeatSchov):
 
 
 class BoardEdgeOne(HeatSchov):
-    side_offset = 10.0
+    side_offset = 10
     fres_offset = 7.47
-    length = 25.470
-    fres_trim_dist = 10
-    fillet_r = 5
+    length = 32.940
+    fres_trim_dist = 0
+    fillet_r = 3
 
-    def __init__(self, curve):
+    def __init__(self, curve, rev=False, spec_dist=None):
         HeatSchov.__dict__['__init__'](self, curve)
+        self.rev = rev
+        self.spec_dist = spec_dist
 
     @property
     def join(self):
@@ -599,31 +611,40 @@ class BoardEdgeOne(HeatSchov):
         join = rh.Curve.JoinCurves([one, self.top_part, two])[0]
         fillet = rh.Curve.CreateFilletCornersCurve(join, self.fillet_r, 0.1, 0.1)
 
-        self._join = rh.Curve.JoinCurves([sm_tr[0], fillet, sm_tr[1]])
+
+        self._join = rh.Curve.JoinCurves([sm_tr, fillet])
+
         return self._join[0]
 
     @property
     def hls(self):
-        return self._hls
+        c = rh.Circle(5.25)
 
-    @hls.setter
-    def hls(self, v):
-        self._hls = v
+        top = rh.Arc(c, rh.Interval(0, math.pi)).ToNurbsCurve()
+        vec = rh.Transform.Translation(rh.Vector3d(0, 10, 0))
+        top.Transform(vec)
+
+        l_o = rh.Line(rh.Point3d(-5.25, 10, 0), rh.Point3d(-5.25, -10, 0))
+        l_t = rh.Line(rh.Point3d(5.25, 10, 0), rh.Point3d(5.25, -10, 0))
+
+        bot = rh.Arc(c, rh.Interval(math.pi, 2 * math.pi)).ToNurbsCurve()
+        vec = rh.Transform.Translation(rh.Vector3d(0, -10, 0))
+        bot.Transform(vec)
+        self._hls = rh.Curve.JoinCurves([top, l_o.ToNurbsCurve(), bot, l_t.ToNurbsCurve()])[0]
+
+        return self._hls
 
     @property
     def holes_curve(self):
-        line = self.top_part.Offset(rh.Plane.WorldXY, -self.length / 2, 0.01,
-                                    rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         if self.spec_dist is not None:
-            points = divide(line, dist=self.spec_dist)
+            points = divide_edge(self.top_part, num=self.spec_dist)
         else:
-            points = divide(line)
+            points = divide_edge(self.top_part)
 
         circ = []
         for i, v in enumerate(points):
-            p = translate(v, line)
-
+            p = translate(v, self.top_part)
             c = self.hls.DuplicateCurve()
             c.Transform(p)
             circ.append(c)
@@ -631,14 +652,19 @@ class BoardEdgeOne(HeatSchov):
         return circ
 
     def fres_trim(self):
-        #p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
-        p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
-        tr = self.fres.Trim(self.fres.Domain[0], p_two)
+        if self.rev:
+            p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
+            tr = self.fres.Trim(p_one, self.fres.Domain[1])
+        else:
+            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
+            tr = self.fres.Trim(self.fres.Domain[0], p_two)
         return tr
 
     def small_trim(self):
-        #p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
-        p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
-        #tr_o = self.fres.Trim(self.fres.Domain[0], p_one)
-        tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
+        if self.rev:
+            p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
+            tr_t = self.fres.Trim(self.fres.Domain[0], p_one)
+        else:
+            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
+            tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
         return tr_t

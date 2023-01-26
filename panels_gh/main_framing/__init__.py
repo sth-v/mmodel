@@ -94,7 +94,7 @@ def intersect(values):
     return res
 
 
-def offset_side(elem, dist, extend='st'):
+def offset_side(elem, dist, extend='st', extend_dist=0.65):
     if extend == 'st':
         det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1]])
     elif extend == 'e':
@@ -105,9 +105,9 @@ def offset_side(elem, dist, extend='st'):
             if det is None:
                 det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1] + 200])
         else:
-            det = offset(elem, dist, extend=[elem.Domain[0] + 0.5, elem.Domain[1] - 0.5])
+            det = offset(elem, dist, extend=[elem.Domain[0] + extend_dist, elem.Domain[1] - extend_dist])
             if det is None:
-                det = offset(elem, dist, extend=[elem.Domain[0] - 0.5, elem.Domain[1] + 0.5])
+                det = offset(elem, dist, extend=[elem.Domain[0] - extend_dist, elem.Domain[1] + extend_dist])
     else:
         det = offset(elem, dist)
     return det

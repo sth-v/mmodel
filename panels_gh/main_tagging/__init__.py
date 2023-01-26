@@ -282,7 +282,7 @@ class TagFive(Tag):
 class MiniFramer():
     def __init__(self, cls):
         self._cls = cls
-        self._cls.text_geometry = [[], [], [], [], []]
+        self._cls.text_geometry = [[], [], [], [], [], []]
         self.rect = self._cls.panel.bound_frame
         try:
             self.spec_center = [self._cls.panel.hole_one, self._cls.panel.hole_two]
@@ -300,6 +300,7 @@ class MiniFramer():
             # center = self.rect.PointAt(u * rW, v * rH)
             center = rh.Point3d(tagobj.plane.Origin[0] - u, tagobj.plane.Origin[1] - v, 0)
             tagobj.plane.Origin = center
+            tagobj.text = self._cls.panel.tag
         else:
             pp = self.spec_center[p]
             center = rh.Point3d(pp[0] + u, pp[1] + v, 0)
@@ -383,11 +384,60 @@ class Framer:
             self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
             return self._cls
 
+class FrameCone:
+    def __init__(self, cls):
+
+        self._cls = cls
+        self._cls.text_geometry = [[], [], [], [], [], []]
+
+        _, vv = self._cls.unroll_dict_f["frame"].TryGetPolyline()
+
+        self.rect = rh.Rectangle3d.CreateFromPolyline(vv)
+        self.spec = self._cls.panel.marker_curve
+
+    def __call__(self, u, v, tagobj, layer, side=None, *args, **kwargs):
+
+        if side is None:
+            rH, rW = 1 / self.rect.Height, 1 / self.rect.Width
+
+            center = self.rect.PointAt(u * rW, v * rH)
+            tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            self.pl = tagobj.plane
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+
+            return self._cls
+
+        else:
+            crv = rh.Curve.Offset(self.spec[side], rh.Plane.WorldXY, 12 + u, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+            self.pl = [crv, self.spec[side]]
+
+            center = crv.PointAtNormalizedLength(0.05+v)
+
+            crv_check = rh.Curve.Offset(self.spec[side], rh.Plane.WorldXY, -150, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+            center_check = crv_check.PointAtNormalizedLength(0.05+v)
+            vec = Rhino.Geometry.Vector3d(center_check - center)
+            param = crv.NormalizedLengthParameter(0.05+v)[1]
+            # tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            plane = crv.FrameAt(param)[1]
+            tagobj.plane = Rhino.Geometry.Plane(plane.Origin, plane.XAxis, vec)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            # self.pl = tagobj.plane
+
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+            return self._cls
+
+
 class FramerNiche:
 
     def __init__(self, cls):
         self._cls = cls
-        self._cls.text_geometry = [[], [], [], [], []]
+        self._cls.text_geometry = [[], [], [], [], [], []]
 
         _, vv = self._cls.unroll_dict_f["frame"].TryGetPolyline()
 
