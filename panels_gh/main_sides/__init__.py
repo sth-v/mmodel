@@ -344,6 +344,20 @@ class NicheShortened(Niche):
             pass
         self._cogs = _cogs
 
+
+class NicheShortenedBoard(NicheShortened):
+    angle_niche = 45
+    angle = 30
+    side_offset = niche_shift(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
+    length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
+    cogs_shift = 0
+    pattern = Pattern
+
+    def __init__(self, curve, init_cogs=False):
+        NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
+
+
+
 class Side(BendSide):
     side_offset = 1.0
     angle = 30
@@ -601,6 +615,8 @@ class BoardEdgeOne(HeatSchov):
         self.rev = rev
         self.spec_dist = spec_dist
 
+        self.crv = curve
+
     @property
     def join(self):
         crv = self.fres_trim()
@@ -628,6 +644,7 @@ class BoardEdgeOne(HeatSchov):
         l_t = rh.Line(rh.Point3d(5.25, 10, 0), rh.Point3d(5.25, -10, 0))
 
         bot = rh.Arc(c, rh.Interval(math.pi, 2 * math.pi)).ToNurbsCurve()
+
         vec = rh.Transform.Translation(rh.Vector3d(0, -10, 0))
         bot.Transform(vec)
         self._hls = rh.Curve.JoinCurves([top, l_o.ToNurbsCurve(), bot, l_t.ToNurbsCurve()])[0]
@@ -636,11 +653,19 @@ class BoardEdgeOne(HeatSchov):
 
     @property
     def holes_curve(self):
+        crv = self.crv.Offset(rh.Plane.WorldXY, self.length - self.side_offset, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+        if not self.rev:
+            p_two = crv.LengthParameter(crv.GetLength() - self.side_offset)[1]
+            crv = crv.Trim(crv.Domain[0], p_two)
+        else:
+            p_one = crv.LengthParameter(self.side_offset)[1]
+            crv = crv.Trim(p_one, crv.Domain[1])
 
         if self.spec_dist is not None:
-            points = divide_edge(self.top_part, num=self.spec_dist)
+            points = divide_edge(crv, num=self.spec_dist)
         else:
-            points = divide_edge(self.top_part)
+            points = divide_edge(crv)
 
         circ = []
         for i, v in enumerate(points):
@@ -668,3 +693,90 @@ class BoardEdgeOne(HeatSchov):
             p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
             tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
         return tr_t
+
+
+class BoardEdgeTwo(BoardEdgeOne):
+    side_offset = 10
+    fres_offset = 7.47
+    length = 32.940
+    fres_trim_dist = 0
+    other_trim_dist = 14
+    fillet_r = 3
+
+    def __init__(self, curve, rev=False, spec_dist=None):
+        BoardEdgeOne.__dict__['__init__'](self, curve, rev=rev, spec_dist=spec_dist)
+
+    @property
+    def join(self):
+        crv = self.fres_trim()
+        sm_tr = self.small_trim()
+        one = rh.Line(crv.PointAtStart, self.top_part.PointAtStart).ToNurbsCurve()
+        two = rh.Line(crv.PointAtEnd, self.top_part.PointAtEnd).ToNurbsCurve()
+
+        join = rh.Curve.JoinCurves([one, self.top_part, two])[0]
+        fillet = rh.Curve.CreateFilletCornersCurve(join, self.fillet_r, 0.1, 0.1)
+
+        self._join = rh.Curve.JoinCurves([sm_tr[0], fillet, sm_tr[1]])
+        return self._join[0]
+
+    @property
+    def holes_curve(self):
+        crv = self.crv.Offset(rh.Plane.WorldXY, self.length - self.side_offset, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        if self.rev:
+            p_one = crv.LengthParameter(self.side_offset)[1]
+            p_two = crv.LengthParameter(crv.GetLength() - self.other_trim_dist)[1]
+            crv = crv.Trim(p_one, p_two)
+        else:
+            p_one = crv.LengthParameter(self.other_trim_dist)[1]
+            p_two = crv.LengthParameter(crv.GetLength() - self.side_offset)[1]
+            crv = crv.Trim(p_one, p_two)
+
+        if self.spec_dist is not None:
+            points = divide_edge(crv, num=self.spec_dist)
+        else:
+            points = divide_edge(crv)
+
+        circ = []
+        for i, v in enumerate(points):
+            p = translate(v, self.top_part)
+            c = self.hls.DuplicateCurve()
+            c.Transform(p)
+            circ.append(c)
+
+        return circ
+
+    @property
+    def fres_shift(self):
+        self._fres_shift = self.fres_trim().Offset(rh.Plane.WorldXY, self.fres_offset, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._fres_shift[0]
+
+    def fres_trim(self):
+        if self.rev:
+            p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
+            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.other_trim_dist)[1]
+            tr = self.fres.Trim(p_one, p_two)
+        else:
+            p_one = self.fres.LengthParameter(self.other_trim_dist)[1]
+            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
+            tr = self.fres.Trim(p_one, p_two)
+        return tr
+
+    def small_trim(self):
+        if self.rev:
+            p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
+            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.other_trim_dist)[1]
+            tr_o = self.fres.Trim(self.fres.Domain[0], p_one)
+            tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
+        else:
+            p_one = self.fres.LengthParameter(self.other_trim_dist)[1]
+            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
+            tr_o = self.fres.Trim(self.fres.Domain[0], p_one)
+            tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
+        return [tr_o, tr_t]
+
+
+
+

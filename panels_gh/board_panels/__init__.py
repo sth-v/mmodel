@@ -24,7 +24,7 @@ main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffi
 
 main_sides.__init__("main_sides", "generic nodule")
 from main_sides import BendSide, Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, BottomPanel, BoardHolesOne, \
-    BoardHolesTwo, BottomBoard, BoardEdgeOne
+    BoardHolesTwo, BottomBoard, BoardEdgeOne, BoardEdgeTwo, NicheShortenedBoard
 
 reload(main_sides)
 
@@ -36,7 +36,14 @@ from main_panels import NichePanel, SimplePanel, ArcPanel, MainPanel
 
 reload(main_panels)
 
+def divide_edge(crv, ofs=20, num=2):
+    st = crv.ClosestPoint(crv.PointAtLength(ofs))[1]
+    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
+    curve = crv.Trim(st, end)
 
+    param = curve.DivideByCount(num, True)
+    points = [curve.PointAt(i) for i in param]
+    return points
 
 
 
@@ -171,9 +178,26 @@ class BendLikePanel(SimplePanel):
             side.Transform(self.bound_plane)
         return [side]
 
-    def __init__(self, surf, tag=None, cogs_bend=None, **kwargs):
+    @property
+    def grav(self):
+        if self.mark_crv is not None:
+            unrol = list(self.mark_crv)
+            circ = []
+            for i in unrol:
+                c = divide_edge(i, num=1)
+                for ii in c:
+                    cc = rh.Circle(ii, 3.25)
+                    cc.Transform(self.bound_plane)
+                    circ.append(cc.ToNurbsCurve())
+
+            return circ
+        else:
+            pass
+
+    def __init__(self, surf, tag=None, cogs_bend=None, mark_crv=None, **kwargs):
         SimplePanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend)
 
+        self.mark_crv = mark_crv
         self.edges = self.surf.Curves3D
 
         self.gen_side_types()
@@ -251,6 +275,27 @@ class BoardPanel(MainPanel):
         return cut + self.niche_holes
 
     @property
+    def grav(self):
+        if self.crv_surf is not None:
+            unrol = list(self.crv_surf)
+            circ = []
+            for i in unrol:
+                c = divide_edge(i, num=2)
+                for ii in c:
+                    cc = rh.Circle(ii, 3.25)
+                    cc.Transform(self.bound_plane)
+                    circ.append(cc.ToNurbsCurve())
+
+            for i in self.extra_panel.grav:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                circ.append(ii)
+
+            return circ
+        else:
+            pass
+
+    @property
     def parent_plane(self):
         xaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[1] - 0.01) - self.bottom.fres.PointAt(
             self.bottom.fres.Domain[0] + 0.01))
@@ -286,19 +331,27 @@ class BoardPanel(MainPanel):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, top_surf=None, **kwargs):
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, top_surf=None, top_mark=None, surf_mark=None,**kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
 
         self.top_surf = top_surf
         tup_unr = rh.Unroller(self.top_surf)
-        self.top_unrol = tup_unr.PerformUnroll()[0][0]
+        if top_mark is not None:
+            tup_unr.AddFollowingGeometry(curves=top_mark)
+        self.top_unrol = tup_unr.PerformUnroll()
 
-        self.extra_panel = BendLikePanel(self.top_unrol)
+        self.crv_surf = surf
+        crv_surf = rh.Unroller(self.crv_surf)
+        if surf_mark is not None:
+            crv_surf.AddFollowingGeometry(curves=surf_mark)
+        self.crv_surf = crv_surf.PerformUnroll()[1]
+
+        self.extra_panel = BendLikePanel(self.top_unrol[0][0], mark_crv=self.top_unrol[1])
         setattr(self.extra_panel, 'parent_plane', self.parent_plane)
 
     def gen_side_types(self):
 
-        self.niche = NicheShortened(self.edges[2], self.cogs_bend)
+        self.niche = NicheShortenedBoard(self.edges[2], self.cogs_bend)
         self.bottom = BottomBoard(self.edges[0])
         self.side = [HolesSideTwo(self.edges[1]), HolesSideOne(self.edges[3])]
 
@@ -316,16 +369,16 @@ class BoardPanel(MainPanel):
 class BoardEdge(SimplePanel):
     @property
     def fres(self):
-        fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[-1].fres_shift.DuplicateCurve()]
+        fres = [self.side[-2].fres_shift.DuplicateCurve(), self.side[-1].fres_shift.DuplicateCurve()]
         return fres
 
     @property
     def cut(self):
 
-        ss = [i.fres for i in self.side[1:-1] ]
+        ss = [i.fres for i in self.side[0:-2]]
 
-        side = rh.Curve.JoinCurves([self.side[0].join]+ss+[self.side[-1].join])[0]
-        hls = self.side[0].holes_curve+self.side[-1].holes_curve
+        side = rh.Curve.JoinCurves(ss+[self.side[-2].join]+[self.side[-1].join])[0]
+        hls = self.side[-2].holes_curve+self.side[-1].holes_curve
 
         for i in hls:
             side = rh.Curve.CreateBooleanDifference(side,i)[0]
@@ -375,8 +428,8 @@ class BoardEdge(SimplePanel):
     # edge2_vector.Unitize()
     def gen_side_types(self):
 
-        ss = [Bottom(i) for i in list(self.edges)[1:-1]]
-        self.side = [BoardEdgeOne(list(self.edges)[0], rev=True,spec_dist=1)] + ss + [BoardEdgeOne(list(self.edges)[-1], spec_dist=2)]
+        ss = [Bottom(i) for i in list(self.edges)[0:-2]]
+        self.side = ss + [BoardEdgeOne(list(self.edges)[-2], spec_dist=2)] + [BoardEdgeTwo(list(self.edges)[-1], rev=True, spec_dist=1)]
         self.side_types = self.side
         self.intersect()
 

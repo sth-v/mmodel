@@ -485,7 +485,7 @@ class FramerBack:
 
     def __init__(self, cls):
         self._cls = cls
-        self._cls.text_geometry = [[], [], [], [], []]
+        self._cls.text_geometry = [[], [], [], [], [], []]
 
         _, vv = self._cls.unroll_dict_f["frame"].TryGetPolyline()
 
@@ -517,6 +517,64 @@ class FramerBack:
             center_check = crv_check.PointAtNormalizedLength(0.5)
             vec = Rhino.Geometry.Vector3d(center_check - center)
             param = crv.NormalizedLengthParameter(0.5)[1]
+            # tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            plane = crv.FrameAt(param)[1]
+            tagobj.plane = Rhino.Geometry.Plane(plane.Origin, plane.XAxis, vec)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            # self.pl = tagobj.plane
+
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+            return self._cls
+
+        else:
+            rH, rW = 1 / self.rect.Height, 1 / self.rect.Width
+
+            center = self.rect.PointAt(u * rW, v * rH)
+            tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            self.pl = tagobj.plane
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+
+            return self._cls
+
+
+class FramerBoard:
+    def __init__(self, cls):
+        self._cls = cls
+        self._cls.text_geometry = [[], [], [], [], [], []]
+
+        _, vv = self._cls.unroll_dict_f["frame"].TryGetPolyline()
+
+        self.rect = rh.Rectangle3d.CreateFromPolyline(vv)
+        #self.spec =  self._cls.panel.marker_curve
+
+    def __call__(self, u, v, tagobj, layer, ribs=None, p_mark=None, *args, **kwargs):
+
+        if ribs is not None:
+            for i in self._cls.panel.ribs_marker:
+                p = rh.Point3d(i[1][0]-u, i[1][1]-v, 0)
+                tagobj.plane =rh.Plane(p, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
+                tagobj.text = i[0][-1]
+
+                self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+
+            return self._cls
+
+
+        elif p_mark is not None:
+            crv = rh.Curve.Offset(self._cls.panel.fres_for_frame[0], rh.Plane.WorldXY, -80 + u, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+            center = crv.PointAtNormalizedLength(0.3)
+
+            crv_check = rh.Curve.Offset(self._cls.panel.fres_for_frame[0], rh.Plane.WorldXY, -150, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+            center_check = crv_check.PointAtNormalizedLength(0.3)
+            vec = Rhino.Geometry.Vector3d(center_check - center)
+            param = crv.NormalizedLengthParameter(0.3)[1]
             # tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
             plane = crv.FrameAt(param)[1]
             tagobj.plane = Rhino.Geometry.Plane(plane.Origin, plane.XAxis, vec)

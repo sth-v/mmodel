@@ -27,7 +27,7 @@ main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffi
 
 main_sides.__init__("main_sides", "generic nodule")
 from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, \
-    RibsSide, HolesSideThree, RibsSideTwo, BoardEdgeOne
+    RibsSide, HolesSideThree, RibsSideTwo, BoardEdgeOne, BoardEdgeTwo
 
 reload(main_sides)
 
@@ -541,7 +541,7 @@ class B_3(BoardEdge):
     def cut(self):
 
         ss = [i.fres for i in self.side[2:]]
-        side =[self.side[0].join] + [self.side[1].join] + ss
+
         side = rh.Curve.JoinCurves([self.side[0].join] + [self.side[1].join] + ss)[0]
         hls = self.side[0].holes_curve + self.side[1].holes_curve
 
@@ -559,7 +559,7 @@ class B_3(BoardEdge):
 
 
         ss = [Bottom(i.ToNurbsCurve()) for i in list(self.edges)[2:]]
-        self.side = [BoardEdgeOne(list(self.edges)[0].ToNurbsCurve(), spec_dist=1)] + [BoardEdgeOne(list(self.edges)[1].ToNurbsCurve(), rev=True)] + ss
+        self.side = [BoardEdgeTwo(list(self.edges)[0].ToNurbsCurve(), rev=True, spec_dist=1)] + [BoardEdgeOne(list(self.edges)[1].ToNurbsCurve())] + ss
         self.side_types = self.side
         self.intersect()
 
