@@ -344,9 +344,14 @@ class MainFrame:
         end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - 7.5))[1]
         n_crv = crv.Trim(st, end)
 
-        num = math.ceil(n_crv.GetLength() / 100)
-        param = n_crv.DivideByCount(num, True)
-        points = [n_crv.PointAt(i) for i in param]
+        if n_crv.GetLength() > 45:
+            num = math.ceil(n_crv.GetLength() / 100)
+            param = n_crv.DivideByCount(num, True)
+            points = [n_crv.PointAt(i) for i in param]
+        else:
+            param = n_crv.DivideByCount(2, False)
+            points = [n_crv.PointAt(i) for i in param]
+
         return points
 
     def simple_points(self, side, goal, spec):

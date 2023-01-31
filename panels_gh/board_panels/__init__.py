@@ -41,8 +41,13 @@ def divide_edge(crv, ofs=20, num=2):
     end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
     curve = crv.Trim(st, end)
 
-    param = curve.DivideByCount(num, True)
-    points = [curve.PointAt(i) for i in param]
+    if curve.GetLength() > 45:
+        param = curve.DivideByCount(num, True)
+        points = [curve.PointAt(i) for i in param]
+    else:
+        param = curve.DivideByCount(2, False)
+        points = [curve.PointAt(i) for i in param]
+
     return points
 
 
@@ -184,6 +189,7 @@ class BendLikePanel(SimplePanel):
             unrol = list(self.mark_crv)
             circ = []
             for i in unrol:
+
                 c = divide_edge(i, num=1)
                 for ii in c:
                     cc = rh.Circle(ii, 3.25)
@@ -213,7 +219,6 @@ class BendLikePanel(SimplePanel):
 
 
 class BoardPanel(MainPanel):
-    bend_panel = 150
 
     @property
     def top_parts(self):
@@ -228,7 +233,6 @@ class BoardPanel(MainPanel):
         crv = [self.side[0].join, self.niche.join_region, self.side[1].join]+self.extra_panel.cut
         s = rh.Curve.JoinCurves(crv, 0.2)[0]
         side = s.ToNurbsCurve()
-        #side = [side]+self.extra_panel.cut
         side.Transform(self.bound_plane)
 
         return [side]
@@ -242,9 +246,6 @@ class BoardPanel(MainPanel):
 
         tr = rh.Curve.Trim(self.bottom.fres.DuplicateCurve(), self.bottom.fres.Domain[0],  self.bottom.fres.Domain[1]-0.015 )
         fres = [fres, tr]
-
-        #fres = [self.side[1].fres.DuplicateCurve(), self.extra_panel.fres[0].DuplicateCurve(), self.side[0].fres.DuplicateCurve(), self.extra_panel.fres[2].DuplicateCurve()
-        #        , self.niche.fres.DuplicateCurve(), self.extra_panel.fres[1].DuplicateCurve(),self.bottom.fres.DuplicateCurve()]
 
         [i.Transform(self.bound_plane) for i in fres]
         return fres
@@ -295,6 +296,7 @@ class BoardPanel(MainPanel):
         else:
             pass
 
+
     @property
     def parent_plane(self):
         xaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[1] - 0.01) - self.bottom.fres.PointAt(
@@ -325,7 +327,7 @@ class BoardPanel(MainPanel):
         p_niche = self.fres_for_frame[1]
         p_bend = self.fres_for_frame[0]
         extra_bend = self.fres_for_frame[6]
-        order = [[p_niche, self.niche_ofs, 'st'], [diag, self.diag, False], [p_bend, self.bend_ofs, 'both', 0.4],
+        order = [[p_niche, self.niche_ofs, 'st'], [diag, self.diag, False], [p_bend, self.bend_ofs, 'both', 0.3],
                  [extra_bend, self.bend_ofs, 'both'], [top, self.top_ofs, 'e']]
         bridge = [[0, self.top_parts[1], None], [2, self.top_parts[0], None], [3, self.top_parts[5], None]]
 

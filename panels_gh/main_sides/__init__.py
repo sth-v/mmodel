@@ -33,7 +33,7 @@ cogs = imp.load_module("cogs", cogsfile, cogsfilename, (cogssuffix, cogsmode, co
 from functools import wraps
 
 cogs.__init__("cogs", "generic module")
-from cogs import Pattern, PatternSimple, ReversiblePattern
+from cogs import Pattern, PatternSimple, ReversiblePattern, ReversePatternSimple
 
 reload(cogs)
 
@@ -66,13 +66,18 @@ def niche_shift(angle_niche, side_niche, met_left_niche):
 
 
 def divide(crv, dist=100, ofs=15):
-    st = crv.ClosestPoint(crv.PointAtLength(ofs))[1]
-    end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
-    curve = crv.Trim(st, end)
 
-    num = math.ceil(curve.GetLength() / dist)
-    param = curve.DivideByCount(num, True)
-    points = [curve.PointAt(i) for i in param]
+    if crv.GetLength() > 45:
+        st = crv.ClosestPoint(crv.PointAtLength(ofs))[1]
+        end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
+        curve = crv.Trim(st, end)
+        num = math.ceil(curve.GetLength() / dist)
+        param = curve.DivideByCount(num, True)
+        points = [curve.PointAt(i) for i in param]
+    else:
+
+        param = crv.DivideByCount(2, False)
+        points = [crv.PointAt(i) for i in param]
     return points
 
 
@@ -86,8 +91,13 @@ def divide_edge(crv, ofs=20, num=2):
     end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
     curve = crv.Trim(st, end)
 
-    param = curve.DivideByCount(num, True)
-    points = [curve.PointAt(i) for i in param]
+    if curve.GetLength() > 45:
+        param = curve.DivideByCount(num, True)
+        points = [curve.PointAt(i) for i in param]
+    else:
+        param = curve.DivideByCount(2, False)
+        points = [curve.PointAt(i) for i in param]
+
     return points
 
 
@@ -351,7 +361,14 @@ class NicheShortenedBoard(NicheShortened):
     side_offset = niche_shift(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     cogs_shift = 0
-    pattern = Pattern
+    pattern = ReversiblePattern
+
+    @property
+    def cogs_unit(self):
+        if self.init_cogs:
+            return self.__class__.pattern(self._cg, 23, self.bend_axis.GetLength())
+        else:
+            return PatternSimple(self._cg, 46, self.bend_axis.GetLength())
 
     def __init__(self, curve, init_cogs=False):
         NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
@@ -616,6 +633,8 @@ class BoardEdgeOne(HeatSchov):
         self.spec_dist = spec_dist
 
         self.crv = curve
+        self.crv_none=self.crv.Offset(rh.Plane.WorldXY, self.length - self.side_offset, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
     @property
     def join(self):
