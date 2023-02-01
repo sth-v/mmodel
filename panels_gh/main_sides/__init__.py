@@ -552,11 +552,6 @@ class BottomBoard(BendSide):
 
 
 class HeatSchov(BendSide):
-    side_offset = 6.3
-    fres_offset = 4.0
-    length = 23.24
-    fres_trim_dist = 7
-    fillet_r = 5
 
     @property
     def join(self):
@@ -586,6 +581,12 @@ class HeatSchov(BendSide):
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
+
+        self.side_offset = 6.3
+        self.fres_offset = 4.0
+        self.length = 23.24
+        self.fres_trim_dist = 7
+        self.fillet_r = 5
 
     def fres_trim(self):
         p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
@@ -621,14 +622,16 @@ class RibsSideTwo(HeatSchov):
 
 
 class BoardEdgeOne(HeatSchov):
-    side_offset = 10
-    fres_offset = 7.47
-    length = 32.940
-    fres_trim_dist = 0
-    fillet_r = 3
 
-    def __init__(self, curve, rev=False, spec_dist=None):
+    def __init__(self, curve, params=None, rev=False, spec_dist=None):
         HeatSchov.__dict__['__init__'](self, curve)
+
+        self.side_offset = params.offset
+        self.fres_offset = params.ext_bend + (params.crv_len/2)
+        self.length = 3 * params.ext_bend + params.crv_len
+        self.param_trim = params.trim
+        self.fillet_r = 3
+
         self.rev = rev
         self.spec_dist = spec_dist
 
@@ -672,13 +675,13 @@ class BoardEdgeOne(HeatSchov):
 
     @property
     def holes_curve(self):
-        crv = self.crv.Offset(rh.Plane.WorldXY, self.length - self.side_offset, 0.01,
+        crv = self.crv.Offset(rh.Plane.WorldXY, self.side_offset, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         if not self.rev:
-            p_two = crv.LengthParameter(crv.GetLength() - self.side_offset)[1]
+            p_two = crv.LengthParameter(crv.GetLength() - self.param_trim)[1]
             crv = crv.Trim(crv.Domain[0], p_two)
         else:
-            p_one = crv.LengthParameter(self.side_offset)[1]
+            p_one = crv.LengthParameter(self.param_trim)[1]
             crv = crv.Trim(p_one, crv.Domain[1])
 
         if self.spec_dist is not None:
@@ -715,16 +718,11 @@ class BoardEdgeOne(HeatSchov):
 
 
 class BoardEdgeTwo(BoardEdgeOne):
-    side_offset = 10
-    fres_offset = 7.47
-    length = 32.940
-    fres_trim_dist = 0
-    other_trim_dist = 14
-    fillet_r = 3
 
-    def __init__(self, curve, rev=False, spec_dist=None):
-        BoardEdgeOne.__dict__['__init__'](self, curve, rev=rev, spec_dist=spec_dist)
+    def __init__(self, curve, params=None, rev=False, spec_dist=None):
+        BoardEdgeOne.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist)
 
+        self.other_trim_dist = 15
     @property
     def join(self):
         crv = self.fres_trim()
@@ -740,16 +738,16 @@ class BoardEdgeTwo(BoardEdgeOne):
 
     @property
     def holes_curve(self):
-        crv = self.crv.Offset(rh.Plane.WorldXY, self.length - self.side_offset, 0.01,
+        crv = self.crv.Offset(rh.Plane.WorldXY, self.side_offset, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         if self.rev:
-            p_one = crv.LengthParameter(self.side_offset)[1]
+            p_one = crv.LengthParameter(self.param_trim)[1]
             p_two = crv.LengthParameter(crv.GetLength() - self.other_trim_dist)[1]
             crv = crv.Trim(p_one, p_two)
         else:
             p_one = crv.LengthParameter(self.other_trim_dist)[1]
-            p_two = crv.LengthParameter(crv.GetLength() - self.side_offset)[1]
+            p_two = crv.LengthParameter(crv.GetLength() - self.param_trim)[1]
             crv = crv.Trim(p_one, p_two)
 
         if self.spec_dist is not None:

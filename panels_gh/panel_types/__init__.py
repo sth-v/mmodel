@@ -527,8 +527,8 @@ class B_1(BoardPanel):
 
 
 class B_2(BoardEdge):
-    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, **kwargs):
-        BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
+    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
+        BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
 
 
 class B_3(BoardEdge):
@@ -552,14 +552,14 @@ class B_3(BoardEdge):
             return [side] + list(self.unrol[1])
         else:
             return [side]
-    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, **kwargs):
-        BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
+    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
+        BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
 
     def gen_side_types(self):
-
+        print(self.trim_params.top, self.trim_params.side)
 
         ss = [Bottom(i.ToNurbsCurve()) for i in list(self.edges)[2:]]
-        self.side = [BoardEdgeTwo(list(self.edges)[0].ToNurbsCurve(), rev=True, spec_dist=1)] + [BoardEdgeOne(list(self.edges)[1].ToNurbsCurve())] + ss
+        self.side = [BoardEdgeTwo(list(self.edges)[0].ToNurbsCurve(), params=self.trim_params.top, rev=True, spec_dist=1)] + [BoardEdgeOne(list(self.edges)[1].ToNurbsCurve(), params=self.trim_params.side)] + ss
         self.side_types = self.side
         self.intersect()
 

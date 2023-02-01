@@ -259,22 +259,35 @@ class ReversiblePattern(Pattern):
             j.Transform(rg.Transform.Translation(self.__l, 0, 0))
 
 
-'''def main():
-    global x, y, circle
 
-    cog = TT(x, y, circle)
-    cu = PatternSimple(cog, 46, 1000)
-    cnt = []
-    for ii in cu:
-        print(ii)
-        h = ii[0]
-        cnt.append(h)
-        try:
-            v = ii[1]
-            cnt.append(v)
-        except:
-            pass
-    return cnt
+class ReversePatternSimple(PatternSimple):
+    def __init__(self, unit, module_length=46, length=1000):
+        PatternSimple.__dict__["__init__"](self, unit, module_length=module_length, length=l)
 
-if __name__ == "__main__":
-    a = main()'''
+        self._contour.Transform(rg.Transform.Translation(length, 0, 0))
+
+        for j in self._hole:
+            j.Transform(rg.Transform.Translation(length, 0, 0))
+
+    def next(self):
+        if self.constrain():
+            self._len -= self.module_length
+            return self.next_transform()
+        else:
+            raise StopIteration
+
+    def constrain(self):
+        return self._len >= -46
+
+    @property
+    def trsf(self):
+        return rg.Transform.Translation(-self.module_length, 0, 0)
+
+    def reload(self):
+        PatternSimple.reload(self)
+        self._contour.Transform(rg.Transform.Translation(self._len, 0, 0))
+
+        for j in self._hole:
+            j.Transform(rg.Transform.Translation(self._len, 0, 0))
+
+

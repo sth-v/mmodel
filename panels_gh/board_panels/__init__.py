@@ -398,14 +398,16 @@ class BoardEdge(SimplePanel):
     def all_elems(self):
         return self.cut + self.fres
 
-    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None):
+    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None):
         SimplePanel.__dict__['__init__'](self, surf, holes, cogs_bend, tag)
+
+        self.trim_params = params
+
         unrol = rh.Unroller(self.surf)
 
         self.holes = holes
         if self.holes['point'] is not None:
             unrol.AddFollowingGeometry(curves=self.holes['point'])
-
 
         self.unrol = unrol.PerformUnroll()
         self.unrol_surf = self.unrol[0][0]
@@ -431,7 +433,7 @@ class BoardEdge(SimplePanel):
     def gen_side_types(self):
 
         ss = [Bottom(i) for i in list(self.edges)[0:-2]]
-        self.side = ss + [BoardEdgeOne(list(self.edges)[-2], spec_dist=2)] + [BoardEdgeTwo(list(self.edges)[-1], rev=True, spec_dist=1)]
+        self.side = ss + [BoardEdgeOne(list(self.edges)[-2], params=self.trim_params.side, spec_dist=2)] + [BoardEdgeTwo(list(self.edges)[-1], params=self.trim_params.top, rev=True, spec_dist=1)]
         self.side_types = self.side
         self.intersect()
 
