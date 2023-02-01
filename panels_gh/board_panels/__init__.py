@@ -390,6 +390,7 @@ class BoardEdge(SimplePanel):
         else:
             return [side]
 
+
     @property
     def bound_frame(self):
         return self._bound_rect

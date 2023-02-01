@@ -621,22 +621,23 @@ class RibsSideTwo(HeatSchov):
         HeatSchov.__dict__['__init__'](self, curve)
 
 
-class BoardEdgeOne(HeatSchov):
+class BoardEdgeOne(object):
 
     def __init__(self, curve, params=None, rev=False, spec_dist=None):
-        HeatSchov.__dict__['__init__'](self, curve)
 
         self.side_offset = params.offset
         self.fres_offset = params.ext_bend + (params.crv_len/2)
         self.length = 3 * params.ext_bend + params.crv_len
-        self.param_trim = params.trim
+        self.param_trim = 0
+        self.param_trim_hls = -params.trim
         self.fillet_r = 3
 
         self.rev = rev
         self.spec_dist = spec_dist
 
+        self.fres = self.curve_offset(curve)
         self.crv = curve
-        self.crv_none=self.crv.Offset(rh.Plane.WorldXY, self.length - self.side_offset, 0.01,
+        self.crv_none=self.crv.Offset(rh.Plane.WorldXY, -self.side_offset, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
     @property
@@ -652,7 +653,21 @@ class BoardEdgeOne(HeatSchov):
 
         self._join = rh.Curve.JoinCurves([sm_tr, fillet])
 
-        return self._join[0]
+        return fillet
+
+    @property
+    def top_part(self):
+        crv = self.fres_trim()
+        self._top_part = crv.Offset(rh.Plane.WorldXY, self.length, 0.01,
+                                          rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._top_part[0]
+
+    @property
+    def fres_shift(self):
+        self._fres_shift = self.fres_trim().Offset(rh.Plane.WorldXY, self.fres_offset, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._fres_shift[0]
+
 
     @property
     def hls(self):
@@ -678,10 +693,10 @@ class BoardEdgeOne(HeatSchov):
         crv = self.crv.Offset(rh.Plane.WorldXY, self.side_offset, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         if not self.rev:
-            p_two = crv.LengthParameter(crv.GetLength() - self.param_trim)[1]
+            p_two = crv.LengthParameter(crv.GetLength() - self.param_trim_hls)[1]
             crv = crv.Trim(crv.Domain[0], p_two)
         else:
-            p_one = crv.LengthParameter(self.param_trim)[1]
+            p_one = crv.LengthParameter(self.param_trim_hls)[1]
             crv = crv.Trim(p_one, crv.Domain[1])
 
         if self.spec_dist is not None:
@@ -699,22 +714,31 @@ class BoardEdgeOne(HeatSchov):
         return circ
 
     def fres_trim(self):
+        fres = self.fres.DuplicateCurve()
         if self.rev:
-            p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
-            tr = self.fres.Trim(p_one, self.fres.Domain[1])
+
+            p_one = fres.LengthParameter(self.param_trim)[1]
+            tr = fres.Trim(p_one,fres.Domain[1])
         else:
-            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
-            tr = self.fres.Trim(self.fres.Domain[0], p_two)
+            p_two = fres.LengthParameter(fres.GetLength() - self.param_trim)[1]
+            tr = fres.Trim(fres.Domain[0], p_two)
         return tr
 
     def small_trim(self):
+        fres = self.fres.DuplicateCurve()
         if self.rev:
-            p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
-            tr_t = self.fres.Trim(self.fres.Domain[0], p_one)
+            p_one = fres.LengthParameter(self.param_trim)[1]
+            tr_t = fres.Trim(fres.Domain[0], p_one)
         else:
-            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
-            tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
+            p_two = fres.LengthParameter(fres.GetLength() - self.param_trim)[1]
+            tr_t = fres.Trim(p_two, fres.Domain[1])
         return tr_t
+
+    def curve_offset(self, curve):
+        crv = rh.Curve.Offset(curve, rh.Plane.WorldXY, -self.side_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])
+        return crv[0]
+
 
 
 class BoardEdgeTwo(BoardEdgeOne):
@@ -733,7 +757,7 @@ class BoardEdgeTwo(BoardEdgeOne):
         join = rh.Curve.JoinCurves([one, self.top_part, two])[0]
         fillet = rh.Curve.CreateFilletCornersCurve(join, self.fillet_r, 0.1, 0.1)
 
-        self._join = rh.Curve.JoinCurves([sm_tr[0], fillet, sm_tr[1]])
+        self._join = rh.Curve.JoinCurves([sm_tr, fillet])
         return self._join[0]
 
     @property
@@ -742,12 +766,12 @@ class BoardEdgeTwo(BoardEdgeOne):
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         if self.rev:
-            p_one = crv.LengthParameter(self.param_trim)[1]
+            p_one = crv.LengthParameter(self.param_trim_hls)[1]
             p_two = crv.LengthParameter(crv.GetLength() - self.other_trim_dist)[1]
             crv = crv.Trim(p_one, p_two)
         else:
             p_one = crv.LengthParameter(self.other_trim_dist)[1]
-            p_two = crv.LengthParameter(crv.GetLength() - self.param_trim)[1]
+            p_two = crv.LengthParameter(crv.GetLength() - self.param_trim_hls)[1]
             crv = crv.Trim(p_one, p_two)
 
         if self.spec_dist is not None:
@@ -772,27 +796,25 @@ class BoardEdgeTwo(BoardEdgeOne):
 
     def fres_trim(self):
         if self.rev:
-            p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
             p_two = self.fres.LengthParameter(self.fres.GetLength() - self.other_trim_dist)[1]
-            tr = self.fres.Trim(p_one, p_two)
+            tr = self.fres.Trim(self.fres.Domain[0], p_two)
         else:
             p_one = self.fres.LengthParameter(self.other_trim_dist)[1]
-            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
-            tr = self.fres.Trim(p_one, p_two)
+            tr = self.fres.Trim(p_one, self.fres.Domain[1])
         return tr
 
     def small_trim(self):
         if self.rev:
-            p_one = self.fres.LengthParameter(self.fres_trim_dist)[1]
+            p_one = self.fres.LengthParameter(self.param_trim)[1]
             p_two = self.fres.LengthParameter(self.fres.GetLength() - self.other_trim_dist)[1]
             tr_o = self.fres.Trim(self.fres.Domain[0], p_one)
             tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
         else:
             p_one = self.fres.LengthParameter(self.other_trim_dist)[1]
-            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.fres_trim_dist)[1]
-            tr_o = self.fres.Trim(self.fres.Domain[0], p_one)
-            tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
-        return [tr_o, tr_t]
+            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.param_trim)[1]
+            tr_t = self.fres.Trim(self.fres.Domain[0], p_one)
+            tr_o = self.fres.Trim(p_two, self.fres.Domain[1])
+        return tr_t
 
 
 
