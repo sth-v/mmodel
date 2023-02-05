@@ -534,16 +534,16 @@ class B_2(BoardEdge):
 class B_3(BoardEdge):
     @property
     def fres(self):
-        fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[1].fres_shift.DuplicateCurve()]
+        fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[-1].fres_shift.DuplicateCurve()]
         return fres
 
     @property
     def cut(self):
 
-        ss = [i.fres for i in self.side[2:]]
+        ss = [i.fres for i in self.side[1:-1]]
 
-        side = rh.Curve.JoinCurves([self.side[0].join] + [self.side[1].join] + ss)[0]
-        hls = self.side[0].holes_curve + self.side[1].holes_curve
+        side = rh.Curve.JoinCurves([self.side[0].join] + ss + [self.side[-1].join])[0]
+        hls = self.side[0].holes_curve + self.side[-1].holes_curve
 
         for i in hls:
             side = rh.Curve.CreateBooleanDifference(side, i)[0]
@@ -556,10 +556,9 @@ class B_3(BoardEdge):
         BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
 
     def gen_side_types(self):
-        print(self.trim_params.top, self.trim_params.side)
 
-        ss = [Bottom(i.ToNurbsCurve()) for i in list(self.edges)[2:]]
-        self.side = [BoardEdgeTwo(list(self.edges)[0].ToNurbsCurve(), params=self.trim_params.top, rev=True, spec_dist=1)] + [BoardEdgeOne(list(self.edges)[1].ToNurbsCurve(), params=self.trim_params.side)] + ss
+        ss = [Bottom(i.ToNurbsCurve()) for i in list(self.edges)[1:-1]]
+        self.side = [BoardEdgeOne(list(self.edges)[0].ToNurbsCurve(), params=self.trim_params.top, rev=True, tag=self.tag)] + ss + [BoardEdgeTwo(list(self.edges)[-1].ToNurbsCurve(), params=self.trim_params.side, spec_dist=1, tag=self.tag)]
         self.side_types = self.side
         self.intersect()
 

@@ -116,10 +116,7 @@ class UnrollPackage:
                 new = self.panels_dict[key](**value)
 
                 setattr(self, key, MiniFrame(new))
-                #setattr(self, key, new)
                 det = getattr(self, key)
-                #self.data.append(det.all_elems)
-
             else:
                 pass
 

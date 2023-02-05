@@ -262,12 +262,27 @@ class ReversiblePattern(Pattern):
 
 class ReversePatternSimple(PatternSimple):
     def __init__(self, unit, module_length=46, length=1000):
-        PatternSimple.__dict__["__init__"](self, unit, module_length=module_length, length=l)
+        PatternSimple.__dict__["__init__"](self, unit, module_length=module_length, length=length)
+        self.__unit = unit
+        self.unit = copy.deepcopy(unit)
+        self.u = self.unit.ln
+        self.__c = rg.Circle(rg.Point3d(-11.5, 16.9, 0), 1.75).ToNurbsCurve()
+        self.circ = copy.deepcopy(self.__c)
+        self.module_length = module_length
+        self.length = length+(11.5*2)
+        self._len = self.length
+        self._hole = self.u.hole
+        self._contour = self.u.contour
 
-        self._contour.Transform(rg.Transform.Translation(length, 0, 0))
+        self.i = 1
+
+
+        self._contour.Transform(rg.Transform.Translation(length+(11.5*2), 0, 0))
 
         for j in self._hole:
-            j.Transform(rg.Transform.Translation(length, 0, 0))
+            j.Transform(rg.Transform.Translation(length+(11.5*2), 0, 0))
+
+        self.circ.Transform(rg.Transform.Translation(length+(11.5*2), 0, 0))
 
     def next(self):
         if self.constrain():
@@ -277,10 +292,10 @@ class ReversePatternSimple(PatternSimple):
             raise StopIteration
 
     def constrain(self):
-        return self._len >= -46
+        return self._len >= 0
 
     @property
-    def trsf(self):
+    def transform(self):
         return rg.Transform.Translation(-self.module_length, 0, 0)
 
     def reload(self):
@@ -289,5 +304,24 @@ class ReversePatternSimple(PatternSimple):
 
         for j in self._hole:
             j.Transform(rg.Transform.Translation(self._len, 0, 0))
+
+    def next_transform(self):
+
+        _circ = copy.deepcopy(self.circ)
+        _hole = copy.deepcopy(self._hole)
+
+        self.circ.Transform(self.transform)
+        for j in self._hole:
+            j.Transform(self.transform)
+
+        if self.i % 2 != 0:
+            p = Pat(0, [_circ])
+            self.i += 1
+            return p
+        else:
+            p = Pat(0, _hole)
+            self.i += 1
+            return p
+
 
 

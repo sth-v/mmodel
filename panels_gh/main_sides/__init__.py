@@ -87,11 +87,15 @@ def translate(point, crv):
     return tr
 
 def divide_edge(crv, ofs=20, num=2):
+    if crv.GetLength() < 45:
+        ofs = 10
+    else:
+        ofs = 20
     st = crv.ClosestPoint(crv.PointAtLength(ofs))[1]
     end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
     curve = crv.Trim(st, end)
 
-    if curve.GetLength() > 45:
+    if curve.GetLength() > 25:
         param = curve.DivideByCount(num, True)
         points = [curve.PointAt(i) for i in param]
     else:
@@ -364,11 +368,18 @@ class NicheShortenedBoard(NicheShortened):
     pattern = ReversiblePattern
 
     @property
+    def region_holes(self):
+        if self.init_cogs:
+            return self.hls[2:-2]
+        else:
+            return self.hls[0:-2]
+
+    @property
     def cogs_unit(self):
         if self.init_cogs:
             return self.__class__.pattern(self._cg, 23, self.bend_axis.GetLength())
         else:
-            return PatternSimple(self._cg, 46, self.bend_axis.GetLength())
+            return ReversePatternSimple(self._cg, 46, self.bend_axis.GetLength())
 
     def __init__(self, curve, init_cogs=False):
         NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
@@ -441,9 +452,13 @@ class BoardHolesOne(HolesSideOne):
     def __init__(self, curve, reverse=None, holes=True, spec_dist=None):
         HolesSideOne.__dict__['__init__'](self, curve, reverse=reverse, holes=holes, spec_dist=spec_dist)
 
+class HolesSideOneExtra(HolesSideOne):
+    angle = 45
+    def __init__(self, curve, reverse=None, holes=True, spec_dist=None):
+        HolesSideOne.__dict__['__init__'](self, curve, reverse=reverse, holes=holes, spec_dist=spec_dist)
 
 
-class HolesSideTwo(Side):
+class HolesSideTwo(HolesSideOne):
 
     @property
     def hls(self):
@@ -623,11 +638,18 @@ class RibsSideTwo(HeatSchov):
 
 class BoardEdgeOne(object):
 
-    def __init__(self, curve, params=None, rev=False, spec_dist=None):
+    def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
 
+        if tag[2] == 'L':
+            inv = -1
+        else:
+            inv = 1
+
+        self.param = params
         self.side_offset = params.offset
-        self.fres_offset = params.ext_bend + (params.crv_len/2)
-        self.length = 3 * params.ext_bend + params.crv_len
+        self.fres_offset = (params.ext_bend + (params.crv_len/2))*inv
+        self.holes_offset = (params.ext_bend + (params.crv_len / 2) - (params.bound_len-(params.crv_len / 2)))
+        self.length = (3 * params.ext_bend + params.crv_len)*inv
         self.param_trim = 0
         self.param_trim_hls = -params.trim
         self.fillet_r = 3
@@ -690,7 +712,7 @@ class BoardEdgeOne(object):
 
     @property
     def holes_curve(self):
-        crv = self.crv.Offset(rh.Plane.WorldXY, self.side_offset, 0.01,
+        crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         if not self.rev:
             p_two = crv.LengthParameter(crv.GetLength() - self.param_trim_hls)[1]
@@ -743,8 +765,8 @@ class BoardEdgeOne(object):
 
 class BoardEdgeTwo(BoardEdgeOne):
 
-    def __init__(self, curve, params=None, rev=False, spec_dist=None):
-        BoardEdgeOne.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist)
+    def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
+        BoardEdgeOne.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
 
         self.other_trim_dist = 15
     @property
@@ -783,6 +805,9 @@ class BoardEdgeTwo(BoardEdgeOne):
         for i, v in enumerate(points):
             p = translate(v, self.top_part)
             c = self.hls.DuplicateCurve()
+
+            rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
+            c.Transform(rotate)
             c.Transform(p)
             circ.append(c)
 

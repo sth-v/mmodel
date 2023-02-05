@@ -554,6 +554,7 @@ class FramerBoard:
 
         if ribs is not None:
             for i in self._cls.panel.ribs_marker:
+
                 p = rh.Point3d(i[1][0]-u, i[1][1]-v, 0)
                 tagobj.plane =rh.Plane(p, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
                 tagobj.text = i[0][-1]
