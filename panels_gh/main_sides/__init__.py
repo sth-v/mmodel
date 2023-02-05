@@ -639,8 +639,8 @@ class RibsSideTwo(HeatSchov):
 class BoardEdgeOne(object):
 
     def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
-
-        if tag[2] == 'L':
+        self.tag = tag
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
             inv = -1
         else:
             inv = 1
@@ -801,12 +801,18 @@ class BoardEdgeTwo(BoardEdgeOne):
         else:
             points = divide_edge(crv)
 
+        setattr(self, "points_v", points)
+
         circ = []
         for i, v in enumerate(points):
             p = translate(v, self.top_part)
             c = self.hls.DuplicateCurve()
 
-            rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
+            if self.tag[2] == 'L' or self.tag[2] == 'C':
+                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
+            else:
+                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))
+
             c.Transform(rotate)
             c.Transform(p)
             circ.append(c)

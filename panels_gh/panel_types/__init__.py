@@ -532,6 +532,22 @@ class B_2(BoardEdge):
 
 
 class B_3(BoardEdge):
+
+    @property
+    def cut_hole(self):
+        if self.tag[2] == 'R':
+            ofs = self.side[2].fres.Offset(rh.Plane.WorldXY, -10, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        else:
+            ofs = self.side[2].fres.Offset(rh.Plane.WorldXY, 10, 0.01,
+                                           rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        p = ofs.PointAtLength(ofs.GetLength()-25.0)
+        circ = rh.Circle(p, 2.5)
+
+        return circ.ToNurbsCurve()
+
     @property
     def fres(self):
         fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[-1].fres_shift.DuplicateCurve()]
@@ -551,7 +567,7 @@ class B_3(BoardEdge):
         if len(self.unrol[1]) >= 1:
             return [side] + list(self.unrol[1])
         else:
-            return [side]
+            return [side, self.cut_hole]
     def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
         BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
 
