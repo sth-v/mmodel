@@ -784,7 +784,7 @@ class BoardEdgeTwo(BoardEdgeOne):
 
     @property
     def holes_curve(self):
-        crv = self.crv.Offset(rh.Plane.WorldXY, self.side_offset, 0.01,
+        crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         if self.rev:
