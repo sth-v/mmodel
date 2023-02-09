@@ -648,17 +648,18 @@ class BoardEdgeOne(object):
         self.param = params
         self.side_offset = params.offset
         self.fres_offset = (params.ext_bend + (params.crv_len/2))*inv
-        self.holes_offset = (params.ext_bend + (params.crv_len / 2) - (params.bound_len-(params.crv_len / 2)))
-        self.length = (3 * params.ext_bend + params.crv_len)*inv
+        self.holes_offset = (params.safe_zone - (abs(self.side_offset)-abs(self.fres_offset)))
+        self.length = (params.safe_zone-(params.crv_len / 2) + 2*params.ext_bend + params.crv_len)*inv
         self.param_trim = 0
         self.param_trim_hls = -params.trim
-        self.fillet_r = 3
+        self.fillet_r = 2
 
         self.rev = rev
         self.spec_dist = spec_dist
 
-        self.fres = self.curve_offset(curve)
         self.crv = curve
+        self.fres = self.curve_offset(self.crv)
+
         self.crv_none=self.crv.Offset(rh.Plane.WorldXY, -self.side_offset, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
@@ -673,7 +674,7 @@ class BoardEdgeOne(object):
         fillet = rh.Curve.CreateFilletCornersCurve(join, self.fillet_r, 0.1, 0.1)
 
 
-        self._join = rh.Curve.JoinCurves([sm_tr, fillet])
+        #self._join = rh.Curve.JoinCurves([sm_tr, fillet])
 
         return fillet
 
@@ -712,8 +713,16 @@ class BoardEdgeOne(object):
 
     @property
     def holes_curve(self):
-        crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
+
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
+            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        else:
+            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+
         if not self.rev:
             p_two = crv.LengthParameter(crv.GetLength() - self.param_trim_hls)[1]
             crv = crv.Trim(crv.Domain[0], p_two)
@@ -728,8 +737,17 @@ class BoardEdgeOne(object):
 
         circ = []
         for i, v in enumerate(points):
+
             p = translate(v, self.top_part)
             c = self.hls.DuplicateCurve()
+
+            if self.tag[2] == 'L' or self.tag[2] == 'C':
+                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
+            else:
+                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))
+
+            c.Transform(rotate)
+
             c.Transform(p)
             circ.append(c)
 
@@ -738,7 +756,6 @@ class BoardEdgeOne(object):
     def fres_trim(self):
         fres = self.fres.DuplicateCurve()
         if self.rev:
-
             p_one = fres.LengthParameter(self.param_trim)[1]
             tr = fres.Trim(p_one,fres.Domain[1])
         else:
@@ -757,7 +774,8 @@ class BoardEdgeOne(object):
         return tr_t
 
     def curve_offset(self, curve):
-        crv = rh.Curve.Offset(curve, rh.Plane.WorldXY, -self.side_offset, 0.01,
+        cc = curve.DuplicateCurve()
+        crv = rh.Curve.Offset(cc, rh.Plane.WorldXY, -self.side_offset, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])
         return crv[0]
 
@@ -784,8 +802,15 @@ class BoardEdgeTwo(BoardEdgeOne):
 
     @property
     def holes_curve(self):
-        crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
-                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
+            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        else:
+            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
 
         if self.rev:
             p_one = crv.LengthParameter(self.param_trim_hls)[1]
@@ -826,25 +851,27 @@ class BoardEdgeTwo(BoardEdgeOne):
         return self._fres_shift[0]
 
     def fres_trim(self):
+        fres = self.fres.DuplicateCurve()
         if self.rev:
-            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.other_trim_dist)[1]
-            tr = self.fres.Trim(self.fres.Domain[0], p_two)
+            p_two = fres.LengthParameter(fres.GetLength() - self.other_trim_dist)[1]
+            tr = fres.Trim(fres.Domain[0], p_two)
         else:
-            p_one = self.fres.LengthParameter(self.other_trim_dist)[1]
-            tr = self.fres.Trim(p_one, self.fres.Domain[1])
+            p_one = fres.LengthParameter(self.other_trim_dist)[1]
+            tr = fres.Trim(p_one, fres.Domain[1])
         return tr
 
     def small_trim(self):
+        fres = self.fres.DuplicateCurve()
         if self.rev:
-            p_one = self.fres.LengthParameter(self.param_trim)[1]
-            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.other_trim_dist)[1]
-            tr_o = self.fres.Trim(self.fres.Domain[0], p_one)
-            tr_t = self.fres.Trim(p_two, self.fres.Domain[1])
+            p_one = fres.LengthParameter(self.param_trim)[1]
+            p_two = fres.LengthParameter(fres.GetLength() - self.other_trim_dist)[1]
+            #tr_o = fres.Trim(self.fres.Domain[0], p_one)
+            tr_t = fres.Trim(p_two, fres.Domain[1])
         else:
-            p_one = self.fres.LengthParameter(self.other_trim_dist)[1]
-            p_two = self.fres.LengthParameter(self.fres.GetLength() - self.param_trim)[1]
-            tr_t = self.fres.Trim(self.fres.Domain[0], p_one)
-            tr_o = self.fres.Trim(p_two, self.fres.Domain[1])
+            p_one = fres.LengthParameter(self.other_trim_dist)[1]
+            #p_two = fres.LengthParameter(self.fres.GetLength() - self.param_trim)[1]
+            tr_t = fres.Trim(fres.Domain[0], p_one)
+            #tr_o = self.fres.Trim(p_two, self.fres.Domain[1])
         return tr_t
 
 

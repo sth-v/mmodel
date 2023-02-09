@@ -563,11 +563,11 @@ class B_3(BoardEdge):
 
         for i in hls:
             side = rh.Curve.CreateBooleanDifference(side, i)[0]
-
+        fillet = rh.Curve.CreateFilletCornersCurve(side, 2, 0.1, 0.1)
         if len(self.unrol[1]) >= 1:
-            return [side] + list(self.unrol[1])
+            return [fillet] + list(self.unrol[1])
         else:
-            return [side, self.cut_hole]
+            return [fillet]
     def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
         BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
 
@@ -581,15 +581,18 @@ class B_3(BoardEdge):
     def intersect(self):
         for i, v in enumerate(self.side_types):
             old = v.fres.Domain
-            if old[1]-old[0] > 5:
-                v.fres = v.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
+            if old[1]-old[0] > 2:
+                v.fres = v.fres.Extend(rh.Interval(old[0] - 7, old[1] + 7))
             else:
                 v.fres = v.fres.Extend(rh.Interval(old[0] - 0.025, old[1] + 0.025))
             param = []
             for ind, val in enumerate(self.side_types):
                 if i != ind:
                     old = val.fres.Domain
-                    new = val.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
+                    if old[1] - old[0] > 2:
+                        new = val.fres.Extend(rh.Interval(old[0] - 7, old[1] + 7))
+                    else:
+                        new = val.fres.Extend(rh.Interval(old[0] - 0.025, old[1] + 0.025))
                     inters = rs.CurveCurveIntersection(v.fres, new)
                     if inters is not None:
                         param.append(inters[0][5])

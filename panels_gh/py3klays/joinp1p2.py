@@ -2,15 +2,19 @@ import copy
 import gzip
 import json
 import os
+import sys
 import time
 
+sys.path.extend(["/Users/andrewastakhov/PycharmProjects", "/Users/andrewastakhov/PycharmProjects/mmodel/panels_gh"])
+
 import rhino3dm
-import rhino3dm as rh
+from rhino3dm import _rhino3dm as rh
+
+PANELS_GH_DUMPS = os.getenv('PANELS_GH_DUMPS')
 
 
 class RH:
     def __init__(self, tag, time, layers, **kwargs):
-
         self.time = time
         super().__init__()
         # self.frame = frame
@@ -19,20 +23,8 @@ class RH:
         self.model = rhino3dm.File3dm()
         self.model2 = rhino3dm.File3dm()
         self.layers = []
+        self._layers = layers
         self.layers2 = []
-
-        for l in copy.deepcopy(layers):
-            try:
-                self.layers.append(Lay(model=self.model, **l))
-            except:
-                continue
-
-        for l2 in layers:
-
-            try:
-                self.layers2.append(Lay2(model=self.model2, **l2))
-            except:
-                continue
 
     def write(self):
         spl = self.tag.split("-")
@@ -44,8 +36,20 @@ class RH:
             pass
         fp = f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag[:-2]}/{self.tag}.3dm"
         fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag[:-2]}/{self.tag}.3dm"
-        self.model.Write(fp, 7)
-        self.model2.Write(fpfrez, 7)
+
+        if int(self.tag[-1]) in [1]:
+            for l in copy.deepcopy(self._layers):
+                self.layers.append(Lay(model=self.model, **l))
+            for l2 in self._layers:
+                self.layers2.append(Lay2(model=self.model2, **l2))
+            self.model2.Write(fpfrez, 7)
+
+            self.model.Write(fp, 7)
+        else:
+            for l in copy.deepcopy(self._layers):
+                self.layers.append(LayP3(model=self.model, **l))
+            self.model.Write(fp, 7)
+
         # todxf(fp + ".3dm", fp2 + ".dxf")
 
         # self.model.Write(f"dumps/{self.tag}/{self.tag}"+".dxf")
@@ -62,10 +66,7 @@ class Lay:
         self._lay.Name = kwargs["name"]
 
         self._lay.Color = tuple(kwargs["color"])
-        if kwargs["name"] == "Laser Cut":
-            self._lay.Visible = True
-        else:
-            self._lay.Visible = (kwargs["visible"])
+        self._lay.Visible = (kwargs["visible"])
 
         lay_index = self.model.Layers.Add(self._lay)
         m = rh.Transform.Mirror(rhino3dm.Plane.WorldYZ())
@@ -93,10 +94,7 @@ class Lay2:
         self._lay.Name = kwargs["name"]
 
         self._lay.Color = tuple(kwargs["color"] + [255])
-        if kwargs["name"] == "Laser Cut":
-            self._lay.Visible = True
-        else:
-            self._lay.Visible = (kwargs["visible"])
+        self._lay.Visible = (not kwargs["visible"])
 
         lay_index = self.model.Layers.Add(self._lay)
         m = rh.Transform.Mirror(rhino3dm.Plane.WorldYZ())
@@ -115,19 +113,49 @@ class Lay2:
                 self.model.Objects.Add(obj, attrs)
 
 
+class LayP3:
+
+    def __init__(self, model=None, **kwargs):
+        super().__init__()
+        self.model = model
+        self._lay = rhino3dm.Layer()
+        self._lay.Name = kwargs["name"]
+
+        self._lay.Color = tuple(kwargs["color"])
+        self._lay.Visible = (kwargs["visible"])
+
+        lay_index = self.model.Layers.Add(self._lay)
+        m = rh.Transform.Mirror(rhino3dm.Plane.WorldYZ())
+        if kwargs["objects"] is not None:
+            for o in kwargs["objects"]:
+                # obj = list(self.model.Objects)[-1]
+
+                attrs = rhino3dm.ObjectAttributes()
+                attrs.PlotColorSource = rhino3dm.ObjectPlotColorSource.PlotColorFromLayer
+                attrs.ColorSource = rhino3dm.ObjectColorSource.ColorFromLayer
+                attrs.LayerIndex = lay_index
+                o["archive3dm"] = 70
+                obj = rhino3dm.CommonObject.Decode(o)
+                # obj.Transform(m)
+                # print(obj)
+                self.model.Objects.Add(obj, attrs)
+
+
 if __name__ == "__main__":
 
     s = round(time.time())
-    os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/cut")
-    os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/frez")
+    os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/cut", exist_ok=True)
+    os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/frez", exist_ok=True)
     # client = sessions.S3Client(bucket=os.getenv('BUCKET'), prefix="workspace/cxm/arc/")
     for i in os.scandir(f"{os.getenv('PANELS_GH_DUMPS')}/panels"):
-        with open(i.path, "rb") as gz:
-            print(i.name, end="", flush=True)
-            # client.s3.put_object(Bucket=client.bucket, Key=f"{client.bucket }/{client.prefix}/build{s}", Body=bts)
-            for obj in json.loads(gzip.decompress(gz)):
-                print(obj['tag'])
-                # print(obj)
-                a = RH(**obj, time=1)
+        with gzip.open(f"{os.getenv('PANELS_GH_DUMPS')}/panels/{i.name}", "rb", compresslevel=9) as gz:
+            try:
+                bts = gz.read()
 
-                a.write()
+                # client.s3.put_object(Bucket=client.bucket, Key=f"{client.bucket }/{client.prefix}/build", Body=bts)
+                for obj in json.loads(bts):
+                    # print(obj)
+                    a = RH(**obj, time=1)
+                    a.write()
+            except:
+                print(i.name)
