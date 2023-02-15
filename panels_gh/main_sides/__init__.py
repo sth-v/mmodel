@@ -362,7 +362,8 @@ class NicheShortened(Niche):
 class NicheShortenedBoard(NicheShortened):
     angle_niche = 45
     angle = 30
-    side_offset = niche_shift(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
+    #side_offset = niche_shift(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
+    side_offset = 2.0
     length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
     cogs_shift = 0
     pattern = ReversiblePattern
@@ -372,7 +373,7 @@ class NicheShortenedBoard(NicheShortened):
         if self.init_cogs:
             return self.hls[2:-2]
         else:
-            return self.hls[0:-2]
+            return self.hls[0:]
 
     @property
     def cogs_unit(self):
@@ -383,6 +384,7 @@ class NicheShortenedBoard(NicheShortened):
 
     def __init__(self, curve, init_cogs=False):
         NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
+        print(self.side_offset, self.length)
 
 
 
@@ -560,7 +562,7 @@ class BottomPanel(BendSide):
 
 
 class BottomBoard(BendSide):
-    side_offset = 0.25
+    side_offset = 0.35
 
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
@@ -646,8 +648,8 @@ class BoardEdgeOne(object):
             inv = 1
 
         self.param = params
-        self.side_offset = params.offset
-        self.fres_offset = (params.ext_bend + (params.crv_len/2))*inv
+        self.side_offset = (params.bound_len + params.ext_bend)*inv
+        self.fres_offset = (abs(self.side_offset) - (params.bound_len-params.crv_len/2))*inv
         self.holes_offset = (params.safe_zone - (abs(self.side_offset)-abs(self.fres_offset)))
         self.length = (params.safe_zone-(params.crv_len / 2) + 2*params.ext_bend + params.crv_len)*inv
         self.param_trim = 0
@@ -735,6 +737,8 @@ class BoardEdgeOne(object):
         else:
             points = divide_edge(crv)
 
+        setattr(self, "points_v", points)
+
         circ = []
         for i, v in enumerate(points):
 
@@ -742,9 +746,9 @@ class BoardEdgeOne(object):
             c = self.hls.DuplicateCurve()
 
             if self.tag[2] == 'L' or self.tag[2] == 'C':
-                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
+                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))
             else:
-                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))
+                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
 
             c.Transform(rotate)
 

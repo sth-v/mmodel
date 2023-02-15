@@ -152,6 +152,16 @@ class BendLikePanel(SimplePanel):
         return tr
 
     @property
+    def plane_disp(self):
+        xaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[0] + 0.01) - self.bottom.fres.PointAt(
+            self.bottom.fres.Domain[1] - 0.01))
+        yaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[0] + 0.01) - self.bottom.fres.PointAt(
+            self.bottom.fres.Domain[1] - 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(self.bottom.fres.PointAt(self.bottom.fres.Domain[1]), xaxis, yaxis)
+        return bound_plane
+
+    @property
     def top_parts(self):
         top = [self.side[0].top_part.DuplicateCurve(), self.niche.top_part.DuplicateCurve(),
                self.side[1].top_part.DuplicateCurve()]
@@ -199,6 +209,7 @@ class BendLikePanel(SimplePanel):
                     cc = rh.Circle(ii, 3.25)
                     cc.Transform(self.bound_plane)
                     circ.append(cc.ToNurbsCurve())
+
 
             return circ
         else:
@@ -267,7 +278,7 @@ class BoardPanel(MainPanel):
     @property
     def ribs_marker(self):
         pairs=[]
-        for n, c in zip(self.mark_name, self.bend_mark):
+        for n, c in zip(self.mark_name, self.bend_mark[1::2]):
 
             cent = c.PointAtNormalizedLength(1.0)
             cent.Transform(self.bound_plane)
@@ -411,10 +422,12 @@ class BoardEdge(SimplePanel):
         for i in hls:
             side = rh.Curve.CreateBooleanDifference(side,i)[0]
 
+        fillet = rh.Curve.CreateFilletCornersCurve(side, 2, 0.1, 0.1)
+
         if len(self.unrol[1]) >=1:
-            return [side] + list(self.unrol[1])
+            return [fillet] + list(self.unrol[1])
         else:
-            return [side]
+            return [fillet]
 
 
     @property
@@ -423,7 +436,7 @@ class BoardEdge(SimplePanel):
 
     @property
     def all_elems(self):
-        return self.cut + self.fres
+        return self.cut
 
     def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None):
         SimplePanel.__dict__['__init__'](self, surf, holes, cogs_bend, tag)

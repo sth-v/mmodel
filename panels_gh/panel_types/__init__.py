@@ -27,7 +27,7 @@ main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffi
 
 main_sides.__init__("main_sides", "generic nodule")
 from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, \
-    RibsSide, HolesSideThree, RibsSideTwo, BoardEdgeOne, BoardEdgeTwo
+    RibsSide, HolesSideThree, RibsSideTwo, BoardEdgeOne, BoardEdgeTwo, NicheShortenedBoard, BottomBoard
 
 reload(main_sides)
 
@@ -525,6 +525,64 @@ class B_1(BoardPanel):
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
         BoardPanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
 
+class B_1_T(BoardPanel):
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
+        BoardPanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
+
+    @property
+    def parent_plane(self):
+        xaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[1] - 0.01) - self.bottom.fres.PointAt(
+            self.bottom.fres.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[1] - 0.01) - self.bottom.fres.PointAt(
+            self.bottom.fres.Domain[0] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        parent_plane = rh.Plane(self.bottom.fres.PointAt(self.bottom.fres.Domain[0]), xaxis, yaxis)
+        return parent_plane
+
+    @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+
+    @property
+    def plane_disp(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
+        return bound_plane
+
+    @property
+    def bound_box(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        return j
+
+    def gen_side_types(self):
+
+        self.niche = NicheShortenedBoard(self.edges[3], self.cogs_bend)
+        self.bottom = BottomBoard(self.edges[1])
+        self.side = [HolesSideTwo(self.edges[2]), HolesSideOne(self.edges[0])]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+
+
+
 
 class B_2(BoardEdge):
     def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
@@ -532,6 +590,9 @@ class B_2(BoardEdge):
 
 
 class B_3(BoardEdge):
+    @property
+    def all_elems(self):
+        return self.cut + [self.cut_hole]
 
     @property
     def cut_hole(self):
@@ -545,8 +606,9 @@ class B_3(BoardEdge):
 
         p = ofs.PointAtLength(ofs.GetLength()-25.0)
         circ = rh.Circle(p, 2.5)
+        cc = circ.ToNurbsCurve()
 
-        return circ.ToNurbsCurve()
+        return cc
 
     @property
     def fres(self):
