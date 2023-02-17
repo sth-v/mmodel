@@ -528,7 +528,7 @@ class B_1(BoardPanel):
 class B_1_T(BoardPanel):
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
         BoardPanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
-
+        self.mark_name = ['2', '5', '4', '3', '6']
     @property
     def parent_plane(self):
         xaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[1] - 0.01) - self.bottom.fres.PointAt(
@@ -551,25 +551,6 @@ class B_1_T(BoardPanel):
         bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
-
-
-    @property
-    def plane_disp(self):
-        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
-        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
-            self.niche.fres.Domain[0] + 0.01))
-        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
-            self.niche.fres.Domain[0] + 0.01))
-        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
-        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
-        return bound_plane
-
-    @property
-    def bound_box(self):
-        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
-        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
-        return j
 
     def gen_side_types(self):
 
@@ -634,9 +615,13 @@ class B_3(BoardEdge):
         BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
 
     def gen_side_types(self):
+        if list(self.edges)[-1].GetLength() >= 150:
+            num = 2
+        else:
+            num = 1
 
         ss = [Bottom(i.ToNurbsCurve()) for i in list(self.edges)[1:-1]]
-        self.side = [BoardEdgeOne(list(self.edges)[0].ToNurbsCurve(), params=self.trim_params.top, rev=True, tag=self.tag)] + ss + [BoardEdgeTwo(list(self.edges)[-1].ToNurbsCurve(), params=self.trim_params.side, spec_dist=1, tag=self.tag)]
+        self.side = [BoardEdgeOne(list(self.edges)[0].ToNurbsCurve(), params=self.trim_params.top, rev=True, tag=self.tag)] + ss + [BoardEdgeTwo(list(self.edges)[-1].ToNurbsCurve(), params=self.trim_params.side, spec_dist=num, tag=self.tag)]
         self.side_types = self.side
         self.intersect()
 

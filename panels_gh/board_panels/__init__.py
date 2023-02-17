@@ -203,8 +203,12 @@ class BendLikePanel(SimplePanel):
             unrol = list(self.mark_crv)
             circ = []
             for i in unrol:
+                if i.GetLength() >= 150:
+                    num =2
+                else:
+                    num= 1
 
-                c = divide_edge(i, num=1)
+                c = divide_edge(i, num=num)
                 for ii in c:
                     cc = rh.Circle(ii, 3.25)
                     cc.Transform(self.bound_plane)
@@ -474,8 +478,13 @@ class BoardEdge(SimplePanel):
     # edge2_vector.Unitize()
     def gen_side_types(self):
 
+        if list(self.edges)[-1].GetLength() >= 150:
+            num = 2
+        else:
+            num = 1
+
         ss = [Bottom(i) for i in list(self.edges)[1:-1]]
-        self.side = [BoardEdgeOne(list(self.edges)[0], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)] + ss + [BoardEdgeTwo(list(self.edges)[-1], params=self.trim_params.top, spec_dist=1, tag=self.tag)]
+        self.side = [BoardEdgeOne(list(self.edges)[0], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)] + ss + [BoardEdgeTwo(list(self.edges)[-1], params=self.trim_params.top, spec_dist=num, tag=self.tag)]
         self.side_types = self.side
         self.intersect()
 
