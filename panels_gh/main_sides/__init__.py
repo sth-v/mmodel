@@ -790,7 +790,7 @@ class BoardEdgeTwo(BoardEdgeOne):
     def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
         BoardEdgeOne.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
 
-        self.other_trim_dist = 15
+        self.other_trim_dist = 17
     @property
     def join(self):
         crv = self.fres_trim()
@@ -831,6 +831,7 @@ class BoardEdgeTwo(BoardEdgeOne):
             points = divide_edge(crv)
 
         setattr(self, "points_v", points)
+        setattr(self, "crv_tr", crv)
 
         circ = []
         for i, v in enumerate(points):

@@ -70,7 +70,7 @@ class ArcConePanel(MainPanel):
 
     @property
     def marker_curve(self):
-        crv = [self.side[0].fres.DuplicateCurve(), self.side[1].fres.DuplicateCurve()]
+        crv = [self.niche.fres.DuplicateCurve(), self.bottom.fres.DuplicateCurve()]
         [i.Transform(self.bound_plane) for i in crv]
         return crv
 
@@ -412,16 +412,21 @@ class BoardPanel(MainPanel):
 class BoardEdge(SimplePanel):
     @property
     def fres(self):
-        fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[-1].fres_shift.DuplicateCurve()]
+        #fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[-1].fres_shift.DuplicateCurve()]
+        fres = [self.side[4].fres_shift.DuplicateCurve(), self.side[5].fres_shift.DuplicateCurve()]
         return fres
 
     @property
     def cut(self):
 
-        ss = [i.fres for i in self.side[1:-1]]
+        '''ss = [i.fres for i in self.side[1:-1]]
 
         side = rh.Curve.JoinCurves([self.side[0].join]+ss+[self.side[-1].join])[0]
-        hls = self.side[0].holes_curve+self.side[-1].holes_curve
+        hls = self.side[0].holes_curve+self.side[-1].holes_curve'''
+        ss = [i.fres for i in self.side[0:4]]
+
+        side = rh.Curve.JoinCurves(ss+[self.side[4].join] + [self.side[5].join])[0]
+        hls = self.side[4].holes_curve + self.side[5].holes_curve
 
         for i in hls:
             side = rh.Curve.CreateBooleanDifference(side,i)[0]
@@ -459,16 +464,18 @@ class BoardEdge(SimplePanel):
 
 
         self.gen_side_types()
-        edge1_vector = rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart)
-        edge0_pt = self.edges[0].PointAt(self.edges[0].GetLength() / 2)
-        edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)
+        edge1_vector = rh.Vector3d(self.edges[5].PointAtEnd - self.edges[5].PointAtStart)
+        '''edge0_pt = self.edges[0].PointAt(self.edges[0].GetLength() / 2)
+        edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)'''
+        edge0_pt = self.edges[4].PointAt(self.edges[0].GetLength() / 2)
+        edge3_pt = self.edges[5].PointAt(self.edges[3].GetLength() / 2)
         # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
 
         self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut[0])
 
 
     edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
-    edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
+    edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[5].PointAtEnd - self.edges[5].PointAtStart))
 
 
     @property
@@ -478,13 +485,24 @@ class BoardEdge(SimplePanel):
     # edge2_vector.Unitize()
     def gen_side_types(self):
 
-        if list(self.edges)[-1].GetLength() >= 150:
+        '''if list(self.edges)[-1].GetLength() >= 150:
             num = 2
         else:
             num = 1
 
         ss = [Bottom(i) for i in list(self.edges)[1:-1]]
         self.side = [BoardEdgeOne(list(self.edges)[0], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)] + ss + [BoardEdgeTwo(list(self.edges)[-1], params=self.trim_params.top, spec_dist=num, tag=self.tag)]
+        self.side_types = self.side
+        self.intersect()'''
+
+        if list(self.edges)[4].GetLength() >= 150:
+            num = 2
+        else:
+            num = 1
+
+        ss = [Bottom(i) for i in list(self.edges)[0:4]]
+        self.side = ss + [BoardEdgeTwo(list(self.edges)[4], params=self.trim_params.top, spec_dist=num, tag=self.tag)] + \
+                    [BoardEdgeOne(list(self.edges)[5], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)]
         self.side_types = self.side
         self.intersect()
 

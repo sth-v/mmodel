@@ -370,7 +370,7 @@ class MainFrame:
             e = offset_side(*i)
             all_offset.append(e)
 
-        #all_offset = intersect(all_offset)
+        all_offset = intersect(all_offset)
         return all_offset
 
     def frame_inner(self):
