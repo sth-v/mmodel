@@ -56,7 +56,7 @@ main_framing.__init__("main_framing", "generic nodule")
 
 reload(main_framing)
 
-from main_framing import MainFrame, MiniFrame,BoardFrame
+from main_framing import MainFrame, MiniFrame,BoardFrame, ConeFrame
 
 import main_tagging
 
@@ -107,7 +107,7 @@ class UnrollPackage:
                         i.hls = self.bend_hole
                 except AttributeError:
                     pass
-                setattr(self, key, MainFrame(new))
+                setattr(self, key, ConeFrame(new))
 
                 det = getattr(self, key)
                 self.data.append(det.all_elems)

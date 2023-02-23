@@ -57,6 +57,36 @@ def divide_edge(crv, ofs=20, num=2):
 
 
 class ArcConePanel(MainPanel):
+    top_ofs = 45
+
+    @property
+    def bound_plane(self):
+        cone = list(self.marks[1][len(self.pins_mark):])[0]
+
+        xaxis = rh.Vector3d(cone.PointAt(cone.Domain[1] - 0.01) - cone.PointAt(cone.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(cone.PointAt(cone.Domain[1] - 0.01) - cone.PointAt(cone.Domain[0] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+
+        bound_plane = rh.Plane(b_r.Min, xaxis, yaxis)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+
+        return tr
+
+    @property
+    def frame_dict(self):
+
+        diag = self.diag_side([self.top_parts[1].PointAtEnd, self.top_parts[0].PointAtStart, self.fres[1].PointAtEnd])
+        top = self.fres[2]
+        p_niche = self.fres[1]
+        p_bend = self.fres[0]
+        order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[2, self.top_parts[1], None], [0, self.top_parts[0], None], [3, self.top_parts[2], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
     @property
     def pins_marker(self):

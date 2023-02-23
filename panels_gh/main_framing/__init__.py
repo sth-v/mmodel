@@ -381,6 +381,53 @@ class MainFrame:
         return frame_offset
 
 
+class ConeFrame(MainFrame):
+    def __init__(self, panel):
+        MainFrame.__dict__['__init__'](self, panel)
+
+    @property
+    def region(self):
+        ofs_sides = self.all_offset()
+        o, t, thr = ofs_sides[self.bridge[0][0]], ofs_sides[self.bridge[1][0]], ofs_sides[self.bridge[2][0]]
+        spec = self.bridge[0][2]
+
+        if self.cogs is True:
+            elems = self.cogs_points(o) + self.simple_points(t, self.bridge[1][1], spec) + self.simple_points(thr, self.bridge[2][1], spec)
+        else:
+            elems = self.simple_points(o, self.bridge[0][1], spec) + self.simple_points(t, self.bridge[1][1], spec) + self.simple_points(thr, self.bridge[2][1], spec)
+
+        elems.append(self.frame_offset)
+        elems.append(self.panel.cut[0])
+        new = list(rh.Curve.CreateBooleanUnion(elems, 0.1))
+        new.extend(self.panel.cut[1:])
+
+        if any([i.IsValid is False for i in new]):
+            raise TypeError
+        else:
+            return new
+
+    def frame_inner(self):
+        offset = rh.Curve.JoinCurves(self.all_offset())[0]
+        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend,
+                                                    offset.PointAtEnd[2])).ToNurbsCurve()
+        crv_t = rh.Line(offset.PointAtStart, rh.Point3d(offset.PointAtStart[0], offset.PointAtStart[1] + self.bend,
+                                                    offset.PointAtStart[2])).ToNurbsCurve()
+        frame_offset = rh.Curve.JoinCurves([crv_t, offset, crv])
+        return frame_offset
+
+    @property
+    def bound_frame(self):
+        rec = bound_rec(self.frame_all())
+
+        min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
+        max_transl = rh.Point3d(rec.Max[0], rec.Max[1] + self.bottom_rec, 0)
+        bound_frame = rh.Rectangle3d(rh.Plane.WorldXY, min_transl, max_transl)
+        self._bound_frame = bound_frame.ToNurbsCurve()
+
+        return self._bound_frame
+
+
+
 class BoardFrame(MainFrame):
 
     def __init__(self, panel):
