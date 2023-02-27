@@ -408,9 +408,9 @@ class ConeFrame(MainFrame):
 
     def frame_inner(self):
         offset = rh.Curve.JoinCurves(self.all_offset())[0]
-        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend,
+        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - (self.bend+15),
                                                     offset.PointAtEnd[2])).ToNurbsCurve()
-        crv_t = rh.Line(offset.PointAtStart, rh.Point3d(offset.PointAtStart[0], offset.PointAtStart[1] + self.bend,
+        crv_t = rh.Line(offset.PointAtStart, rh.Point3d(offset.PointAtStart[0], offset.PointAtStart[1] + (self.bend+15),
                                                     offset.PointAtStart[2])).ToNurbsCurve()
         frame_offset = rh.Curve.JoinCurves([crv_t, offset, crv])
         return frame_offset

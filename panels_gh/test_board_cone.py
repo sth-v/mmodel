@@ -45,7 +45,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 panel_types.__init__("panel_types", "generic nodule")
-from panel_types import P_1, P_2, N_1, N_3, N_2, P_3, N_4, B_1, B_2,PC_1,PC_2, B_3, B_1_T
+from panel_types import P_1, P_2, N_1, N_3, N_2, P_3, N_4, B_1, B_2,PC_1,PC_2, B_3, B_1_T, PCR_1
 
 reload(panel_types)
 
@@ -108,6 +108,7 @@ class UnrollPackage:
                 except AttributeError:
                     pass
                 setattr(self, key, ConeFrame(new))
+                #setattr(self, key, MainFrame(new))
 
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
