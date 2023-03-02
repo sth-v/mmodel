@@ -917,8 +917,8 @@ class NC_R_3(N_2):
         self.gen_side_types()
 
     def gen_side_types(self):
-        self.top = Bottom(self.edges[0])
-        self.bottom = Bottom(self.edges[2])
+        self.top = Bottom(self.edges[2])
+        self.bottom = Bottom(self.edges[0])
         self.side = [HolesSideOne(self.edges[3], spec_dist=250), HolesSideThree(self.edges[1], spec_dist=250)]
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]

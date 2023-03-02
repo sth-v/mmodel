@@ -100,7 +100,7 @@ def offset_side(elem, dist, extend='st', extend_dist=0.65):
     elif extend == 'e':
         det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 200])
     elif extend == 'both':
-        if elem.Domain[1] > 1 or elem.Domain[1] < -1:
+        if elem.Domain[0] != 0 and elem.Domain[1] !=1:
             det = offset(elem, dist, extend=[elem.Domain[0] + 200, elem.Domain[1] - 200])
             if det is None:
                 det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1] + 200])
@@ -373,12 +373,12 @@ class MainFrame:
             e = offset_side(*i)
             all_offset.append(e)
 
-        #all_offset = intersect(all_offset)
+        all_offset = intersect(all_offset)
         return all_offset
 
     def frame_inner(self):
         offset = rh.Curve.JoinCurves(self.all_offset()[0:-1])[0]
-        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend,
+        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend-15,
                                                     offset.PointAtEnd[2])).ToNurbsCurve()
         frame_offset = rh.Curve.JoinCurves([offset, crv])
         return frame_offset
