@@ -118,7 +118,7 @@ class ArcConePanel(MainPanel):
         else:
             pass
 
-    @property
+    ''''@property
     def grav_cone(self):
         if self.marks[1] is not None:
             unrol = list(self.marks[1][len(self.pins_mark):])
@@ -129,7 +129,8 @@ class ArcConePanel(MainPanel):
                 crv.append(ii)
             return crv
         else:
-            pass
+            pass'''
+
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, pins=None, pins_mark=None, cone_mark=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
@@ -138,7 +139,7 @@ class ArcConePanel(MainPanel):
         self.pins_mark = pins_mark
         self.c_mark = cone_mark
 
-        marks = rh.Unroller(self.surf)
+        marks = rh.Unroller(brep=self.surf)
         if self.pins is not None:
             p = [self.surf.ClosestPoint(i) for i in self.pins]
             marks.AddFollowingGeometry(points=p)

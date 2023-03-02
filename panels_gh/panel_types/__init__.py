@@ -27,7 +27,7 @@ main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffi
 
 main_sides.__init__("main_sides", "generic nodule")
 from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, \
-    RibsSide, HolesSideThree, RibsSideTwo, BoardEdgeOne, BoardEdgeTwo, NicheShortenedBoard, BottomBoard
+    RibsSide, HolesSideThree, RibsSideTwo, BoardEdgeOne, BoardEdgeTwo, NicheShortenedBoard, BottomBoard, BottomHeat
 
 reload(main_sides)
 
@@ -229,6 +229,86 @@ class P_3(SimplePanel):
         self.side_types = self.side
         self.intersect()
 
+class PC_4(P_3):
+
+    @property
+    def plane(self):
+        return rh.Plane(self.edges[1].PointAtNormalizedLength(0.5), self.edge1_vector, self.edge2_vector)
+    @property
+    def cut(self):
+        side = rh.Curve.JoinCurves([self.side[0].fres, self.side[1].fres, self.side[2].fres, self.side[3].fres])[0]
+        return [side]
+    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None):
+        P_3.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
+
+    edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
+    edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[1].PointAtEnd - self.edges[1].PointAtStart))
+
+    @property
+    def all_elems(self):
+        _all_elems = [[], [], [], [], [], []]
+
+        _all_elems[0].extend(self.cut)
+        return _all_elems
+
+    def gen_side_types(self):
+        self.side = [Bottom(self.edges[0]), Bottom(self.edges[1]), Bottom(self.edges[2]),
+                     Bottom(self.edges[3])]
+        self.side_types = self.side
+        self.intersect()
+
+
+class PC_3(P_3):
+
+    @property
+    def cut(self):
+        side = rh.Curve.JoinCurves([self.side[0].fres, self.side[1].fres, self.side[2].fres, self.side[3].fres])[0]
+        return [side]
+
+    @property
+    def all_elems(self):
+
+        _all_elems = [[], [], [], [], [], []]
+
+
+        _all_elems[0].extend(self.cut + self.cut_holes)
+        _all_elems[4].extend(self.rib_mark)
+        # _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
+
+        return _all_elems
+
+
+    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, rib_mark=None):
+        P_3.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
+
+        unrol = rh.Unroller(self.surf)
+
+        if self.pins is not None:
+            unrol.AddFollowingGeometry(points=self.pins)
+            unrol.AddFollowingGeometry(curves=rib_mark)
+
+        self.unrol = unrol.PerformUnroll()
+        self.unrol_surf = self.unrol[0][0]
+        self.rib_mark = self.unrol[1]
+        self.edges = self.unrol_surf.Curves3D
+        self.gen_side_types()
+        edge1_vector = rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart)
+        edge0_pt = self.edges[0].PointAt(self.edges[0].GetLength() / 2)
+        edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)
+        # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
+
+        self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+
+    edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
+    edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[1].PointAtEnd - self.edges[1].PointAtStart))
+
+    def gen_side_types(self):
+        self.side = [BottomHeat(self.edges[0]), Bottom(self.edges[1]), BottomHeat(self.edges[2]),
+                     Bottom(self.edges[3])]
+        self.side_types = self.side
+        self.intersect()
+
+
 
 class N_1(NichePanel):
 
@@ -254,17 +334,21 @@ class N_1(NichePanel):
     @property
     def cut_podves(self):
         cut = []
+        try:
 
-        ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, 40, 0.01,
-                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-        p = ofs.PointAtLength(12)
-        h_one = rh.Circle(p, 4)
+            ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, 40, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+            p = ofs.PointAtLength(12)
+            h_one = rh.Circle(p, 4)
 
-        ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, -40, 0.01,
-                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-        p = ofs.PointAtLength(12)
-        h_two = rh.Circle(p, 4)
-        return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
+            ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, -40, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+            p = ofs.PointAtLength(12)
+            h_two = rh.Circle(p, 4)
+            return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
+        except:
+            return [rh.Circle(rh.Plane.WorldXY.Origin, 4)]
+
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
         NichePanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
@@ -656,3 +740,18 @@ class B_3(BoardEdge):
             trimed = rh.Curve.Trim(v.fres, param[0], param[1])
             v.fres = trimed
 
+
+
+class NC_1(N_1):
+
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
+        N_1.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
+                                        **kwargs)
+
+    def gen_side_types(self):
+        self.niche = NicheShortened(self.edges[0], self.cogs_bend)
+        self.bottom = Bottom(self.edges[2])
+        self.side = [HolesSideTwo(self.edges[1], False), HolesSideOne(self.edges[3], True)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()

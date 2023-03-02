@@ -286,7 +286,7 @@ class MiniFramer():
         self.rect = self._cls.panel.bound_frame
         try:
             self.spec_center = [self._cls.panel.hole_one, self._cls.panel.hole_two]
-        except AttributeError:
+        except:
             self.spec_center = self._cls.panel.bound_frame
         # Rhino.Display.CustomDisplay.AddLine(
         #   rh.Line(self._cls.panel.edges[1].PointAtEnd, self._cls.panel.edges[1].PointAtStart))

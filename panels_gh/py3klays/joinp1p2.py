@@ -37,7 +37,7 @@ class RH:
         fp = f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag[:-2]}/{self.tag}.3dm"
         fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag[:-2]}/{self.tag}.3dm"
 
-        if int(self.tag[-1]) in [1]:
+        if int(self.tag[-1]) in [1, 2]:
             for l in copy.deepcopy(self._layers):
                 self.layers.append(Lay(model=self.model, **l))
             for l2 in self._layers:

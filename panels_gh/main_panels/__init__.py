@@ -432,8 +432,11 @@ class NichePanel(MainPanel):
             self.mark_name = [self.m_c['rib_name'][0]] + [self.m_c['rib_name'][-1]] + self.m_c['rib_name'][1:-1]
 
         else:
-            self.mark_crv = [i.PullToBrepFace(self.surf.Faces[0], 0.1)[0] for i in self.m_c['rib']]
-            self.mark_name = self.m_c['rib_name']
+            try:
+                self.mark_crv = [i.PullToBrepFace(self.surf.Faces[0], 0.1)[0] for i in self.m_c['rib']]
+                self.mark_name = self.m_c['rib_name']
+            except:
+                pass
 
         unrol = rh.Unroller(self.surf)
         unr_grav = rh.Unroller(self.surf)
@@ -443,10 +446,13 @@ class NichePanel(MainPanel):
             # a = [self.surf.ClosestPoint(i) for i in self.h_p]
             unrol.AddFollowingGeometry(curves=a)
 
-        if self.mark_crv is not None:
-            self.mark_crv = [i.ToNurbsCurve() for i in self.mark_crv]
-            unr_grav.AddFollowingGeometry(curves=self.mark_crv)
-        else:
+        try:
+            if self.mark_crv is not None:
+                self.mark_crv = [i.ToNurbsCurve() for i in self.mark_crv]
+                unr_grav.AddFollowingGeometry(curves=self.mark_crv)
+            else:
+                pass
+        except:
             pass
 
         self.unrol = unrol.PerformUnroll()

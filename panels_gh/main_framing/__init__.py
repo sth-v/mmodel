@@ -130,7 +130,8 @@ class MiniFrame(object):
         with open(PWD + "/configs/layers.json") as f:
             self._layers = json.load(f)
         self.all_elems = list(itertools.repeat([], len(self._layers)))
-        self.all_elems[0] = panel.all_elems
+        #self.all_elems[0] = panel.all_elems
+        self.all_elems = panel.all_elems
         self._text_geometry = [[], [], [], [], [],[]]
         self.tag = self.panel.tag
         self._unroll_dict = {

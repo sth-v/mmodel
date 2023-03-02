@@ -567,6 +567,11 @@ class BottomBoard(BendSide):
     def __init__(self, curve):
         BendSide.__dict__['__init__'](self, curve)
 
+class BottomHeat(BendSide):
+    side_offset = 1.0
+
+    def __init__(self, curve):
+        BendSide.__dict__['__init__'](self, curve)
 
 class HeatSchov(BendSide):
 
