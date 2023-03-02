@@ -406,7 +406,7 @@ class NichePanel(MainPanel):
 
     @property
     def grav(self):
-        if self.unrol[1] is not None:
+        if len(self.unrol[1]) > 0:
 
             points = divide_dist_two(self.fres[1], dist=0)[1:-1]
             circ = []

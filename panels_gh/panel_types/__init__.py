@@ -748,10 +748,179 @@ class NC_1(N_1):
         N_1.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
                                         **kwargs)
 
+    @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
+        setattr(self, 'bpl', bound_plane)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    @property
+    def frame_dict(self):
+
+        diag = self.diag_side([self.top_parts[0].PointAtEnd, self.top_parts[1].PointAtStart, self.fres[1].PointAtStart])
+        diag = diag.Extend(rh.Interval(diag.Domain[0]-30, diag.Domain[1]+30))
+        top = self.top_side()
+        p_niche = self.fres[1]
+        p_bend = self.fres[0]
+        order = [[p_niche, self.niche_ofs, 's'], [diag, self.diag, False], [p_bend, self.bend_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[0, self.top_parts[1], None], [2, self.top_parts[0], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+
     def gen_side_types(self):
-        self.niche = NicheShortened(self.edges[0], self.cogs_bend)
-        self.bottom = Bottom(self.edges[2])
-        self.side = [HolesSideTwo(self.edges[1], False), HolesSideOne(self.edges[3], True)]
+        self.niche = NicheShortened(self.edges[3], self.cogs_bend)
+        self.bottom = Bottom(self.edges[1])
+        self.side = [HolesSideTwo(self.edges[2], False), HolesSideOne(self.edges[0], True)]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
+
+
+class NC_2(NC_1):
+
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
+        NC_1.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
+                                     **kwargs)
+
+class NC_R_1(N_1):
+
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
+        N_1.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
+                                        **kwargs)
+
+    @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        xaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(self.niche.fres.PointAt(self.niche.fres.Domain[1] - 0.01) - self.niche.fres.PointAt(
+            self.niche.fres.Domain[0] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), xaxis, yaxis)
+        setattr(self, 'bpl', bound_plane)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    @property
+    def frame_dict(self):
+
+        diag = self.diag_side([self.top_parts[2].PointAtEnd, self.top_parts[1].PointAtStart, self.fres[1].PointAtStart])
+        diag = diag.Extend(rh.Interval(diag.Domain[0]-30, diag.Domain[1]+30))
+        top = self.top_side()
+        p_niche = self.fres[1]
+        p_bend = self.fres[2]
+        order = [[p_niche, self.niche_ofs, 's'], [diag, self.diag, False], [p_bend, self.bend_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[0, self.top_parts[1], None], [2, self.top_parts[2], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+
+    def gen_side_types(self):
+        self.niche = NicheShortened(self.edges[0], self.cogs_bend)
+        self.bottom = Bottom(self.edges[2])
+        self.side = [HolesSideTwo(self.edges[1], True), HolesSideOne(self.edges[3], False)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+class NC_R_2(NC_R_1):
+
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
+        NC_R_1.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
+                                        **kwargs)
+
+class NC_3(N_2):
+
+    @property
+    def frame_dict(self):
+
+        bf = self.top.fres.DuplicateCurve()
+        bf.Transform(self.bound_plane)
+        p_niche = bf
+        p_bend = self.fres[1]
+
+        ll = self.fres
+        ll.append(p_niche)
+        bound = bound_rec(ll)
+        top = bound.GetEdges()[2].ToNurbsCurve()
+
+        order = [[p_niche, self.niche_ofs, 'st'], [p_bend, self.bend_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[0, p_niche, None], [1, self.top_parts[1], True]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
+                                        **kwargs)
+
+        self.gen_side_types()
+
+    def gen_side_types(self):
+        self.top = Bottom(self.edges[3])
+        self.bottom = Bottom(self.edges[1])
+        self.side = [HolesSideOne(self.edges[0], spec_dist=250), HolesSideThree(self.edges[2], spec_dist=250)]
+
+        self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+    @property
+    def bound_plane(self):
+        vec = rh.Vector3d(self.top.fres.PointAtEnd - self.top.fres.PointAtStart)
+        rot = rh.Vector3d(self.top.fres.PointAtEnd - self.top.fres.PointAtStart)
+
+        rot.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+
+        bound_plane = rh.Plane(self.top.fres.PointAtStart, vec, rot)
+        setattr(self, 'bpl', bound_plane)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+
+class NC_R_3(N_2):
+
+    @property
+    def frame_dict(self):
+
+        bf = self.top.fres.DuplicateCurve()
+        bf.Transform(self.bound_plane)
+        p_niche = bf
+        p_bend = self.fres[1]
+
+        ll = self.fres
+        ll.append(p_niche)
+        bound = bound_rec(ll)
+        top = bound.GetEdges()[2].ToNurbsCurve()
+
+        order = [[p_niche, self.niche_ofs, 'st'], [p_bend, self.bend_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[0, p_niche, None], [1, self.top_parts[1], True]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, **kwargs):
+        NichePanel.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
+                                        **kwargs)
+
+        self.gen_side_types()
+
+    def gen_side_types(self):
+        self.top = Bottom(self.edges[0])
+        self.bottom = Bottom(self.edges[2])
+        self.side = [HolesSideOne(self.edges[3], spec_dist=250), HolesSideThree(self.edges[1], spec_dist=250)]
+
+        self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+

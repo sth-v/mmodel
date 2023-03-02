@@ -45,7 +45,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 panel_types.__init__("panel_types", "generic nodule")
-from panel_types import NC_1, B_1, B_2,PC_1,PC_2, B_3, B_1_T, PC_3, PC_4
+from panel_types import NC_1, NC_2, B_1, B_2,PC_1,PC_2, B_3, B_1_T, PC_3, PC_4, NC_R_1, NC_R_2, NC_3, NC_R_3
 
 reload(panel_types)
 
@@ -64,8 +64,8 @@ reload(main_tagging)
 
 
 class UnrollPackage:
-    panels_dict = {'PC_1': PC_1, 'PC_2': PC_2, 'B_1': B_1, 'B_2': B_2, 'B_3':B_3, 'B_1_T':B_1_T,
-                   'PC_3':PC_3, 'PC_4':PC_4, 'NC_1':NC_1}
+    panels_dict = {'PC_1': PC_1, 'PC_2': PC_2, 'B_1': B_1, 'B_2': B_2, 'B_3':B_3, 'B_1_T':B_1_T, 'NC_3':NC_3,
+                   'NC_R_3': NC_R_3, 'PC_3':PC_3, 'PC_4':PC_4, 'NC_1':NC_1, 'NC_2':NC_2, 'NC_R_1': NC_R_1, 'NC_R_2':NC_R_2}
 
     def __init__(self, x, y, circle, bend_hole, p3_hole, cog_hole, elements):
         self.cog = TT(x, y, circle)
@@ -93,7 +93,33 @@ class UnrollPackage:
                 except AttributeError:
                     pass
                 setattr(self, key, BoardFrame(new))
-                #setattr(self, key, new)
+
+            elif key == "NC_1" or key == "NC_2" or key == "NC_R_1" or key == "NC_R_2":
+                new = self.panels_dict[key](**value)
+
+                new.niche.cg = self.cog
+                new.niche.cog_hole = self.cog_hole
+                new.niche.generate_cogs()
+
+                try:
+                    for i in new.side:
+                        i.hls = self.bend_hole
+                except AttributeError:
+                    pass
+                setattr(self, key, MainFrame(new))
+
+            elif key == "NC_3" or key == "NC_R_3":
+                new = self.panels_dict[key](**value)
+                try:
+                    for i in new.side:
+                        i.hls = self.bend_hole
+                except AttributeError:
+                    pass
+                setattr(self, key, MainFrame(new))
+
+                det = getattr(self, key)
+                self.data.append(det.all_elems)
+
 
 
             elif key == "PC_1" or key =="PC_2":
@@ -111,8 +137,6 @@ class UnrollPackage:
                 setattr(self, key, ConeFrame(new))
                 #setattr(self, key, MainFrame(new))
 
-                det = getattr(self, key)
-                self.data.append(det.all_elems)
 
 
             elif key == 'B_2' or key == 'B_3':

@@ -260,8 +260,8 @@ class TagFour(Tag):
         shpindel = ['0.58410865736586,0,0', '-4,-4.451242716713182,0', '-19.853477782260782,-4.451242716713182,0',
                     '-19.853477782260782,4.451242716713182,0', '-4,4.451242716713182,0', '0.58410865736586,0,0']
         shpindel_curve = rh.Polyline([rh.Point3d.TryParse(shp)[1] for shp in shpindel]).ToPolylineCurve()
-        shpindel_curve.Transform(rh.Transform.Translation(self.plane.Origin.X, self.plane.Origin.Y + 130, 0.0))
-        self.text = " " + self.text[2:]
+        shpindel_curve.Transform(rh.Transform.Translation(self.plane.Origin.X, self.plane.Origin.Y + 120, 0.0))
+        self.text =  self.text[2:]
         mxf = Rhino.Geometry.Transform.Mirror(
             Rhino.Geometry.Plane(self.plane.Origin, self.plane.ZAxis, self.plane.YAxis))
         res = [shpindel_curve]

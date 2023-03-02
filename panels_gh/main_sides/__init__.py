@@ -384,13 +384,12 @@ class NicheShortenedBoard(NicheShortened):
 
     def __init__(self, curve, init_cogs=False):
         NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
-        print(self.side_offset, self.length)
 
 
 
 class Side(BendSide):
     side_offset = 1.0
-    angle = 30
+    angle = 45
 
     @property
     def top_part(self):

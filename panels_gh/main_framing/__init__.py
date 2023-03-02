@@ -100,7 +100,7 @@ def offset_side(elem, dist, extend='st', extend_dist=0.65):
     elif extend == 'e':
         det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 200])
     elif extend == 'both':
-        if elem.Domain[1] > 1:
+        if elem.Domain[1] > 1 or elem.Domain[1] < -1:
             det = offset(elem, dist, extend=[elem.Domain[0] + 200, elem.Domain[1] - 200])
             if det is None:
                 det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1] + 200])
@@ -268,10 +268,12 @@ class MainFrame:
         _all_elems[1].extend(self.panel.fres)
         # _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
 
-        if hasattr(self.panel, "grav"):
+        #if hasattr(self.panel, "grav"):
+        try:
             _all_elems[3].extend(self.panel.grav)
-        else:
+        except TypeError:
             pass
+
         if hasattr(self.panel, "grav_laser"):
             _all_elems[4].extend(self.panel.grav_laser)
 
@@ -371,7 +373,7 @@ class MainFrame:
             e = offset_side(*i)
             all_offset.append(e)
 
-        all_offset = intersect(all_offset)
+        #all_offset = intersect(all_offset)
         return all_offset
 
     def frame_inner(self):
