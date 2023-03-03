@@ -851,7 +851,7 @@ class NC_3(N_2):
         p_niche = bf
         p_bend = self.fres[1]
 
-        ll = self.fres
+        ll = [self.fres[1]]
         ll.append(p_niche)
         bound = bound_rec(ll)
         top = bound.GetEdges()[2].ToNurbsCurve()
@@ -862,11 +862,29 @@ class NC_3(N_2):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, **kwargs):
+    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, cone_mark=None,**kwargs):
         NichePanel.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
                                         **kwargs)
+        self.c_mark = cone_mark
 
-        self.gen_side_types()
+        marks = rh.Unroller(brep=self.surf)
+        if self.c_mark is not None:
+            marks.AddFollowingGeometry(curves=self.c_mark)
+
+        self.marks = marks.PerformUnroll()
+
+    @property
+    def grav_cone(self):
+        if self.marks[1] is not None:
+            crv = []
+            for i in self.marks[1]:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                crv.append(ii)
+            return crv
+        else:
+            pass
+
 
     def gen_side_types(self):
         self.top = Bottom(self.edges[3])
@@ -878,14 +896,18 @@ class NC_3(N_2):
 
     @property
     def bound_plane(self):
-        vec = rh.Vector3d(self.top.fres.PointAtEnd - self.top.fres.PointAtStart)
-        rot = rh.Vector3d(self.top.fres.PointAtEnd - self.top.fres.PointAtStart)
+
+        cone = list(self.marks[1])[0]
+
+        vec = rh.Vector3d(cone.PointAtEnd - cone.PointAtStart)
+        rot = rh.Vector3d(cone.PointAtEnd - cone.PointAtStart)
 
         rot.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
 
-        bound_plane = rh.Plane(self.top.fres.PointAtStart, vec, rot)
+        bound_plane = rh.Plane(self.top.fres.PointAtStart, rot, -vec)
         setattr(self, 'bpl', bound_plane)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+
         return tr
 
 
