@@ -338,12 +338,12 @@ class N_1(NichePanel):
 
             ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, 40, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-            p = ofs.PointAtLength(12)
+            p = ofs.PointAtLength(ofs.GetLength()-12)
             h_one = rh.Circle(p, 4)
 
             ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, -40, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-            p = ofs.PointAtLength(12)
+            p = ofs.PointAtLength(ofs.GetLength()-12)
             h_two = rh.Circle(p, 4)
             return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
         except:
@@ -863,7 +863,7 @@ class NC_3(N_2):
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
     def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, cone_mark=None,**kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
+        N_2.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
                                         **kwargs)
         self.c_mark = cone_mark
 
@@ -914,6 +914,19 @@ class NC_3(N_2):
 class NC_R_3(N_2):
 
     @property
+    def grav_cone(self):
+        if self.marks[1] is not None:
+            crv = []
+            for i in self.marks[1]:
+                ii = i.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                crv.append(ii)
+            return crv
+        else:
+            pass
+
+
+    @property
     def frame_dict(self):
 
         bf = self.top.fres.DuplicateCurve()
@@ -932,9 +945,17 @@ class NC_R_3(N_2):
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
-    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, **kwargs):
-        NichePanel.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
+    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, cone_mark=None,**kwargs):
+        N_2.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
                                         **kwargs)
+
+        self.c_mark = cone_mark
+
+        marks = rh.Unroller(brep=self.surf)
+        if self.c_mark is not None:
+            marks.AddFollowingGeometry(curves=self.c_mark)
+
+        self.marks = marks.PerformUnroll()
 
         self.gen_side_types()
 
@@ -945,4 +966,20 @@ class NC_R_3(N_2):
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
         self.intersect()
+
+    @property
+    def bound_plane(self):
+
+        cone = list(self.marks[1])[0]
+
+        vec = rh.Vector3d(cone.PointAtEnd - cone.PointAtStart)
+        rot = rh.Vector3d(cone.PointAtEnd - cone.PointAtStart)
+
+        rot.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+
+        bound_plane = rh.Plane(self.top.fres.PointAtStart, -rot, vec)
+        setattr(self, 'bpl', bound_plane)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+
+        return tr
 

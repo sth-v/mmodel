@@ -450,7 +450,11 @@ class FramerNiche:
             for i in self._cls.panel.ribs_marker:
                 p = rh.Point3d(i[1][0]-u, i[1][1]-v, 0)
                 tagobj.plane =rh.Plane(p, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
-                tagobj.text = i[0][-1]
+                print(i[0][-1])
+                if i[0][-2] == '1':
+                    tagobj.text = i[0][-2:0]
+                else:
+                    tagobj.text = i[0][-1]
 
                 self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
 
@@ -498,7 +502,10 @@ class FramerBack:
             for i in self._cls.panel.ribs_marker:
                 p = rh.Point3d(i[1][0]-u, i[1][1]-v, 0)
                 tagobj.plane =rh.Plane(p, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
-                tagobj.text = i[0][-1]
+                if i[0][-2] == '1':
+                    tagobj.text = i[0][-2]+i[0][-1]
+                else:
+                    tagobj.text = i[0][-1]
 
                 self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
 
