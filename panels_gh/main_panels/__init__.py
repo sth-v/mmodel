@@ -339,11 +339,12 @@ class NichePanel(MainPanel):
     @property
     def ribs_marker(self):
         pairs = []
+        center = []
         gr = self.grav_laser[0:2] + self.grav_laser[2:-1:2]
         for n, c in zip(self.mark_name, gr):
             cent = c.PointAtNormalizedLength(0.5)
             pairs.append([n, cent])
-
+            center.append(cent)
         return pairs
 
     @property

@@ -749,6 +749,25 @@ class NC_1(N_1):
                                         **kwargs)
 
     @property
+    def ribs_marker(self):
+        pairs = []
+        center = []
+        gr = self.grav_laser[0:2] + self.grav_laser[2:-1:2]
+        for n, c in zip(self.mark_name, gr):
+            cent = c.PointAtNormalizedLength(0.5)
+
+            xaxis = rh.Vector3d(c.PointAtEnd - c.PointAtStart)
+            yaxis = rh.Vector3d(c.PointAtEnd - c.PointAtStart)
+            yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+            plane = rh.Plane(cent, xaxis, yaxis)
+
+            pairs.append([n, plane])
+            center.append(plane)
+        setattr(self, 'cent', center)
+
+        return pairs
+
+    @property
     def bound_plane(self):
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
@@ -797,6 +816,41 @@ class NC_R_1(N_1):
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
         N_1.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
                                         **kwargs)
+
+    @property
+    def ribs_marker(self):
+        pairs = []
+        center = []
+        gr = self.grav_laser[0:2] + self.grav_laser[2:-1:2]
+        for n, c in zip(self.mark_name, gr):
+            cent = c.PointAtNormalizedLength(0.5)
+
+            xaxis = rh.Vector3d(c.PointAtEnd - c.PointAtStart)
+            yaxis = rh.Vector3d(c.PointAtEnd - c.PointAtStart)
+            yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+            plane = rh.Plane(cent, -yaxis, -xaxis)
+
+            pairs.append([n, plane])
+            center.append(plane)
+        setattr(self, 'cent', center)
+
+        return pairs
+
+    @property
+    def cut_podves(self):
+
+        ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, -40, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+        p = ofs.PointAtLength(12)
+        h_one = rh.Circle(p, 4)
+
+        ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, 40, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        p = ofs.PointAtLength(12)
+        h_two = rh.Circle(p, 4)
+        return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
+
 
     @property
     def bound_plane(self):

@@ -25,7 +25,7 @@ P_NICHE = 43.53
 import Rhino
 import Rhino.Geometry as rh
 import os
-
+import math
 import sys
 
 if os.getenv("USER") == "sofyadobycina":
@@ -254,16 +254,20 @@ class TagThree(Tag):
 class TagFour(Tag):
     @property
     def transform(self):
-        return Rhino.Geometry.Transform.Scale(self.plane.Origin, self.hight)
+        trx1 = Rhino.Geometry.Transform.Rotation(-math.pi / 2, self.plane.Origin)
+        trx2 = Rhino.Geometry.Transform.Scale(self.plane.Origin, self.hight)
+        return Rhino.Geometry.Transform.Multiply(trx2, trx1)
 
     def generate_curves(self):
-        shpindel = ['0.58410865736586,0,0', '-4,-4.451242716713182,0', '-19.853477782260782,-4.451242716713182,0',
-                    '-19.853477782260782,4.451242716713182,0', '-4,4.451242716713182,0', '0.58410865736586,0,0']
+        #shpindel = ['0.58410865736586,0,0', '-4,-4.451242716713182,0', '-19.853477782260782,-4.451242716713182,0',
+                    #'-19.853477782260782,4.451242716713182,0', '-4,4.451242716713182,0', '0.58410865736586,0,0']
+        shpindel = ['0,-0.58410865736586,0', '-4.451242716713182,4,0', '-4.451242716713182,19.853477782260782,0',
+                    '4.451242716713182,19.853477782260782,0', '4.451242716713182,4,0', '0,-0.58410865736586,0']
         shpindel_curve = rh.Polyline([rh.Point3d.TryParse(shp)[1] for shp in shpindel]).ToPolylineCurve()
-        shpindel_curve.Transform(rh.Transform.Translation(self.plane.Origin.X, self.plane.Origin.Y + 120, 0.0))
-        self.text =  self.text[2:]
+        shpindel_curve.Transform(rh.Transform.Translation(self.plane.Origin.X+125, self.plane.Origin.Y, 0.0))
+        self.text = ' ' + self.text[2:]
         mxf = Rhino.Geometry.Transform.Mirror(
-            Rhino.Geometry.Plane(self.plane.Origin, self.plane.ZAxis, self.plane.YAxis))
+            Rhino.Geometry.Plane(self.plane.Origin, self.plane.ZAxis, self.plane.XAxis))
         res = [shpindel_curve]
         for curve in list(Tag.generate_curves(self)):
             res.extend([curve, not_inplace_transform(curve, mxf)])
@@ -448,9 +452,14 @@ class FramerNiche:
 
         if ribs is not None:
             for i in self._cls.panel.ribs_marker:
-                p = rh.Point3d(i[1][0]-u, i[1][1]-v, 0)
-                tagobj.plane =rh.Plane(p, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
-                print(i[0][-1])
+                try:
+                    p = rh.Point3d(i[1][0]-u, i[1][1]-v, 0)
+                    tagobj.plane =rh.Plane(p, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
+                except:
+                    tr = rh.Transform.Translation(i[1].XAxis * u)
+                    i[1].Transform(tr)
+                    tagobj.plane = i[1]
+
                 if i[0][-2] == '1':
                     tagobj.text = i[0][-2:0]
                 else:
