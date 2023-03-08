@@ -146,7 +146,10 @@ class MiniFrame(object):
         all_elems = self.all_elems
 
         for lay, o, t in itertools.izip_longest(self._layers, all_elems, self.text_geometry, fillvalue=[]):
-            lay["objects"] = o + t
+            try:
+                lay["objects"] = o + t
+            except:
+                lay["objects"] = [o] + t
             lays.append(lay)
         return lays
 

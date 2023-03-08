@@ -839,12 +839,12 @@ class NC_R_1(N_1):
     @property
     def cut_podves(self):
 
-        ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, -40, 0.01,
+        ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, 40, 0.01,
                                         rh.CurveOffsetCornerStyle.__dict__['None'])[0]
         p = ofs.PointAtLength(12)
         h_one = rh.Circle(p, 4)
 
-        ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, 40, 0.01,
+        ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, -40, 0.01,
                                         rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         p = ofs.PointAtLength(12)

@@ -624,22 +624,24 @@ class HeatSchov(BendSide):
 
 
 class RibsSide(HeatSchov):
-    side_offset = None
-    length = 26.73
-    fres_trim_dist = 30
-    fillet_r = 3
 
     def __init__(self, curve):
         HeatSchov.__dict__['__init__'](self, curve)
+        self.side_offset = None
+        self.fres_offset = 4.0
+        self.length = 26.73
+        self.fres_trim_dist = 30
+        self.fillet_r = 3
 
 class RibsSideTwo(HeatSchov):
-    side_offset = None
-    length = -26.73
-    fres_trim_dist = 30
-    fillet_r = 3
 
     def __init__(self, curve):
         HeatSchov.__dict__['__init__'](self, curve)
+        self.side_offset = None
+        self.fres_offset = 4.0
+        self.length = 26.73
+        self.fres_trim_dist = 30
+        self.fillet_r = 3
 
 
 class BoardEdgeOne(object):
