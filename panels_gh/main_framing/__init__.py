@@ -132,7 +132,7 @@ class MiniFrame(object):
         self.all_elems = list(itertools.repeat([], len(self._layers)))
         #self.all_elems[0] = panel.all_elems
         self.all_elems = panel.all_elems
-        self._text_geometry = [[], [], [], [], [],[]]
+        self._text_geometry = [[], [], [], [], [], []]
         self.tag = self.panel.tag
         self._unroll_dict = {
             "frame": self.panel.bound_frame,
@@ -146,10 +146,9 @@ class MiniFrame(object):
         all_elems = self.all_elems
 
         for lay, o, t in itertools.izip_longest(self._layers, all_elems, self.text_geometry, fillvalue=[]):
-            try:
-                lay["objects"] = o + t
-            except:
-                lay["objects"] = [o] + t
+            print(all_elems)
+            lay["objects"] = o + t
+
             lays.append(lay)
         return lays
 

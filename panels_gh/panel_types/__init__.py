@@ -568,9 +568,10 @@ class N_4(SimplePanel):
                 new = i.DuplicateCurve()
                 new.Transform(self.bound_plane)
                 crvs.append(new)
-            return self.cut + crvs
+
+            return [self.cut + crvs]
         else:
-            return self.cut
+            return [self.cut]
 
     def __init__(self, surf, pins=None, cogs_bend=None, tag=None, orient=None, rib_cut=None, **kwargs):
         SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
