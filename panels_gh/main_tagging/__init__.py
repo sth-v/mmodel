@@ -470,8 +470,17 @@ class FramerNiche:
             return self._cls
 
         elif p_mark is not None:
-            center = self.rect.PointAt(1 - u, 1 - v)
-            tagobj.plane = rh.Plane(center, self.rect.Plane.XAxis, self.rect.Plane.YAxis)
+            #center = self.rect.PointAt(1 - u, 1 - v)
+            dup = self._cls.panel.ribs_marker[0][1].Clone()
+
+            tr = rh.Transform.Translation(dup.XAxis * u)
+            dup.Transform(tr)
+
+            tr = rh.Transform.Translation(dup.YAxis * v)
+            dup.Transform(tr)
+            tagobj.plane = dup
+
+            #tagobj.plane = rh.Plane(center, self.rect.Plane.XAxis, self.rect.Plane.YAxis)
             tagobj.text = self._cls.unroll_dict_f["tag"][2:]
 
             self.pl = tagobj.plane

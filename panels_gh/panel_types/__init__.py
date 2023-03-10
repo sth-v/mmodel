@@ -750,6 +750,20 @@ class NC_1(N_1):
                                         **kwargs)
 
     @property
+    def cut_podves(self):
+        ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, 40, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+        p = ofs.PointAtLength(12)
+        h_one = rh.Circle(p, 4)
+
+        ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, -40, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        p = ofs.PointAtLength(12)
+        h_two = rh.Circle(p, 4)
+        return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
+
+    @property
     def ribs_marker(self):
         pairs = []
         center = []
@@ -760,7 +774,7 @@ class NC_1(N_1):
             xaxis = rh.Vector3d(c.PointAtEnd - c.PointAtStart)
             yaxis = rh.Vector3d(c.PointAtEnd - c.PointAtStart)
             yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
-            plane = rh.Plane(cent, xaxis, yaxis)
+            plane = rh.Plane(cent, yaxis, -xaxis)
 
             pairs.append([n, plane])
             center.append(plane)
@@ -811,6 +825,28 @@ class NC_2(NC_1):
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
         NC_1.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
                                      **kwargs)
+
+    @property
+    def cut_podves(self):
+        ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, -40, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+        p = ofs.PointAtLength(12)
+        h_one = rh.Circle(p, 4)
+
+        ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, 40, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        p = ofs.PointAtLength(12)
+        h_two = rh.Circle(p, 4)
+        return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
+
+    def gen_side_types(self):
+        self.niche = NicheShortened(self.edges[3], self.cogs_bend)
+        self.bottom = Bottom(self.edges[1])
+        self.side = [HolesSideOne(self.edges[2], False), HolesSideTwo(self.edges[0], True)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
 
 class NC_R_1(N_1):
 
@@ -895,6 +931,28 @@ class NC_R_2(NC_R_1):
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, mark_crv=None, **kwargs):
         NC_R_1.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, mark_crv=mark_crv,
                                         **kwargs)
+
+    @property
+    def cut_podves(self):
+        ofs = self.grav_laser[0].Offset(rh.Plane.WorldXY, -40, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+        p = ofs.PointAtLength(12)
+        h_one = rh.Circle(p, 4)
+
+        ofs = self.grav_laser[1].Offset(rh.Plane.WorldXY, 40, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        p = ofs.PointAtLength(12)
+        h_two = rh.Circle(p, 4)
+        return [h_one.ToNurbsCurve(), h_two.ToNurbsCurve()]
+
+    def gen_side_types(self):
+        self.niche = NicheShortened(self.edges[0], self.cogs_bend)
+        self.bottom = Bottom(self.edges[2])
+        self.side = [HolesSideOne(self.edges[1], True), HolesSideTwo(self.edges[3], False)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
 
 class NC_3(N_2):
 
@@ -989,7 +1047,7 @@ class NC_R_3(N_2):
         p_niche = bf
         p_bend = self.fres[1]
 
-        ll = self.fres
+        ll = [self.fres[1]]
         ll.append(p_niche)
         bound = bound_rec(ll)
         top = bound.GetEdges()[2].ToNurbsCurve()

@@ -380,7 +380,7 @@ class MainFrame:
 
     def frame_inner(self):
         offset = rh.Curve.JoinCurves(self.all_offset()[0:-1])[0]
-        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend-50,
+        crv = rh.Line(offset.PointAtEnd, rh.Point3d(offset.PointAtEnd[0], offset.PointAtEnd[1] - self.bend-250,
                                                     offset.PointAtEnd[2])).ToNurbsCurve()
         frame_offset = rh.Curve.JoinCurves([offset, crv])
         return frame_offset
