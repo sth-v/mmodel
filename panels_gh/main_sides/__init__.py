@@ -639,7 +639,7 @@ class RibsSideTwo(HeatSchov):
         HeatSchov.__dict__['__init__'](self, curve)
         self.side_offset = None
         self.fres_offset = 4.0
-        self.length = -26.73
+        self.length = 26.73
         self.fres_trim_dist = 30
         self.fillet_r = 3
 

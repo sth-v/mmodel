@@ -94,7 +94,10 @@ class SimplePanel:
             for ind, val in enumerate(self.side_types):
                 if i != ind:
                     old = val.fres.Domain
-                    new = val.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
+                    if -5<=old[0]<=5 and -5<=old[1]<=5:
+                        new = val.fres.Extend(rh.Interval(old[0] - 0.15, old[1] + 0.15))
+                    else:
+                        new = val.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
                     inters = rs.CurveCurveIntersection(v.fres, new)
                     if inters is not None:
                         param.append(inters[0][5])

@@ -525,7 +525,7 @@ class N_4(SimplePanel):
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
 
         if self.orient[0] == '2':
-            fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
+            fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[1]/2)[1]
             if fr.YAxis[0] > 0:
                 bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), fr.XAxis, -fr.YAxis)
             else:
@@ -533,10 +533,11 @@ class N_4(SimplePanel):
         else:
             fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[1])[1]
             if fr.YAxis[0] > 0:
-                bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), -fr.XAxis, -fr.YAxis)
+                bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), fr.XAxis, -fr.YAxis)
             else:
-                bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), -fr.XAxis, fr.YAxis)
+                bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), fr.XAxis, fr.YAxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        setattr(self, 'bpl', bound_plane)
         return tr
 
     @property
@@ -580,7 +581,7 @@ class N_4(SimplePanel):
             self.surf = surf
         else:
             a = surf.DuplicateBrep()
-            a.Flip()
+            #a.Flip()
             self.surf = a
             # print(self.surf)
 
@@ -986,7 +987,7 @@ class NC_3(N_2):
 
         self.marks = marks.PerformUnroll()
 
-    @property
+    '''@property
     def grav_cone(self):
         if self.marks[1] is not None:
             crv = []
@@ -996,7 +997,7 @@ class NC_3(N_2):
                 crv.append(ii)
             return crv
         else:
-            pass
+            pass'''
 
 
     def gen_side_types(self):
@@ -1026,7 +1027,7 @@ class NC_3(N_2):
 
 class NC_R_3(N_2):
 
-    @property
+    '''@property
     def grav_cone(self):
         if self.marks[1] is not None:
             crv = []
@@ -1036,7 +1037,7 @@ class NC_R_3(N_2):
                 crv.append(ii)
             return crv
         else:
-            pass
+            pass'''
 
 
     @property
@@ -1075,7 +1076,7 @@ class NC_R_3(N_2):
     def gen_side_types(self):
         self.top = Bottom(self.edges[2])
         self.bottom = Bottom(self.edges[0])
-        self.side = [HolesSideOne(self.edges[3], spec_dist=250), HolesSideThree(self.edges[1], spec_dist=250)]
+        self.side = [HolesSideThree(self.edges[3], spec_dist=250), HolesSideOne(self.edges[1], spec_dist=250)]
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
         self.intersect()

@@ -461,7 +461,7 @@ class FramerNiche:
                     tagobj.plane = i[1]
 
                 if i[0][-2] == '1':
-                    tagobj.text = i[0][-2:0]
+                    tagobj.text = i[0][-2:]
                 else:
                     tagobj.text = i[0][-1]
 
