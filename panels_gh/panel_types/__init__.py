@@ -168,6 +168,10 @@ class P_3(SimplePanel):
         h = []
         for i in unrol[0:len(self.pins) / 2]:
             c = rh.Circle(i, 5.25)
+            try:
+                c.Transform(self.bound_plane)
+            except:
+                pass
             h.append(c.ToNurbsCurve())
 
         for i in unrol[len(self.pins) / 2:]:
@@ -175,6 +179,10 @@ class P_3(SimplePanel):
             tr = rh.Transform.Translation(vec)
             n = self.hls.DuplicateCurve()
             n.Transform(tr)
+            try:
+                n.Transform(self.bound_plane)
+            except:
+                pass
             h.append(n)
         return h
 
@@ -183,6 +191,10 @@ class P_3(SimplePanel):
         unroll = self.unrol[2]
         cent = unroll[0:len(self.pins) / 2]
         cent = cent[int((4 * len(cent)) / 5)]
+        try:
+            cent.Transform(self.bound_plane)
+        except:
+            pass
         return cent
 
     @property
@@ -190,6 +202,10 @@ class P_3(SimplePanel):
         unroll = self.unrol[2]
         cent = unroll[len(self.pins) / 2:]
         cent = cent[int(len(cent) / 5)]
+        try:
+            cent.Transform(self.bound_plane)
+        except:
+            pass
         return cent
 
     @property
@@ -213,7 +229,10 @@ class P_3(SimplePanel):
         edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)
         # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
 
-        self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+        try:
+            self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut)
+        except:
+            pass
 
     edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
     edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
@@ -259,37 +278,54 @@ class PC_4(P_3):
 
 
 class PC_3(P_3):
+    bend_ofs = 10
+    top_ofs = 0
+    niche_ofs = 10
+
+    bottom_rec = 30
+    side_rec = 30
 
     @property
     def cut(self):
         side = rh.Curve.JoinCurves([self.side[0].fres, self.side[1].fres, self.side[2].fres, self.side[3].fres])[0]
+        side.Transform(self.bound_plane)
         return [side]
 
     @property
-    def all_elems(self):
+    def cut_frame(self):
+        side = [i.fres.DuplicateCurve() for i in self.side]
+        sides = []
+        for i in side:
+            i.Transform(self.bound_plane)
+            sides.append(i)
+        return sides
 
-        _all_elems = [[], [], [], [], [], []]
+    @property
+    def grav_laser(self):
+
+        rib_mark=[]
+        for i in self.rib_mark:
+            crv = i.DuplicateCurve()
+            crv.Transform(self.bound_plane)
+            rib_mark.append(crv)
+        return rib_mark
 
 
-        _all_elems[0].extend(self.cut + self.cut_holes)
-        _all_elems[4].extend(self.rib_mark)
-        # _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
-
-        return _all_elems
-
-
-    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, rib_mark=None):
+    def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None, rib_mark=None, cone_mark=None):
         P_3.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
 
         unrol = rh.Unroller(self.surf)
 
         if self.pins is not None:
             unrol.AddFollowingGeometry(points=self.pins)
-            unrol.AddFollowingGeometry(curves=rib_mark)
+            unrol.AddFollowingGeometry(curves=rib_mark+cone_mark)
 
         self.unrol = unrol.PerformUnroll()
         self.unrol_surf = self.unrol[0][0]
         self.rib_mark = self.unrol[1]
+        self.marks = self.unrol[1]
+        print(self.marks)
+
         self.edges = self.unrol_surf.Curves3D
         self.gen_side_types()
         edge1_vector = rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart)
@@ -307,6 +343,39 @@ class PC_3(P_3):
                      Bottom(self.edges[3])]
         self.side_types = self.side
         self.intersect()
+
+    @property
+    def bound_plane(self):
+        cone = list(self.marks)[-1]
+
+        vec = rh.Vector3d(cone.PointAtEnd - cone.PointAtStart)
+        rot = rh.Vector3d(cone.PointAtEnd - cone.PointAtStart)
+
+        rot.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+
+        bound_plane = rh.Plane(self.side[2].fres.PointAtEnd, -rot, vec)
+        setattr(self, 'bpl', bound_plane)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+
+        return tr
+
+    @property
+    def frame_dict(self):
+
+        bf = self.side[3].fres.DuplicateCurve()
+        bf.Transform(self.bound_plane)
+        p_niche = bf
+        p_bend = self.cut_frame[2]
+
+        ll = self.cut_frame[2:]
+        bound = bound_rec(ll)
+        top = bound.GetEdges()[2].ToNurbsCurve()
+
+        order = [[p_niche, self.niche_ofs, 'st'], [p_bend, self.bend_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[0, p_niche, None], [1, self.cut_frame[2], True]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
 
 

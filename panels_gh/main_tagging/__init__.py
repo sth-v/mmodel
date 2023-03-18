@@ -287,7 +287,10 @@ class MiniFramer():
     def __init__(self, cls):
         self._cls = cls
         self._cls.text_geometry = [[], [], [], [], [], []]
-        self.rect = self._cls.panel.bound_frame
+        try:
+            self.rect = self._cls.bound_rec
+        except:
+            self.rect = self._cls.panel.bound_frame
         try:
             self.spec_center = [self._cls.panel.hole_one, self._cls.panel.hole_two]
         except:
@@ -305,7 +308,7 @@ class MiniFramer():
             center = rh.Point3d(tagobj.plane.Origin[0] - u, tagobj.plane.Origin[1] - v, 0)
             tagobj.plane.Origin = center
             tagobj.text = self._cls.panel.tag
-        else:
+        elif index is not None:
             pp = self.spec_center[p]
             center = rh.Point3d(pp[0] + u, pp[1] + v, 0)
             tagobj.plane.Origin = center
@@ -313,6 +316,18 @@ class MiniFramer():
                 tagobj.text = self._cls.unroll_dict_f["tag"][2:]
             else:
                 tagobj.text = index
+
+        else:
+            rH, rW = 1 / self.rect.Height, 1 / self.rect.Width
+
+            center = self.rect.PointAt(u * rW, v * rH)
+            tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
+            tagobj.text = self._cls.unroll_dict_f["tag"]
+
+            self.pl = tagobj.plane
+            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+
+            return self._cls
 
         # tagobj.plane.Origin = center
 

@@ -146,12 +146,21 @@ class UnrollPackage:
                 det = getattr(self, key)
 
 
-            elif key == 'PC_3' or key=='PC_4':
+            elif key == 'PC_3':
+                new = self.panels_dict[key](**value)
+                new.hls = self.p3_hole
+                setattr(self, key, MainFrame(new))
+                det = getattr(self, key)
+                self.data.append(det.all_elems)
+
+
+            elif key == 'PC_4':
                 new = self.panels_dict[key](**value)
                 new.hls = self.p3_hole
                 setattr(self, key, MiniFrame(new))
                 det = getattr(self, key)
                 self.data.append(det.all_elems)
+
 
             else:
                 pass

@@ -221,6 +221,15 @@ class MainFrame:
         return self._bound_frame
 
     @property
+    def bound_rec(self):
+        rec = bound_rec(self.frame_all())
+
+        min_transl = rh.Point3d(rec.Min[0] - self.side_rec, rec.Min[1] - self.bottom_rec, 0)
+        bound_frame = rh.Rectangle3d(rh.Plane.WorldXY, min_transl, rec.Max)
+
+        return bound_frame
+
+    @property
     def bound_stats(self):
         rec = bound_rec(self.frame_all())
         #rect = bound_rec([self.panel.cut[0]])
@@ -266,14 +275,16 @@ class MainFrame:
             except AttributeError:
                 _all_elems[0].extend(self.region)
 
-
-        _all_elems[1].extend(self.panel.fres)
+        try:
+            _all_elems[1].extend(self.panel.fres)
+        except:
+            pass
         # _all_elems[2].extend([self.panel.fres[0], self.panel.fres[2]])
 
         #if hasattr(self.panel, "grav"):
         try:
             _all_elems[3].extend(self.panel.grav)
-        except TypeError:
+        except:
             pass
 
         if hasattr(self.panel, "grav_laser"):
