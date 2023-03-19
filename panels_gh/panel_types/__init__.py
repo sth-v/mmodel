@@ -304,7 +304,7 @@ class PC_3(P_3):
     def grav_laser(self):
 
         rib_mark=[]
-        for i in self.rib_mark:
+        for i in self.rib_mark[0:-1]:
             crv = i.DuplicateCurve()
             crv.Transform(self.bound_plane)
             rib_mark.append(crv)

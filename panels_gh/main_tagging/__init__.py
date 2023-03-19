@@ -325,9 +325,9 @@ class MiniFramer():
             tagobj.text = self._cls.unroll_dict_f["tag"]
 
             self.pl = tagobj.plane
-            self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
+            #self._cls.text_geometry[layer].extend(list(itertools.chain(tagobj.generate_curves())))
 
-            return self._cls
+            #return self._cls
 
         # tagobj.plane.Origin = center
 
