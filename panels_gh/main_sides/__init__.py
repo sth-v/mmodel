@@ -318,6 +318,12 @@ class NicheShortened(Niche):
         else:
             return self.hls
 
+    @property
+    def cogs_unit(self):
+        if self.init_cogs:
+            return self.__class__.pattern(self._cg, 23, self.bend_axis.GetLength())
+        else:
+            return ReversePatternSimple(self._cg, 46, self.bend_axis.GetLength())
 
     def generate_cogs(self):
         _cogs = []
@@ -357,6 +363,19 @@ class NicheShortened(Niche):
         except TypeError:
             pass
         self._cogs = _cogs
+
+
+class NicheShortenedWard(NicheShortened):
+    angle_niche = 45
+    angle = 30
+    side_offset = 0.14
+    length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
+    cogs_shift = 0
+    pattern = ReversiblePattern
+
+    def __init__(self, curve, init_cogs=False):
+        NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
+
 
 
 class NicheShortenedBoard(NicheShortened):
