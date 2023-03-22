@@ -118,7 +118,7 @@ class ArcConePanel(MainPanel):
         else:
             pass
 
-    ''''@property
+    @property
     def grav_cone(self):
         if self.marks[1] is not None:
             unrol = list(self.marks[1][len(self.pins_mark):])
@@ -129,7 +129,7 @@ class ArcConePanel(MainPanel):
                 crv.append(ii)
             return crv
         else:
-            pass'''
+            pass
 
 
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, pins=None, pins_mark=None, cone_mark=None, **kwargs):

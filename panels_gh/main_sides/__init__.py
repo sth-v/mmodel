@@ -376,6 +376,31 @@ class NicheShortenedWard(NicheShortened):
     def __init__(self, curve, init_cogs=False):
         NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
 
+    @property
+    def cogs_unit(self):
+        if self.init_cogs:
+            return self.__class__.pattern(self._cg, 23, self.bend_axis.GetLength())
+        else:
+            return ReversePatternSimple(self._cg, 46, self.bend_axis.GetLength())
+
+class NicheShortenedWardReverse(NicheShortened):
+    angle_niche = 45
+    angle = 30
+    side_offset = 0.14
+    length = 35 - niche_shorten(angle_niche, BendSide.side_niche, BendSide.met_left_niche)
+    cogs_shift = 0
+    pattern = Pattern
+
+    def __init__(self, curve, init_cogs=False):
+        NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
+
+    @property
+    def cogs_unit(self):
+        if self.init_cogs:
+            return self.__class__.pattern(self._cg, 23, self.bend_axis.GetLength())
+        else:
+            return PatternSimple(self._cg, 46, self.bend_axis.GetLength())
+
 
 
 class NicheShortenedBoard(NicheShortened):
@@ -405,10 +430,9 @@ class NicheShortenedBoard(NicheShortened):
         NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
 
 
-
 class Side(BendSide):
-    side_offset = 1.0
-    angle = 45
+    side_offset = 0.5
+    angle = 30
 
     @property
     def top_part(self):
@@ -434,6 +458,7 @@ class Side(BendSide):
 
 
 class HolesSideOne(Side):
+    side_offset = 1.0
 
     @property
     def hls(self):
@@ -479,6 +504,7 @@ class HolesSideOneExtra(HolesSideOne):
 
 
 class HolesSideTwo(HolesSideOne):
+    side_offset = 1.0
 
     @property
     def hls(self):
@@ -563,7 +589,6 @@ class HolesSideThree(Side):
         self.holes = None
 
         self.spec_dist = spec_dist
-
 
 class Bottom(BendSide):
     side_offset = None
@@ -651,6 +676,7 @@ class RibsSide(HeatSchov):
         self.length = 26.73
         self.fres_trim_dist = 30
         self.fillet_r = 3
+
 
 class RibsSideTwo(HeatSchov):
 
@@ -807,7 +833,6 @@ class BoardEdgeOne(object):
         crv = rh.Curve.Offset(cc, rh.Plane.WorldXY, -self.side_offset, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])
         return crv[0]
-
 
 
 class BoardEdgeTwo(BoardEdgeOne):

@@ -34,7 +34,6 @@ def bound_rec(crv):
     bound_rec = rh.PolyCurve.GetBoundingBox(join, rh.Plane.WorldXY)
     return bound_rec
 
-
 def divide(crv, dist):
     st = crv.ClosestPoint(crv.PointAtLength(dist))[1]
     end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - dist))[1]
@@ -54,7 +53,6 @@ def divide_dist_two(crv, dist=0):
     param = curve.DivideByCount(num, True)
     points = [curve.PointAt(i) for i in param]
     return points
-
 
 def translate(point, crv):
     frame = crv.FrameAt(crv.ClosestPoint(point)[1])[1]
