@@ -59,20 +59,20 @@ def bound_rec(crv):
 
 
 
-class PC_W_1(ArcConePanel):
+class PC_TW_1(ArcConePanel):
     @property
     def bound_plane(self):
         cone = list(self.marks[1][len(self.pins_mark):])[0]
 
-        xaxis = rh.Vector3d(cone.PointAt(cone.Domain[0] - 0.01) - cone.PointAt(cone.Domain[1] + 0.01))
-        yaxis = rh.Vector3d(cone.PointAt(cone.Domain[0] - 0.01) - cone.PointAt(cone.Domain[1] + 0.01))
+        xaxis = rh.Vector3d(cone.PointAt(cone.Domain[1] - 0.01) - cone.PointAt(cone.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(cone.PointAt(cone.Domain[1] - 0.01) - cone.PointAt(cone.Domain[0] + 0.01))
         yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
 
         j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
 
-        bound_plane = rh.Plane(b_r.Min, xaxis, yaxis)
-        bpl = rh.Plane(cone.PointAt(cone.Domain[1]), xaxis, yaxis)
+        bound_plane = rh.Plane(b_r.Max, xaxis, yaxis)
+        bpl = rh.Plane(cone.PointAt(cone.Domain[0]), xaxis, yaxis)
         setattr(self, 'bpl', bpl)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
 
@@ -92,7 +92,6 @@ class PC_W_1(ArcConePanel):
 
     def __init__(self, surf, tag=None, pins=None, cogs_bend=None, holes=None, cone_mark=None, **kwargs):
         ArcConePanel.__dict__['__init__'](self, surf=surf, tag=tag, pins=pins, cogs_bend=cogs_bend, holes=holes, cone_mark=cone_mark, **kwargs)
-
 
     @property
     def fres(self):
@@ -142,6 +141,135 @@ class PC_W_1(ArcConePanel):
         self.niche = Niche(self.edges[1], self.cogs_bend)
         self.bottom = Niche(self.edges[3], self.cogs_bend)
         self.side = [HolesSideOne(self.edges[0]), HolesSideTwo(self.edges[2])]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+
+class PC_W_1(ArcConePanel):
+    @property
+    def bound_plane(self):
+        cone = list(self.marks[1][len(self.pins_mark):])[0]
+
+        xaxis = rh.Vector3d(cone.PointAt(cone.Domain[1] - 0.01) - cone.PointAt(cone.Domain[0] + 0.01))
+        yaxis = rh.Vector3d(cone.PointAt(cone.Domain[1] - 0.01) - cone.PointAt(cone.Domain[0] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+
+        bound_plane = rh.Plane(b_r.Max, xaxis, yaxis)
+        bpl = rh.Plane(cone.PointAt(cone.Domain[0]), xaxis, yaxis)
+        setattr(self, 'bpl', bpl)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+
+        return tr
+
+    @property
+    def frame_dict(self):
+        diag = self.diag_side([self.top_parts[1].PointAtEnd, self.top_parts[2].PointAtStart, self.fres[1].PointAtEnd])
+        top = self.fres[0]
+        p_niche = self.fres[1]
+        p_bend = self.fres[2]
+        order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[2, self.top_parts[1], None], [0, self.top_parts[2], None], [3, self.top_parts[0], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+    def __init__(self, surf, tag=None, pins=None, cogs_bend=None, holes=None, cone_mark=None, **kwargs):
+        ArcConePanel.__dict__['__init__'](self, surf=surf, tag=tag, pins=pins, cogs_bend=cogs_bend, holes=holes, cone_mark=cone_mark, **kwargs)
+
+    def gen_side_types(self):
+        self.niche = Niche(self.edges[1], self.cogs_bend)
+        self.bottom = BottomPanel(self.edges[3])
+        self.side = [HolesSideOne(self.edges[0]), HolesSideTwo(self.edges[2])]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+
+class PC_TW_2(PC_TW_1):
+    @property
+    def bound_plane(self):
+        cone = list(self.marks[1][len(self.pins_mark):])[0]
+
+        xaxis = rh.Vector3d(cone.PointAt(cone.Domain[0] - 0.01) - cone.PointAt(cone.Domain[1] + 0.01))
+        yaxis = rh.Vector3d(cone.PointAt(cone.Domain[0] - 0.01) - cone.PointAt(cone.Domain[1] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+
+        bound_plane = rh.Plane(b_r.Min, xaxis, yaxis)
+        bpl = rh.Plane(cone.PointAt(cone.Domain[1]), xaxis, yaxis)
+        setattr(self, 'bpl', bpl)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+
+        return tr
+
+    @property
+    def frame_dict(self):
+        diag = self.diag_side([self.top_parts[1].PointAtEnd, self.top_parts[2].PointAtStart, self.fres[1].PointAtEnd])
+        top = self.fres[0]
+        p_niche = self.fres[1]
+        p_bend = self.fres[2]
+        order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[2, self.top_parts[1], None], [0, self.top_parts[2], None], [3, self.top_parts[0], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+    def __init__(self, surf, tag=None, pins=None, cogs_bend=None, holes=None, cone_mark=None, **kwargs):
+        PC_TW_1.__dict__['__init__'](self, surf=surf, tag=tag, pins=pins, cogs_bend=cogs_bend, holes=holes, cone_mark=cone_mark, **kwargs)
+
+    def gen_side_types(self):
+        self.niche = Niche(self.edges[3], self.cogs_bend)
+        self.bottom = Niche(self.edges[1], self.cogs_bend)
+        self.side = [HolesSideOne(self.edges[2]), HolesSideTwo(self.edges[0])]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+
+class PC_W_2(PC_W_1):
+    @property
+    def bound_plane(self):
+        cone = list(self.marks[1][len(self.pins_mark):])[0]
+
+        xaxis = rh.Vector3d(cone.PointAt(cone.Domain[0] - 0.01) - cone.PointAt(cone.Domain[1] + 0.01))
+        yaxis = rh.Vector3d(cone.PointAt(cone.Domain[0] - 0.01) - cone.PointAt(cone.Domain[1] + 0.01))
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+
+        bound_plane = rh.Plane(b_r.Min, xaxis, yaxis)
+        bpl = rh.Plane(cone.PointAt(cone.Domain[1]), xaxis, yaxis)
+        setattr(self, 'bpl', bpl)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+
+        return tr
+
+    @property
+    def frame_dict(self):
+        diag = self.diag_side([self.top_parts[1].PointAtEnd, self.top_parts[2].PointAtStart, self.fres[1].PointAtEnd])
+        top = self.fres[0]
+        p_niche = self.fres[1]
+        p_bend = self.fres[2]
+        order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[2, self.top_parts[1], None], [0, self.top_parts[2], None], [3, self.top_parts[0], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+    def __init__(self, surf, tag=None, pins=None, cogs_bend=None, holes=None, cone_mark=None, **kwargs):
+        PC_W_1.__dict__['__init__'](self, surf=surf, tag=tag, pins=pins, cogs_bend=cogs_bend, holes=holes, cone_mark=cone_mark, **kwargs)
+
+    def gen_side_types(self):
+        self.niche = Niche(self.edges[3], self.cogs_bend)
+        self.bottom = BottomPanel(self.edges[1])
+        self.side = [HolesSideOne(self.edges[2]), HolesSideTwo(self.edges[0])]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -257,7 +385,6 @@ class PW_2_L(PW_1_L):
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 
-
 class PW_1_S(PW_1):
 
     def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
@@ -270,7 +397,6 @@ class PW_1_S(PW_1):
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
-
 
 class PW_2_S(PW_1):
 
