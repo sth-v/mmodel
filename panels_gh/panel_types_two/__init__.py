@@ -140,7 +140,7 @@ class PC_TW_1(ArcConePanel):
     def gen_side_types(self):
         self.niche = Niche(self.edges[1], self.cogs_bend)
         self.bottom = Niche(self.edges[3], self.cogs_bend)
-        self.side = [HolesSideOne(self.edges[0]), HolesSideTwo(self.edges[2])]
+        self.side = [HolesSideTwo(self.edges[0]), HolesSideOne(self.edges[2])]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -183,7 +183,7 @@ class PC_W_1(ArcConePanel):
     def gen_side_types(self):
         self.niche = Niche(self.edges[1], self.cogs_bend)
         self.bottom = BottomPanel(self.edges[3])
-        self.side = [HolesSideOne(self.edges[0]), HolesSideTwo(self.edges[2])]
+        self.side = [HolesSideTwo(self.edges[0]), HolesSideOne(self.edges[2])]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -226,7 +226,7 @@ class PC_TW_2(PC_TW_1):
     def gen_side_types(self):
         self.niche = Niche(self.edges[3], self.cogs_bend)
         self.bottom = Niche(self.edges[1], self.cogs_bend)
-        self.side = [HolesSideOne(self.edges[2]), HolesSideTwo(self.edges[0])]
+        self.side = [HolesSideTwo(self.edges[2]), HolesSideOne(self.edges[0])]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
@@ -269,7 +269,7 @@ class PC_W_2(PC_W_1):
     def gen_side_types(self):
         self.niche = Niche(self.edges[3], self.cogs_bend)
         self.bottom = BottomPanel(self.edges[1])
-        self.side = [HolesSideOne(self.edges[2]), HolesSideTwo(self.edges[0])]
+        self.side = [HolesSideTwo(self.edges[2]), HolesSideOne(self.edges[0])]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
