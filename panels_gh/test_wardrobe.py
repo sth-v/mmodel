@@ -82,16 +82,36 @@ class UnrollPackage:
             if key not in ["PC_W_1", "PC_W_2", "PC_TW_1", "PC_TW_2"]:
                 new = self.panels_dict[key](**value)
 
-                new.niche.cg = self.cog
-                new.niche.cog_hole = self.cog_hole
-                new.niche.generate_cogs()
+                try:
+                    new.niche.cg = self.cog
+                    new.niche.cog_hole = self.cog_hole
+                    new.niche.generate_cogs()
+                except AttributeError:
+                    pass
+
+                try:
+                    new.bottom.cg = self.cog
+                    new.bottom.cog_hole = self.cog_hole
+                    new.bottom.generate_cogs()
+                except AttributeError:
+                    try:
+                        new.side[0].cg = self.cog
+                        new.side[0].cog_hole = self.cog_hole
+                        new.side[0].generate_cogs()
+                    except AttributeError:
+                        new.side[1].cg = self.cog
+                        new.side[1].cog_hole = self.cog_hole
+                        new.side[1].generate_cogs()
 
                 try:
                     for i in new.side:
                         i.hls = self.bend_hole
                 except AttributeError:
-                    pass
-                #setattr(self, key, ConeFrame(new))
+                    try:
+                        new.side[0].hls = self.bend_hole
+                    except AttributeError:
+                        new.side[1].hls = self.bend_hole
+
                 setattr(self, key, MainFrame(new))
 
             else:
@@ -106,7 +126,15 @@ class UnrollPackage:
                     new.bottom.cog_hole = self.cog_hole
                     new.bottom.generate_cogs()
                 except AttributeError:
-                    pass
+                    try:
+                        new.side[0].cg = self.cog
+                        new.side[0].cog_hole = self.cog_hole
+                        new.side[0].generate_cogs()
+                    except AttributeError:
+                        new.side[1].cg = self.cog
+                        new.side[1].cog_hole = self.cog_hole
+                        new.side[1].generate_cogs()
+
 
                 try:
                     for i in new.side:
