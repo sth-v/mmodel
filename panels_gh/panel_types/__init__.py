@@ -684,6 +684,55 @@ class N_4(SimplePanel):
         return rh.Plane(self._bound_rect.Center, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
 
 
+class N_5(N_4):
+
+    def __init__(self, surf, pins=None, cogs_bend=None, tag=None, orient=None, rib_cut=None, **kwargs):
+        N_4.__dict__['__init__'](self, surf, pins, cogs_bend, tag, orient=['2', '1'], rib_cut=rib_cut)
+
+        self.surf = surf
+        unrol = rh.Unroller(self.surf)
+
+        if rib_cut[0] is not None:
+            unrol.AddFollowingGeometry(curves=rib_cut)
+
+        self.unrol = unrol.PerformUnroll()
+        self.unrol_surf = self.unrol[0][0]
+        self.edges = self.unrol_surf.Curves3D
+        self.orient = orient
+        self.gen_side_types()
+
+        self._bound_rect = self.cut[0].GetBoundingBox(True)
+
+    def gen_side_types(self):
+        self.side = [Bottom(i) for i in self.edges]
+        self.side_types = self.side
+        #self.intersect()
+
+    @property
+    def cut(self):
+        side = rh.Curve.JoinCurves([i.fres for i in self.side])[0]
+        side.Transform(self.bound_plane)
+        return [side]
+
+    @property
+    def bound_plane(self):
+        if self.orient[0] == '2':
+            tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, rh.Plane.WorldXY)
+        else:
+            j=rh.Curve.JoinCurves([i.fres for i in self.side])[0]
+            b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+            bound_plane = rh.Plane(b_r.Max, -rh.Plane.WorldXY.XAxis, -rh.Plane.WorldXY.YAxis)
+            tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    @property
+    def bound_frame(self):
+        o = self.cut[0].GetBoundingBox(True).Corner(True, True, True)
+        t = self.cut[0].GetBoundingBox(True).Corner(False, False, True)
+        rec = rh.Rectangle3d(rh.Plane.WorldXY, o, t)
+        return rec
+
+
 class B_1(BoardPanel):
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
         BoardPanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)

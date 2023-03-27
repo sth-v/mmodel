@@ -45,7 +45,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 panel_types.__init__("panel_types", "generic nodule")
-from panel_types import P_1, P_2, N_1, N_3, N_2, P_3, N_4, B_1
+from panel_types import P_1, P_2, N_1, N_3, N_2, P_3, N_4, B_1,N_5
 
 reload(panel_types)
 
@@ -66,7 +66,7 @@ reload(main_tagging)
 
 
 class UnrollPackage:
-    panels_dict = {'P_1': P_1, 'P_2': P_2, 'P_3': P_3, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4, 'B_1': B_1}
+    panels_dict = {'P_1': P_1, 'P_2': P_2, 'P_3': P_3, 'N_1': N_1, 'N_2': N_2, 'N_3': N_3, 'N_4': N_4, 'B_1': B_1, 'N_5':N_5}
 
     def __init__(self, x, y, circle, bend_hole, p3_hole, cog_hole, elements):
         self.cog = TT(x, y, circle)
@@ -82,7 +82,7 @@ class UnrollPackage:
 
         for key, value in elements.items():
 
-            if key != 'N_4' and key != 'N_2' and key != 'P_3' and key != 'B_1':
+            if key != 'N_4' and key != 'N_2' and key != 'P_3' and key != 'B_1' and key != 'N_5':
 
                 new = self.panels_dict[key](**value)
 
