@@ -409,6 +409,34 @@ class MainFrame:
         return frame_offset
 
 
+class WardFrame(MainFrame):
+
+    def __init__(self, panel):
+        MainFrame.__dict__['__init__'](self, panel)
+
+    @property
+    def region(self):
+        ofs_sides = self.all_offset()
+        o, t = ofs_sides[self.bridge[0][0]], ofs_sides[self.bridge[1][0]]
+        spec = self.bridge[0][2]
+
+        if self.cogs is True:
+            elems = self.simple_points(t, self.bridge[0][1], spec) + self.cogs_points(o)
+        else:
+            elems = self.simple_points(o, self.bridge[0][1], spec) + self.simple_points(t, self.bridge[1][1], spec)
+
+        elems.append(self.frame_offset)
+        elems.append(self.panel.cut[0])
+        new = list(rh.Curve.CreateBooleanUnion(elems, 0.1))
+        new.extend(self.panel.cut[1:])
+
+        if any([i.IsValid is False for i in new]):
+            raise TypeError
+        else:
+            return new
+
+
+
 class ConeFrame(MainFrame):
     def __init__(self, panel):
         MainFrame.__dict__['__init__'](self, panel)

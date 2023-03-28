@@ -56,7 +56,7 @@ main_framing.__init__("main_framing", "generic nodule")
 
 reload(main_framing)
 
-from main_framing import MainFrame, MiniFrame,BoardFrame, ConeFrame
+from main_framing import MainFrame, MiniFrame,WardFrame, ConeFrame
 
 import main_tagging
 
@@ -98,21 +98,29 @@ class UnrollPackage:
                         new.side[0].cg = self.cog
                         new.side[0].cog_hole = self.cog_hole
                         new.side[0].generate_cogs()
+                        print('cog_hole')
                     except AttributeError:
-                        new.side[1].cg = self.cog
-                        new.side[1].cog_hole = self.cog_hole
-                        new.side[1].generate_cogs()
+                        try:
+                            new.side[1].cg = self.cog
+                            new.side[1].cog_hole = self.cog_hole
+                            new.side[1].generate_cogs()
+                        except AttributeError:
+                            pass
 
-                try:
-                    for i in new.side:
-                        i.hls = self.bend_hole
-                except AttributeError:
+                if key == "PW_1":
+
                     try:
-                        new.side[0].hls = self.bend_hole
+                        for i in new.side:
+                            i.hls = self.bend_hole
                     except AttributeError:
-                        new.side[1].hls = self.bend_hole
+                        try:
+                            new.side[0].hls = self.bend_hole
+                        except AttributeError:
+                            new.side[1].hls = self.bend_hole
 
-                setattr(self, key, MainFrame(new))
+                    setattr(self, key, MainFrame(new))
+                else:
+                    setattr(self, key, WardFrame(new))
 
             else:
                 new = self.panels_dict[key](**value)
