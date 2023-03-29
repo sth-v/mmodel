@@ -444,9 +444,13 @@ class Side(BendSide):
                 p_one = rh.Curve.LengthParameter(self.fres, self.top_offset)
                 trimed = rh.Curve.Trim(self.fres, p_one[1], self.fres.Domain[1])
         else:
-            p_one = rh.Curve.LengthParameter(self.fres, self.top_offset)
-            p_two = rh.Curve.LengthParameter(self.fres, self.fres.GetLength() - self.top_offset)
-            trimed = rh.Curve.Trim(self.fres, p_one[1], p_two[1])
+            try:
+                p_one = rh.Curve.LengthParameter(self.fres, self.top_offset)
+                p_two = rh.Curve.LengthParameter(self.fres, self.fres.GetLength() - self.top_offset)
+                trimed = rh.Curve.Trim(self.fres, p_one[1], p_two[1])
+            except:
+                trimed=self.fres
+
 
         self._top_part = rh.Curve.Offset(trimed, rh.Plane.WorldXY, self.length, 0.01,
                                          rh.CurveOffsetCornerStyle.__dict__['None'])

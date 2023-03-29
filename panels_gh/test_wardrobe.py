@@ -98,7 +98,7 @@ class UnrollPackage:
                         new.side[0].cg = self.cog
                         new.side[0].cog_hole = self.cog_hole
                         new.side[0].generate_cogs()
-                        print('cog_hole')
+
                     except AttributeError:
                         try:
                             new.side[1].cg = self.cog
@@ -106,6 +106,15 @@ class UnrollPackage:
                             new.side[1].generate_cogs()
                         except AttributeError:
                             pass
+
+                try:
+                    for i in [new.bottom]:
+                        i.hls = self.bend_hole
+                except AttributeError:
+                    try:
+                        new.bottom.hls = self.bend_hole
+                    except AttributeError:
+                        new.bottom.hls = self.bend_hole
 
                 if key == "PW_1":
 

@@ -94,7 +94,7 @@ def intersect(values):
     return res
 
 
-def offset_side(elem, dist, extend='st', extend_dist=10.65):
+def offset_side(elem, dist, extend=None, extend_dist=10.65):
     if extend == 'st':
         if abs(elem.Domain[1] - elem.Domain[0]) > 1.5:
             det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1]])
@@ -398,7 +398,7 @@ class MainFrame:
             e = offset_side(*i)
             all_offset.append(e)
 
-        all_offset = intersect(all_offset)
+        #all_offset = intersect(all_offset)
         return all_offset
 
     def frame_inner(self):

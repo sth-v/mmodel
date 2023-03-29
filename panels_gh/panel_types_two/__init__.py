@@ -338,6 +338,13 @@ class PW_1_L(PW_1):
         return [side]
 
     @property
+    def fres(self):
+        fres = [self.side[0].fres.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
+                self.side[1].fres.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in fres]
+        return fres
+
+    @property
     def bot_holes(self):
         cut = []
         reg = self.side[0].region_holes
@@ -408,29 +415,33 @@ class PW_2_L(PW_1_L):
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 
+    @property
+    def frame_dict(self):
+        diag = self.diag_side([self.top_parts[1].PointAtEnd, self.top_parts[2].PointAtStart, self.fres[1].PointAtEnd])
+        top = self.top_side()
+        p_niche = self.fres[1]
+        p_bend = self.fres[2]
+        order = [[p_bend, self.bend_ofs], [diag, self.diag, 'both'], [p_niche, self.niche_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[0, self.top_parts[1], None], [2, self.top_parts[2], None]]
 
-
-class PW_1_S(PW_1):
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
     @property
-    def cut(self):
-        s = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join_region, self.bottom.join])[0]
-        side = s.ToNurbsCurve()
-        side.Transform(self.bound_plane)
-        return [side]
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
 
-    def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        PW_1.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        fr = self.side[1].fres.FrameAt(self.side[1].fres.Domain[0])[1]
+        bound_plane = rh.Plane(rh.Point3d(b_r.Max[0],b_r.Min[1],0), fr.XAxis, -fr.ZAxis)
+        setattr(self, 'bpl', fr )
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
 
-    def gen_side_types(self):
-        self.niche = Side(self.edges[3], True)
-        self.bottom = Side(self.edges[1], True)
-        self.side = [HolesSideOne(self.edges[0], True), NicheShortenedWard(self.edges[2], False)]
 
-        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
-        self.intersect()
 
-class PW_2_S(PW_1):
+
+class PW_1_S(PW_2_L):
     @property
     def cut(self):
         s = rh.Curve.JoinCurves([self.side[0].join_region, self.niche.join, self.side[1].join, self.bottom.join])[0]
@@ -438,13 +449,87 @@ class PW_2_S(PW_1):
         side.Transform(self.bound_plane)
         return [side]
 
+    @property
+    def fres(self):
+        fres = [self.side[0].fres.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
+                self.side[1].fres.DuplicateCurve(), self.bottom.fres.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in fres]
+        return fres
+
     def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
-        PW_1.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+        PW_2_L.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
 
     def gen_side_types(self):
-        self.niche = Side(self.edges[3], False)
-        self.bottom = Side(self.edges[1], True)
-        self.side = [NicheShortenedWard(self.edges[0], False), HolesSideTwo(self.edges[2], False)]
+        self.niche = NicheShortenedWard(self.edges[0], False)
+        self.bottom = HolesSideOne(self.edges[2])
+        self.side = [NicheShortenedBoard(self.edges[3], self.cogs_bend), Side(self.edges[1])]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
+
+    @property
+    def cut_holes(self):
+        cut = []
+
+        for i in self.bottom.holes_curve:
+            ii = i.DuplicateCurve()
+            ii.Transform(self.bound_plane)
+            cut.append(ii)
+
+
+        if self.unrol[1] is not None:
+            for i, v in enumerate(self.unrol[1]):
+                # p = rh.Circle(v, self.h_r[i]).ToNurbsCurve()
+                ii = v.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
+
+        return cut + self.niche_holes
+
+
+
+class PW_2_S(PW_1_L):
+    @property
+    def cut(self):
+        s = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.join])[0]
+        side = s.ToNurbsCurve()
+        side.Transform(self.bound_plane)
+        return [side]
+
+    @property
+    def fres(self):
+        fres = [self.side[0].fres.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
+                self.side[1].fres.DuplicateCurve(), self.bottom.fres.DuplicateCurve()]
+        [i.Transform(self.bound_plane) for i in fres]
+        return fres
+
+    def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        PW_1_L.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+
+    def gen_side_types(self):
+        self.niche = NicheShortenedWardReverse(self.edges[2], False)
+        self.bottom = HolesSideTwo(self.edges[0])
+        self.side = [Side(self.edges[3]), Side(self.edges[1])]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+    @property
+    def cut_holes(self):
+        cut = []
+
+        for i in self.bottom.holes_curve:
+            ii = i.DuplicateCurve()
+            ii.Transform(self.bound_plane)
+            cut.append(ii)
+
+
+        if self.unrol[1] is not None:
+            for i, v in enumerate(self.unrol[1]):
+                # p = rh.Circle(v, self.h_r[i]).ToNurbsCurve()
+                ii = v.DuplicateCurve()
+                ii.Transform(self.bound_plane)
+                cut.append(ii)
+
+        return cut + self.niche_holes
+
