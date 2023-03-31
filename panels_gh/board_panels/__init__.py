@@ -164,11 +164,6 @@ class ArcConePanel(MainPanel):
 
 
 
-
-
-
-
-
 class BendLikePanel(SimplePanel):
 
     @property
@@ -476,7 +471,7 @@ class BoardEdge(SimplePanel):
 
     @property
     def all_elems(self):
-        return self.cut
+        return [self.cut]
 
     def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None):
         SimplePanel.__dict__['__init__'](self, surf, holes, cogs_bend, tag)
@@ -495,18 +490,28 @@ class BoardEdge(SimplePanel):
 
 
         self.gen_side_types()
-        edge1_vector = rh.Vector3d(self.edges[5].PointAtEnd - self.edges[5].PointAtStart)
+        try:
+            edge1_vector = rh.Vector3d(self.edges[5].PointAtEnd - self.edges[5].PointAtStart)
+        except:
+            edge1_vector = rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart)
         '''edge0_pt = self.edges[0].PointAt(self.edges[0].GetLength() / 2)
         edge3_pt = self.edges[3].PointAt(self.edges[3].GetLength() / 2)'''
         edge0_pt = self.edges[4].PointAt(self.edges[0].GetLength() / 2)
-        edge3_pt = self.edges[5].PointAt(self.edges[3].GetLength() / 2)
+        try:
+            edge3_pt = self.edges[5].PointAt(self.edges[3].GetLength() / 2)
+        except:
+            edge3_pt = self.edges[0].PointAt(self.edges[3].GetLength() / 2)
         # edge2_vector = rh.Vector3d(self._cls.panel.edges[3].PointAtEnd - self._cls.panel.edges[3].PointAtStart)
 
         self._bound_rect, _ = comp.Bubalus_GH2.CurveMinBoundingBox(self.cut[0])
 
 
     edge2_vector = property(fget=lambda self: rh.Vector3d.CrossProduct(self.edge1_vector, rh.Vector3d(0, 0, 1)))
-    edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[5].PointAtEnd - self.edges[5].PointAtStart))
+    try:
+        edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
+    except:
+        edge1_vector = property(fget=lambda self: rh.Vector3d(self.edges[0].PointAtEnd - self.edges[0].PointAtStart))
+
 
 
     @property

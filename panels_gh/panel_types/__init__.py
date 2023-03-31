@@ -785,7 +785,7 @@ class B_2(BoardEdge):
 class B_3(BoardEdge):
     @property
     def all_elems(self):
-        return self.cut + [self.cut_hole]
+        return [self.cut + [self.cut_hole]]
 
     @property
     def cut_hole(self):
@@ -833,7 +833,7 @@ class B_3(BoardEdge):
             num = 1
 
         ss = [Bottom(i.ToNurbsCurve()) for i in list(self.edges)[1:-1]]
-        self.side = [BoardEdgeOne(list(self.edges)[0].ToNurbsCurve(), params=self.trim_params.top, rev=True, tag=self.tag)] + ss + [BoardEdgeTwo(list(self.edges)[-1].ToNurbsCurve(), params=self.trim_params.side, spec_dist=num, tag=self.tag)]
+        self.side = [BoardEdgeTwo(list(self.edges)[-1].ToNurbsCurve(), params=self.trim_params.side, spec_dist=num, tag=self.tag)]+ ss + [BoardEdgeOne(list(self.edges)[0].ToNurbsCurve(), params=self.trim_params.top, rev=True, tag=self.tag)]
         self.side_types = self.side
         self.intersect()
 
