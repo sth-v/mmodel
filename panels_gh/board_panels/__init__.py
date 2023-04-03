@@ -537,6 +537,8 @@ class BoardEdge(SimplePanel):
             num = 1
 
         ss = [Bottom(i) for i in list(self.edges)[0:4]]
+        #self.side = ss + [BoardEdgeTwo(list(self.edges)[4], params=self.trim_params.top, spec_dist=num, tag=self.tag)] + \
+        #            [BoardEdgeOne(list(self.edges)[5], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)]
         self.side = ss + [BoardEdgeTwo(list(self.edges)[4], params=self.trim_params.top, spec_dist=num, tag=self.tag)] + \
                     [BoardEdgeOne(list(self.edges)[5], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)]
         self.side_types = self.side

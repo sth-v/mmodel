@@ -535,6 +535,7 @@ class FramerBack:
             for i in self._cls.panel.ribs_marker:
                 p = rh.Point3d(i[1][0]-u, i[1][1]-v, 0)
                 tagobj.plane =rh.Plane(p, rh.Plane.WorldXY.XAxis, rh.Plane.WorldXY.YAxis)
+                print(tagobj.text, 'text')
                 if i[0][-2] == '1':
                     tagobj.text = i[0][-2]+i[0][-1]
                 else:

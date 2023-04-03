@@ -823,6 +823,8 @@ class B_3(BoardEdge):
             return [fillet] + list(self.unrol[1])
         else:
             return [fillet]
+        #return [self.side[0].join] + ss + [self.side[-1].join]
+
     def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
         BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
 
@@ -833,7 +835,7 @@ class B_3(BoardEdge):
             num = 1
 
         ss = [Bottom(i.ToNurbsCurve()) for i in list(self.edges)[1:-1]]
-        self.side = [BoardEdgeTwo(list(self.edges)[-1].ToNurbsCurve(), params=self.trim_params.side, spec_dist=num, tag=self.tag)]+ ss + [BoardEdgeOne(list(self.edges)[0].ToNurbsCurve(), params=self.trim_params.top, rev=True, tag=self.tag)]
+        self.side =[BoardEdgeOne(list(self.edges)[0].ToNurbsCurve(), params=self.trim_params.side, rev=True, tag=self.tag)]+ss+ [BoardEdgeTwo(list(self.edges)[-1].ToNurbsCurve(), params=self.trim_params.top, spec_dist=num, tag=self.tag)]
         self.side_types = self.side
         self.intersect()
 
@@ -1105,7 +1107,7 @@ class NC_3(N_2):
 
         self.marks = marks.PerformUnroll()
 
-    '''@property
+    @property
     def grav_cone(self):
         if self.marks[1] is not None:
             crv = []
@@ -1115,7 +1117,7 @@ class NC_3(N_2):
                 crv.append(ii)
             return crv
         else:
-            pass'''
+            pass
 
 
     def gen_side_types(self):

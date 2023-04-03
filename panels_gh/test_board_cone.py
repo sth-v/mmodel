@@ -49,6 +49,14 @@ from panel_types import NC_1, NC_2, B_1, B_2,PC_1,PC_2, B_3, B_1_T, PC_3, PC_4, 
 
 reload(panel_types)
 
+panelfiletwo, panelfilenametwo, (panelsuffixtwo, panelmodetwo, paneltypetwo) = imp.find_module("panel_types_two", path=[PWD])
+panel_typestwo = imp.load_module("panel_types_two", panelfiletwo, panelfilenametwo, (panelsuffixtwo, panelmodetwo, paneltypetwo))
+
+panel_typestwo.__init__("panel_types_two", "generic nodule")
+from panel_types_two import BC_2
+
+reload(panel_typestwo)
+
 framelfile, framefilename, (framesuffix, framemode, frametype) = imp.find_module("main_framing", path=[PWD])
 main_framing = imp.load_module("main_framing", framelfile, framefilename, (framesuffix, framemode, frametype))
 
@@ -65,7 +73,8 @@ reload(main_tagging)
 
 class UnrollPackage:
     panels_dict = {'PC_1': PC_1, 'PC_2': PC_2, 'B_1': B_1, 'B_2': B_2, 'B_3':B_3, 'B_1_T':B_1_T, 'NC_3':NC_3,
-                   'NC_R_3': NC_R_3, 'PC_3':PC_3, 'PC_4':PC_4, 'NC_1':NC_1, 'NC_2':NC_2, 'NC_R_1': NC_R_1, 'NC_R_2':NC_R_2}
+                   'NC_R_3': NC_R_3, 'PC_3':PC_3, 'PC_4':PC_4, 'NC_1':NC_1, 'NC_2':NC_2, 'NC_R_1': NC_R_1, 'NC_R_2':NC_R_2,
+                   "BC_2":BC_2}
 
     def __init__(self, x, y, circle, bend_hole, p3_hole, cog_hole, elements):
         self.cog = TT(x, y, circle)
@@ -108,7 +117,7 @@ class UnrollPackage:
                     pass
                 setattr(self, key, MainFrame(new))
 
-            elif key == "NC_3" or key == "NC_R_3":
+            elif key == "NC_3" or key == "NC_R_3" or key == "BC_2":
                 new = self.panels_dict[key](**value)
                 try:
                     for i in new.side:

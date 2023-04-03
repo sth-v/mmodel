@@ -697,10 +697,15 @@ class BoardEdgeOne(object):
 
     def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
         self.tag = tag
-        if self.tag[2] == 'L' or self.tag[2] == 'C':
+        '''if self.tag[2] == 'L' or self.tag[2] == 'C':
             inv = -1
         else:
+            inv = 1'''
+
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
             inv = 1
+        else:
+            inv = -1
 
         self.param = params
         self.side_offset = (params.bound_len + params.ext_bend)*inv
@@ -771,12 +776,19 @@ class BoardEdgeOne(object):
     @property
     def holes_curve(self):
 
-        if self.tag[2] == 'L' or self.tag[2] == 'C':
+        '''if self.tag[2] == 'L' or self.tag[2] == 'C':
             crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
                                             rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         else:
             crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]'''
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
+            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        else:
+            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
 
@@ -800,10 +812,16 @@ class BoardEdgeOne(object):
             p = translate(v, self.top_part)
             c = self.hls.DuplicateCurve()
 
-            if self.tag[2] == 'L' or self.tag[2] == 'C':
+            '''if self.tag[2] == 'L' or self.tag[2] == 'C':
                 rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))
             else:
-                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
+                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))'''
+            if self.tag[2] == 'L' or self.tag[2] == 'C':
+                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis,
+                                               rh.Point3d(0, 10, 0))
+            else:
+                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis,
+                                               rh.Point3d(0, -10, 0))
 
             c.Transform(rotate)
 
@@ -861,12 +879,19 @@ class BoardEdgeTwo(BoardEdgeOne):
     @property
     def holes_curve(self):
 
-        if self.tag[2] == 'L' or self.tag[2] == 'C':
+        '''if self.tag[2] == 'L' or self.tag[2] == 'C':
             crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         else:
             crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]'''
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
+            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        else:
+            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
 
@@ -892,10 +917,17 @@ class BoardEdgeTwo(BoardEdgeOne):
             p = translate(v, self.top_part)
             c = self.hls.DuplicateCurve()
 
-            if self.tag[2] == 'L' or self.tag[2] == 'C':
+            '''if self.tag[2] == 'L' or self.tag[2] == 'C':
                 rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
             else:
-                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))
+                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))'''
+
+            if self.tag[2] == 'L' or self.tag[2] == 'C':
+                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis,
+                                               rh.Point3d(0, -10, 0))
+            else:
+                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis,
+                                               rh.Point3d(0, 10, 0))
 
             c.Transform(rotate)
             c.Transform(p)

@@ -40,6 +40,14 @@ from main_panels import NichePanel, SimplePanel, ArcPanel
 
 reload(main_panels)
 
+panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module("panel_types", path=[PWD])
+panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
+
+panel_types.__init__("panel_types", "generic nodule")
+from panel_types import NC_3, N_2
+
+reload(panel_types)
+
 boardfile, boardfilename, (boardsuffix, boardmode, boardtype) = imp.find_module("board_panels", path=[PWD])
 board_panels = imp.load_module("board_panels", boardfile, boardfilename, (boardsuffix, boardmode, boardtype))
 
@@ -50,6 +58,8 @@ reload(board_panels)
 import main_tagging
 
 reload(main_tagging)
+
+
 
 
 def bound_rec(crv):
@@ -532,4 +542,49 @@ class PW_2_S(PW_1_L):
                 cut.append(ii)
 
         return cut + self.niche_holes
+
+
+class BC_2(NC_3):
+    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, cone_mark=None, **kwargs):
+        NC_3.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
+                                  cone_mark= cone_mark, **kwargs)
+
+    @property
+    def ribs_marker(self):
+        pairs = []
+        gr = self.grav
+        for n, c in zip(self.mark_name, gr[0::3]):
+            cent = c.PointAtNormalizedLength(1.0)
+            pairs.append([n, cent])
+        return pairs
+
+    def gen_side_types(self):
+        self.top = Bottom(self.edges[3])
+        self.bottom = Bottom(self.edges[1])
+        self.side = [HolesSideOne(self.edges[0], spec_dist=250), HolesSideTwo(self.edges[2], spec_dist=250)]
+
+        self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+
+class BC_1(N_2):
+    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None,  **kwargs):
+        N_2.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv, **kwargs)
+
+    @property
+    def ribs_marker(self):
+        pairs = []
+        gr = self.grav
+        for n, c in zip(self.mark_name, gr[0:-7:3]):
+            cent = c.PointAtNormalizedLength(1.0)
+            pairs.append([n, cent])
+        return pairs
+
+    def gen_side_types(self):
+        self.top = NicheShortenedBoard(self.edges[3])
+        self.bottom = Bottom(self.edges[1])
+        self.side = [HolesSideOne(self.edges[0], spec_dist=250), HolesSideTwo(self.edges[2], spec_dist=250)]
+
+        self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
 
