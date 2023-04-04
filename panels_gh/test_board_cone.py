@@ -53,7 +53,7 @@ panelfiletwo, panelfilenametwo, (panelsuffixtwo, panelmodetwo, paneltypetwo) = i
 panel_typestwo = imp.load_module("panel_types_two", panelfiletwo, panelfilenametwo, (panelsuffixtwo, panelmodetwo, paneltypetwo))
 
 panel_typestwo.__init__("panel_types_two", "generic nodule")
-from panel_types_two import BC_2
+from panel_types_two import BC_2, BC_1
 
 reload(panel_typestwo)
 
@@ -74,7 +74,7 @@ reload(main_tagging)
 class UnrollPackage:
     panels_dict = {'PC_1': PC_1, 'PC_2': PC_2, 'B_1': B_1, 'B_2': B_2, 'B_3':B_3, 'B_1_T':B_1_T, 'NC_3':NC_3,
                    'NC_R_3': NC_R_3, 'PC_3':PC_3, 'PC_4':PC_4, 'NC_1':NC_1, 'NC_2':NC_2, 'NC_R_1': NC_R_1, 'NC_R_2':NC_R_2,
-                   "BC_2":BC_2}
+                   "BC_2":BC_2, "BC_1":BC_1}
 
     def __init__(self, x, y, circle, bend_hole, p3_hole, cog_hole, elements):
         self.cog = TT(x, y, circle)
@@ -117,8 +117,18 @@ class UnrollPackage:
                     pass
                 setattr(self, key, MainFrame(new))
 
-            elif key == "NC_3" or key == "NC_R_3" or key == "BC_2":
+
+            elif key == "NC_3" or key == "NC_R_3" or key == "BC_2" or key == "BC_1":
                 new = self.panels_dict[key](**value)
+
+                try:
+                    new.niche.cg = self.cog
+                    new.niche.cog_hole = self.cog_hole
+                    new.niche.generate_cogs()
+                except AttributeError:
+                    pass
+
+
                 try:
                     for i in new.side:
                         i.hls = self.bend_hole

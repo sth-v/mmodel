@@ -449,8 +449,6 @@ class PW_2_L(PW_1_L):
         return tr
 
 
-
-
 class PW_1_S(PW_2_L):
     @property
     def cut(self):
@@ -495,7 +493,6 @@ class PW_1_S(PW_2_L):
                 cut.append(ii)
 
         return cut + self.niche_holes
-
 
 
 class PW_2_S(PW_1_L):
@@ -548,7 +545,6 @@ class BC_2(NC_3):
     def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, cone_mark=None, **kwargs):
         NC_3.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
                                   cone_mark= cone_mark, **kwargs)
-
     @property
     def ribs_marker(self):
         pairs = []
@@ -561,30 +557,44 @@ class BC_2(NC_3):
     def gen_side_types(self):
         self.top = Bottom(self.edges[3])
         self.bottom = Bottom(self.edges[1])
-        self.side = [HolesSideOne(self.edges[0], spec_dist=250), HolesSideTwo(self.edges[2], spec_dist=250)]
+        self.side = [HolesSideOne(self.edges[0]), HolesSideTwo(self.edges[2])]
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 
 
-class BC_1(N_2):
+class BC_1(NichePanel):
     def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None,  **kwargs):
-        N_2.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv, **kwargs)
+        NichePanel.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv, **kwargs)
+
+    @property
+    def grav(self):
+        g = []
+        if self.unrol_grav[1] is not None:
+            for i, v in enumerate(self.unrol_grav[1]):
+                if v.GetLength() > 5:
+                    ii = v.DuplicateCurve()
+                    ii.Transform(self.bound_plane)
+                    g.append(ii)
+            return g
+        else:
+            raise ValueError
+
 
     @property
     def ribs_marker(self):
         pairs = []
         gr = self.grav
-        for n, c in zip(self.mark_name, gr[0:-7:3]):
-            cent = c.PointAtNormalizedLength(1.0)
+        for n, c in zip(self.mark_name, gr[-7:]):
+            cent = c.PointAtNormalizedLength(0.0)
             pairs.append([n, cent])
         return pairs
 
     def gen_side_types(self):
-        self.top = NicheShortenedBoard(self.edges[3])
+        self.niche = NicheShortenedBoard(self.edges[3], self.cogs_bend)
         self.bottom = Bottom(self.edges[1])
-        self.side = [HolesSideOne(self.edges[0], spec_dist=250), HolesSideTwo(self.edges[2], spec_dist=250)]
+        self.side = [HolesSideOne(self.edges[2]), HolesSideTwo(self.edges[0])]
 
-        self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 

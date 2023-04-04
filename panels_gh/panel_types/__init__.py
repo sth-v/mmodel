@@ -790,11 +790,11 @@ class B_3(BoardEdge):
     @property
     def cut_hole(self):
         if self.tag[2] == 'R':
-            ofs = self.side[2].fres.Offset(rh.Plane.WorldXY, -10, 0.01,
+            ofs = self.side[2].fres.Offset(rh.Plane.WorldXY, 10, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         else:
-            ofs = self.side[2].fres.Offset(rh.Plane.WorldXY, 10, 0.01,
+            ofs = self.side[2].fres.Offset(rh.Plane.WorldXY, -10, 0.01,
                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         p = ofs.PointAtLength(ofs.GetLength()-25.0)

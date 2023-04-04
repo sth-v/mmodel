@@ -317,6 +317,7 @@ class NichePanel(MainPanel):
             self.niche.fres.Domain[0] + 0.01))
         yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
         bound_plane = rh.Plane(rh.Point3d(b_r.Min[0], b_r.Max[1], 0), xaxis, yaxis)
+        setattr(self, 'bpl', bound_plane)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
 

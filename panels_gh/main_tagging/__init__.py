@@ -547,17 +547,21 @@ class FramerBack:
 
 
         elif p_mark is not None:
-            crv = rh.Curve.Offset(self._cls.panel.fres[1], rh.Plane.WorldXY, -80 + u, 0.01,
+            if p_mark == 1:
+                n = 1
+            else:
+                n = p_mark
+            crv = rh.Curve.Offset(self._cls.panel.fres[n], rh.Plane.WorldXY, -80 + u, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
-            center = crv.PointAtNormalizedLength(0.5)
+            center = crv.PointAtNormalizedLength(0.25)
 
-            crv_check = rh.Curve.Offset(self._cls.panel.fres[1], rh.Plane.WorldXY, -150, 0.01,
+            crv_check = rh.Curve.Offset(self._cls.panel.fres[n], rh.Plane.WorldXY, -150, 0.01,
                                         rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
-            center_check = crv_check.PointAtNormalizedLength(0.5)
+            center_check = crv_check.PointAtNormalizedLength(0.25)
             vec = Rhino.Geometry.Vector3d(center_check - center)
-            param = crv.NormalizedLengthParameter(0.5)[1]
+            param = crv.NormalizedLengthParameter(0.25)[1]
             # tagobj.plane = rh.Plane(center, self.rect.Plane.YAxis, self.rect.Plane.XAxis)
             plane = crv.FrameAt(param)[1]
             tagobj.plane = Rhino.Geometry.Plane(plane.Origin, plane.XAxis, vec)
