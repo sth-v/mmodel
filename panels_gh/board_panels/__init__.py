@@ -438,17 +438,12 @@ class BoardPanel(MainPanel):
 class BoardEdge(SimplePanel):
     @property
     def fres(self):
-        #fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[-1].fres_shift.DuplicateCurve()]
         fres = [self.side[4].fres_shift.DuplicateCurve(), self.side[5].fres_shift.DuplicateCurve()]
         return fres
 
     @property
     def cut(self):
 
-        '''ss = [i.fres for i in self.side[1:-1]]
-
-        side = rh.Curve.JoinCurves([self.side[0].join]+ss+[self.side[-1].join])[0]
-        hls = self.side[0].holes_curve+self.side[-1].holes_curve'''
         ss = [i.fres for i in self.side[0:4]]
 
         side = rh.Curve.JoinCurves(ss+[self.side[4].join] + [self.side[5].join])[0]
@@ -521,15 +516,6 @@ class BoardEdge(SimplePanel):
     # edge2_vector.Unitize()
     def gen_side_types(self):
 
-        '''if list(self.edges)[-1].GetLength() >= 150:
-            num = 2
-        else:
-            num = 1
-
-        ss = [Bottom(i) for i in list(self.edges)[1:-1]]
-        self.side = [BoardEdgeOne(list(self.edges)[0], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)] + ss + [BoardEdgeTwo(list(self.edges)[-1], params=self.trim_params.top, spec_dist=num, tag=self.tag)]
-        self.side_types = self.side
-        self.intersect()'''
 
         if list(self.edges)[4].GetLength() >= 150:
             num = 2
@@ -537,8 +523,6 @@ class BoardEdge(SimplePanel):
             num = 1
 
         ss = [Bottom(i) for i in list(self.edges)[0:4]]
-        #self.side = ss + [BoardEdgeTwo(list(self.edges)[4], params=self.trim_params.top, spec_dist=num, tag=self.tag)] + \
-        #            [BoardEdgeOne(list(self.edges)[5], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)]
         self.side = ss + [BoardEdgeTwo(list(self.edges)[4], params=self.trim_params.top, spec_dist=num, tag=self.tag)] + \
                     [BoardEdgeOne(list(self.edges)[5], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)]
         self.side_types = self.side

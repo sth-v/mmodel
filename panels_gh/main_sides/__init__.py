@@ -697,10 +697,6 @@ class BoardEdgeOne(object):
 
     def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
         self.tag = tag
-        '''if self.tag[2] == 'L' or self.tag[2] == 'C':
-            inv = -1
-        else:
-            inv = 1'''
 
         if self.tag[2] == 'L' or self.tag[2] == 'C':
             inv = 1
@@ -776,16 +772,9 @@ class BoardEdgeOne(object):
     @property
     def holes_curve(self):
 
-        '''if self.tag[2] == 'L' or self.tag[2] == 'C':
-            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
-                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-
-        else:
-            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
-                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]'''
         if self.tag[2] == 'L' or self.tag[2] == 'C':
             crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
-                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
         else:
             crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
@@ -812,17 +801,12 @@ class BoardEdgeOne(object):
             p = translate(v, self.top_part)
             c = self.hls.DuplicateCurve()
 
-            '''if self.tag[2] == 'L' or self.tag[2] == 'C':
-                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))
-            else:
-                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))'''
             if self.tag[2] == 'L' or self.tag[2] == 'C':
-                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis,
+                rotate = rh.Transform.Rotation(math.radians(90 - self.param.neigh_ang), rh.Plane.WorldXY.ZAxis,
                                                rh.Point3d(0, 10, 0))
             else:
-                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis,
+                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang - 90), rh.Plane.WorldXY.ZAxis,
                                                rh.Point3d(0, -10, 0))
-
             c.Transform(rotate)
 
             c.Transform(p)
@@ -855,6 +839,78 @@ class BoardEdgeOne(object):
         crv = rh.Curve.Offset(cc, rh.Plane.WorldXY, -self.side_offset, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])
         return crv[0]
+
+class BoardEdgeOne_reverse(BoardEdgeOne):
+
+    def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
+        BoardEdgeOne.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
+
+        self.tag = tag
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
+            inv = -1
+        else:
+            inv = 1
+
+        self.param = params
+        self.side_offset = (params.bound_len + params.ext_bend) * inv
+        self.fres_offset = (abs(self.side_offset) - (params.bound_len - params.crv_len / 2)) * inv
+        self.holes_offset = (params.safe_zone - (abs(self.side_offset) - abs(self.fres_offset)))
+        self.length = (params.safe_zone - (params.crv_len / 2) + 2 * params.ext_bend + params.crv_len) * inv
+        self.param_trim = 0
+        self.param_trim_hls = -params.trim
+        self.fillet_r = 2
+
+        self.rev = rev
+        self.spec_dist = spec_dist
+
+        self.crv = curve
+        self.fres = self.curve_offset(self.crv)
+
+        self.crv_none = self.crv.Offset(rh.Plane.WorldXY, -self.side_offset, 0.01,
+                                        rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+    @property
+    def holes_curve(self):
+
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
+            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        else:
+            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        if not self.rev:
+            p_two = crv.LengthParameter(crv.GetLength() - self.param_trim_hls)[1]
+            crv = crv.Trim(crv.Domain[0], p_two)
+        else:
+            p_one = crv.LengthParameter(self.param_trim_hls)[1]
+            crv = crv.Trim(p_one, crv.Domain[1])
+
+        if self.spec_dist is not None:
+            points = divide_edge(crv, num=self.spec_dist)
+        else:
+            points = divide_edge(crv)
+
+        setattr(self, "points_v", points)
+
+        circ = []
+        for i, v in enumerate(points):
+
+            p = translate(v, self.top_part)
+            c = self.hls.DuplicateCurve()
+
+            if self.tag[2] == 'L' or self.tag[2] == 'C':
+                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))
+            else:
+                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
+
+            c.Transform(rotate)
+
+            c.Transform(p)
+            circ.append(c)
+
+        return circ
 
 
 class BoardEdgeTwo(BoardEdgeOne):
@@ -928,6 +984,102 @@ class BoardEdgeTwo(BoardEdgeOne):
             else:
                 rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis,
                                                rh.Point3d(0, 10, 0))
+
+            c.Transform(rotate)
+            c.Transform(p)
+            circ.append(c)
+
+        return circ
+
+    @property
+    def fres_shift(self):
+        self._fres_shift = self.fres_trim().Offset(rh.Plane.WorldXY, self.fres_offset, 0.01,
+                                            rh.CurveOffsetCornerStyle.__dict__['None'])
+        return self._fres_shift[0]
+
+    def fres_trim(self):
+        fres = self.fres.DuplicateCurve()
+        if self.rev:
+            p_two = fres.LengthParameter(fres.GetLength() - self.other_trim_dist)[1]
+            tr = fres.Trim(fres.Domain[0], p_two)
+        else:
+            p_one = fres.LengthParameter(self.other_trim_dist)[1]
+            tr = fres.Trim(p_one, fres.Domain[1])
+        return tr
+
+    def small_trim(self):
+        fres = self.fres.DuplicateCurve()
+        if self.rev:
+            p_one = fres.LengthParameter(self.param_trim)[1]
+            p_two = fres.LengthParameter(fres.GetLength() - self.other_trim_dist)[1]
+            #tr_o = fres.Trim(self.fres.Domain[0], p_one)
+            tr_t = fres.Trim(p_two, fres.Domain[1])
+        else:
+            p_one = fres.LengthParameter(self.other_trim_dist)[1]
+            #p_two = fres.LengthParameter(self.fres.GetLength() - self.param_trim)[1]
+            tr_t = fres.Trim(fres.Domain[0], p_one)
+            #tr_o = self.fres.Trim(p_two, self.fres.Domain[1])
+        return tr_t
+
+
+class BoardEdgeTwo_reverse(BoardEdgeOne_reverse):
+
+    def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
+        BoardEdgeOne_reverse.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
+
+        self.other_trim_dist = 17
+
+    @property
+    def join(self):
+        crv = self.fres_trim()
+        sm_tr = self.small_trim()
+        one = rh.Line(crv.PointAtStart, self.top_part.PointAtStart).ToNurbsCurve()
+        two = rh.Line(crv.PointAtEnd, self.top_part.PointAtEnd).ToNurbsCurve()
+
+        join = rh.Curve.JoinCurves([one, self.top_part, two])[0]
+        fillet = rh.Curve.CreateFilletCornersCurve(join, self.fillet_r, 0.1, 0.1)
+
+        self._join = rh.Curve.JoinCurves([sm_tr, fillet])
+        return self._join[0]
+
+    @property
+    def holes_curve(self):
+
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
+            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        else:
+            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+
+        if self.rev:
+            p_one = crv.LengthParameter(self.param_trim_hls)[1]
+            p_two = crv.LengthParameter(crv.GetLength() - self.other_trim_dist)[1]
+            crv = crv.Trim(p_one, p_two)
+        else:
+            p_one = crv.LengthParameter(self.other_trim_dist)[1]
+            p_two = crv.LengthParameter(crv.GetLength() - self.param_trim_hls)[1]
+            crv = crv.Trim(p_one, p_two)
+
+        if self.spec_dist is not None:
+            points = divide_edge(crv, num=self.spec_dist)
+        else:
+            points = divide_edge(crv)
+
+        setattr(self, "points_v", points)
+        setattr(self, "crv_tr", crv)
+
+        circ = []
+        for i, v in enumerate(points):
+            p = translate(v, self.top_part)
+            c = self.hls.DuplicateCurve()
+
+            if self.tag[2] == 'L' or self.tag[2] == 'C':
+                rotate = rh.Transform.Rotation(math.radians(self.param.neigh_ang-90), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,10,0))
+            else:
+                rotate = rh.Transform.Rotation(math.radians(90-self.param.neigh_ang), rh.Plane.WorldXY.ZAxis, rh.Point3d(0,-10,0))
 
             c.Transform(rotate)
             c.Transform(p)

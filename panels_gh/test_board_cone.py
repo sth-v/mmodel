@@ -45,7 +45,8 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 panel_types = imp.load_module("panel_types", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 panel_types.__init__("panel_types", "generic nodule")
-from panel_types import NC_1, NC_2, B_1, B_2,PC_1,PC_2, B_3, B_1_T, PC_3, PC_4, NC_R_1, NC_R_2, NC_3, NC_R_3
+from panel_types import NC_1, NC_2, B_1, B_2,PC_1,PC_2, B_3, B_1_T, PC_3, PC_4, NC_R_1, NC_R_2, NC_3, NC_R_3, B_2_1_rev, \
+    B_2_1, B_2_rev
 
 reload(panel_types)
 
@@ -74,7 +75,7 @@ reload(main_tagging)
 class UnrollPackage:
     panels_dict = {'PC_1': PC_1, 'PC_2': PC_2, 'B_1': B_1, 'B_2': B_2, 'B_3':B_3, 'B_1_T':B_1_T, 'NC_3':NC_3,
                    'NC_R_3': NC_R_3, 'PC_3':PC_3, 'PC_4':PC_4, 'NC_1':NC_1, 'NC_2':NC_2, 'NC_R_1': NC_R_1, 'NC_R_2':NC_R_2,
-                   "BC_2":BC_2, "BC_1":BC_1}
+                   "BC_2":BC_2, "BC_1":BC_1, "B_2_1_rev":B_2_1_rev, "B_2_1":B_2_1, "B_2_rev":B_2_rev}
 
     def __init__(self, x, y, circle, bend_hole, p3_hole, cog_hole, elements):
         self.cog = TT(x, y, circle)
@@ -158,7 +159,7 @@ class UnrollPackage:
 
 
 
-            elif key == 'B_2' or key == 'B_3':
+            elif key in ['B_2','B_3', 'B_2_1', 'B_2_1_rev', 'B_2_rev']:
                 new = self.panels_dict[key](**value)
 
                 setattr(self, key, MiniFrame(new))

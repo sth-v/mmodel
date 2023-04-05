@@ -27,7 +27,8 @@ main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffi
 
 main_sides.__init__("main_sides", "generic nodule")
 from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, \
-    RibsSide, HolesSideThree, RibsSideTwo, BoardEdgeOne, BoardEdgeTwo, NicheShortenedBoard, BottomBoard, BottomHeat
+    RibsSide, HolesSideThree, RibsSideTwo, BoardEdgeOne, BoardEdgeTwo, NicheShortenedBoard, BottomBoard, BottomHeat, \
+    BoardEdgeTwo_reverse, BoardEdgeOne_reverse
 
 reload(main_sides)
 
@@ -781,6 +782,81 @@ class B_2(BoardEdge):
     def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
         BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
 
+class B_2_1(BoardEdge):
+    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
+        BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
+
+    @property
+    def fres(self):
+        fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[-1].fres_shift.DuplicateCurve()]
+        return fres
+
+    @property
+    def cut(self):
+
+        ss = [i.fres for i in self.side[1:-1]]
+
+        side = rh.Curve.JoinCurves([self.side[0].join]+ss+[self.side[-1].join])[0]
+        hls = self.side[0].holes_curve+self.side[-1].holes_curve
+
+        for i in hls:
+            side = rh.Curve.CreateBooleanDifference(side,i)[0]
+
+        fillet = rh.Curve.CreateFilletCornersCurve(side, 2, 0.1, 0.1)
+
+        if len(self.unrol[1]) >=1:
+            return [fillet] + list(self.unrol[1])
+        else:
+            return [fillet]
+
+    def gen_side_types(self):
+
+        if list(self.edges)[-1].GetLength() >= 150:
+            num = 2
+        else:
+            num = 1
+
+        ss = [Bottom(i) for i in list(self.edges)[1:-1]]
+        self.side = [BoardEdgeOne(list(self.edges)[0], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)] + ss + [BoardEdgeTwo(list(self.edges)[-1], params=self.trim_params.top, spec_dist=num, tag=self.tag)]
+        self.side_types = self.side
+        self.intersect()
+
+
+class B_2_rev(B_2):
+    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
+        B_2.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
+
+    def gen_side_types(self):
+
+
+        if list(self.edges)[4].GetLength() >= 150:
+            num = 2
+        else:
+            num = 1
+
+        ss = [Bottom(i) for i in list(self.edges)[0:4]]
+        self.side = ss + [BoardEdgeTwo_reverse(list(self.edges)[4], params=self.trim_params.top, spec_dist=num, tag=self.tag)] + \
+                    [BoardEdgeOne_reverse(list(self.edges)[5], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)]
+        self.side_types = self.side
+        self.intersect()
+
+
+class B_2_1_rev(B_2_1):
+    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
+        B_2_1.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params, **kwargs)
+
+    def gen_side_types(self):
+
+        if list(self.edges)[-1].GetLength() >= 150:
+            num = 2
+        else:
+            num = 1
+
+        ss = [Bottom(i) for i in list(self.edges)[1:-1]]
+        self.side = [BoardEdgeOne_reverse(list(self.edges)[0], params=self.trim_params.side, rev=True, spec_dist=2, tag=self.tag)] + ss + \
+                    [BoardEdgeTwo_reverse(list(self.edges)[-1], params=self.trim_params.top, spec_dist=num, tag=self.tag)]
+        self.side_types = self.side
+        self.intersect()
 
 class B_3(BoardEdge):
     @property
