@@ -123,6 +123,7 @@ def offset_side(elem, dist, extend=None, extend_dist=10.65):
 AdvanceTag = namedtuple("AdvanceTag", ["full", 'typology', 'side', 'row', 'col', 'part'])
 AdvanceTagBoard = namedtuple("AdvanceTag", ["full", 'typology', 'side', 'col', 'part'])
 AdvanceTagWard = namedtuple("AdvanceTag", ["full", 'typology', 'side', 'row', 'col', 'part', 'partpart'])
+AdvanceTagBild = namedtuple("AdvanceTag", ["full", 'typology', 'col', 'part'])
 
 import draw
 
@@ -200,7 +201,11 @@ class MainFrame:
             try:
                 self.advance_tag = AdvanceTagBoard(self.panel.tag, *self.panel.tag.split("-"))
             except:
-                self.advance_tag = AdvanceTagWard(self.panel.tag, *self.panel.tag.split("-"))
+                try:
+                    self.advance_tag = AdvanceTagWard(self.panel.tag, *self.panel.tag.split("-"))
+                except:
+                    print( self.panel.tag, self.panel.tag.split("-"), len([self.panel.tag]+self.panel.tag.split("-")))
+                    self.advance_tag = AdvanceTagBild(self.panel.tag, *self.panel.tag.split("-"))
 
         self._unroll_dict = {
             "frame": self.bound_frame.ToNurbsCurve(),

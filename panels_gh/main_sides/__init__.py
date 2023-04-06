@@ -461,6 +461,16 @@ class Side(BendSide):
         self.reverse = reverse
 
 
+class SideStraight(Side):
+    side_offset = 0.5
+    angle = 87
+
+    def __init__(self, curve, reverse=None):
+        Side.__dict__['__init__'](self, curve, reverse)
+        self.reverse = reverse
+
+
+
 class HolesSideOne(Side):
     side_offset = 1.0
 
@@ -502,7 +512,8 @@ class BoardHolesOne(HolesSideOne):
         HolesSideOne.__dict__['__init__'](self, curve, reverse=reverse, holes=holes, spec_dist=spec_dist)
 
 class HolesSideOneExtra(HolesSideOne):
-    angle = 45
+    angle = 30
+    side_offset = 0.5
     def __init__(self, curve, reverse=None, holes=True, spec_dist=None):
         HolesSideOne.__dict__['__init__'](self, curve, reverse=reverse, holes=holes, spec_dist=spec_dist)
 
@@ -549,6 +560,12 @@ class HolesSideTwo(HolesSideOne):
 
         self.spec_dist = spec_dist
 
+
+class HolesSideTwoExtra(HolesSideTwo):
+    angle = 30
+    side_offset = 0.5
+    def __init__(self, curve, reverse=None, holes=True, spec_dist=None):
+        HolesSideTwo.__dict__['__init__'](self, curve, reverse=reverse, holes=holes, spec_dist=spec_dist)
 
 class BoardHolesTwo(HolesSideTwo):
     side_offset = None

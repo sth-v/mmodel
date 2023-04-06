@@ -196,10 +196,13 @@ class MainPanel(SimplePanel):
         self.h_r = self.holes['r']
 
         unrol = rh.Unroller(self.surf)
-        if self.h_p[0] is not None:
-            a = self.h_p
-            # a = [self.surf.ClosestPoint(i) for i in self.h_p]
-            unrol.AddFollowingGeometry(curves=a)
+        try:
+            if self.h_p[0] is not None:
+                a = self.h_p
+                # a = [self.surf.ClosestPoint(i) for i in self.h_p]
+                unrol.AddFollowingGeometry(curves=a)
+        except:
+            pass
 
         self.unrol = unrol.PerformUnroll()
         self.unrol_surf = self.unrol[0][0]

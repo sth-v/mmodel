@@ -1183,7 +1183,7 @@ class NC_3(N_2):
 
         self.marks = marks.PerformUnroll()
 
-    @property
+    '''@property
     def grav_cone(self):
         if self.marks[1] is not None:
             crv = []
@@ -1194,7 +1194,7 @@ class NC_3(N_2):
             return crv
         else:
             pass
-
+'''
 
     def gen_side_types(self):
         self.top = Bottom(self.edges[3])
