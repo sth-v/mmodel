@@ -108,9 +108,9 @@ def offset_side(elem, dist, extend=None, extend_dist=10.65):
 
     elif extend == 'both':
         if abs(elem.Domain[1] - elem.Domain[0]) > 1.1:
-            det = offset(elem, dist, extend=[elem.Domain[0] + 25, elem.Domain[1] - 25])
+            det = offset(elem, dist, extend=[elem.Domain[0] + 155, elem.Domain[1] - 155])
             if det is None:
-                det = offset(elem, dist, extend=[elem.Domain[0] - 125, elem.Domain[1] + 25])
+                det = offset(elem, dist, extend=[elem.Domain[0] - 150, elem.Domain[1] + 135])
         else:
             det = offset(elem, dist, extend=[elem.Domain[0] + extend_dist, elem.Domain[1] - extend_dist])
             if det is None:

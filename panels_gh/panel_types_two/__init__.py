@@ -89,9 +89,10 @@ class PB_1(ArcPanel):
         top = self.top_side()
         p_niche = self.fres[1]
         p_bend = self.fres[0]
-        order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'both'],
-                 [top, self.top_ofs, 'e']]
-        bridge = [[2, self.top_parts[1], None], [0, self.top_parts[0], None]]
+        #order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'both'],
+        #         [top, self.top_ofs, 'e']]
+        order = [[p_bend, self.bend_ofs, 'st'], [p_niche, self.niche_ofs, 'both'], [top, self.top_ofs, 'e']]
+        bridge = [[1, self.top_parts[1], None], [0, self.top_parts[0], None]]
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
 
@@ -101,14 +102,14 @@ class PB_1(ArcPanel):
     @property
     def fres(self):
         fres = [self.side[0].fres.DuplicateCurve(), self.niche.fres.DuplicateCurve(),
-                self.side[1].fres.DuplicateCurve(), self.bottom.fres.DuplicateCurve()]
+                self.side[1].fres.DuplicateCurve(), self.bottom.fres_trim().DuplicateCurve()]
         [i.Transform(self.bound_plane) for i in fres]
         return fres
 
     @property
     def cut(self):
-        s = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.left[0].fres,
-                                 self.left[1].fres, self.bottom.join])[0]
+        s = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.left[1].fres,
+                                 self.left[0].fres, self.bottom.join])[0]
         side = s.ToNurbsCurve()
         side.Transform(self.bound_plane)
         return [side]
@@ -138,9 +139,23 @@ class PB_1(ArcPanel):
 
     def gen_side_types(self):
         self.niche = HolesSideOneExtra(self.edges[4])
-        self.bottom = SideStraight(self.edges[0])
+        self.bottom = SideStraight(self.edges[0], reverse=False)
         self.side = [Side(self.edges[5]), Side(self.edges[3])]
         self.left = [Bottom(self.edges[1]), BottomPanel(self.edges[2])]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1], self.left[0], self.left[1]]
+        self.intersect()
+
+
+class PB_2(PB_1):
+    def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        PB_1.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+
+    def gen_side_types(self):
+        self.niche = HolesSideTwoExtra(self.edges[3])
+        self.bottom = SideStraight(self.edges[1], reverse=True)
+        self.side = [Side(self.edges[4]), Side(self.edges[2])]
+        self.left = [Bottom(self.edges[0]), BottomPanel(self.edges[5])]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1], self.left[0], self.left[1]]
         self.intersect()

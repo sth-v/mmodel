@@ -85,8 +85,12 @@ class SimplePanel:
             self.cogs_bend = cogs_bend
 
     def intersect(self):
+        test = []
+
         for i, v in enumerate(self.side_types):
             old = v.fres.Domain
+            a = v.fres.DuplicateCurve()
+            test.append(a.Extend(rh.Interval(old[0] - 15, old[1] + 15)))
             v.fres = v.fres.Extend(rh.Interval(old[0] - 15, old[1] + 15))
             param = []
             for ind, val in enumerate(self.side_types):
@@ -103,6 +107,7 @@ class SimplePanel:
 
             trimed = rh.Curve.Trim(v.fres, param[0], param[1])
             v.fres = trimed
+        setattr(self, 'test', test)
 
 
 class MainPanel(SimplePanel):
