@@ -191,7 +191,8 @@ class P_3(SimplePanel):
     def hole_one(self):
         unroll = self.unrol[2]
         cent = unroll[0:len(self.pins) / 2]
-        cent = cent[int((4 * len(cent)) / 5)]
+        #cent = cent[int((4 * len(cent)) / 5)]
+        cent = cent[0]
         try:
             cent.Transform(self.bound_plane)
         except:
@@ -202,7 +203,8 @@ class P_3(SimplePanel):
     def hole_two(self):
         unroll = self.unrol[2]
         cent = unroll[len(self.pins) / 2:]
-        cent = cent[int(len(cent) / 5)]
+        #cent = cent[int(len(cent) / 5)]
+        cent = cent[0]
         try:
             cent.Transform(self.bound_plane)
         except:
@@ -211,7 +213,7 @@ class P_3(SimplePanel):
 
     @property
     def all_elems(self):
-        return self.cut + self.cut_holes
+        return [self.cut + self.cut_holes]
 
     def __init__(self, surf=None, pins=None, cogs_bend=None, tag=None):
         SimplePanel.__dict__['__init__'](self, surf, pins, cogs_bend, tag)
