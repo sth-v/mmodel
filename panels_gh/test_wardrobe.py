@@ -45,7 +45,7 @@ panelfile, panelfilename, (panelsuffix, panelmode, paneltype) = imp.find_module(
 panel_types = imp.load_module("panel_types_two", panelfile, panelfilename, (panelsuffix, panelmode, paneltype))
 
 panel_types.__init__("panel_types_two", "generic nodule")
-from panel_types_two import PW_1, PW_1_L, PW_1_S, PW_2_L, PW_2_S, PC_W_1, PC_TW_1, PC_W_2, PC_TW_2
+from panel_types_two import PW_1, PW_1_L, PW_1_S, PW_2_L, PW_2_S, PC_W_1, PC_TW_1, PC_W_2, PC_TW_2, BC_Bay_1
 
 reload(panel_types)
 
@@ -65,7 +65,8 @@ reload(main_tagging)
 
 class UnrollPackage:
     panels_dict = {'PW_1': PW_1, 'PW_1_L':PW_1_L, 'PW_1_S':PW_1_S, 'PW_2_L':PW_2_L,
-                   'PW_2_S': PW_2_S, 'PC_W_1': PC_W_1, 'PC_TW_1': PC_TW_1, 'PC_W_2': PC_W_2, 'PC_TW_2': PC_TW_2  }
+                   'PW_2_S': PW_2_S, 'PC_W_1': PC_W_1, 'PC_TW_1': PC_TW_1, 'PC_W_2': PC_W_2, 'PC_TW_2': PC_TW_2 ,
+                   'BC_Bay_1':BC_Bay_1}
 
     def __init__(self, x, y, circle, bend_hole, p3_hole, cog_hole, elements):
         self.cog = TT(x, y, circle)
@@ -79,7 +80,7 @@ class UnrollPackage:
 
         for key, value in elements.items():
 
-            if key not in ["PC_W_1", "PC_W_2", "PC_TW_1", "PC_TW_2"]:
+            if key not in ["PC_W_1", "PC_W_2", "PC_TW_1", "PC_TW_2", "BC_Bay_1"]:
                 new = self.panels_dict[key](**value)
 
                 try:
@@ -130,6 +131,24 @@ class UnrollPackage:
                     setattr(self, key, MainFrame(new))
                 else:
                     setattr(self, key, WardFrame(new))
+
+            elif key == 'BC_Bay_1':
+                new = self.panels_dict[key](**value)
+                #new.niche.cg = self.cog
+                #new.niche.cog_hole = self.cog_hole
+                #new.niche.generate_cogs()
+
+                try:
+                    for i in new.side:
+                        i.hls = self.bend_hole
+                    for i in new.top_panel.side:
+                        i.hls = self.bend_hole
+                    for i in new.bot_panel.side:
+                        i.hls = self.bend_hole
+                except AttributeError:
+                    pass
+                # setattr(self, key, MainFrame(new))
+                setattr(self, key, new)
 
             else:
                 new = self.panels_dict[key](**value)

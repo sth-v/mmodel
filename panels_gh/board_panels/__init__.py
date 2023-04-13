@@ -161,31 +161,16 @@ class ArcConePanel(MainPanel):
         self.intersect()
 
 
-
-
-
 class BendLikePanel(SimplePanel):
 
     @property
     def bound_plane(self):
-        xaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[0] + 0.01) - self.bottom.fres.PointAt(
-            self.bottom.fres.Domain[1] - 0.01))
-        yaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[0] + 0.01) - self.bottom.fres.PointAt(
-            self.bottom.fres.Domain[1] - 0.01))
+        xaxis = rh.Vector3d(self.bottom.fres.PointAtStart - self.bottom.fres.PointAtEnd)
+        yaxis = rh.Vector3d(self.bottom.fres.PointAtStart - self.bottom.fres.PointAtEnd)
         yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
         bound_plane = rh.Plane(self.bottom.fres.PointAt(self.bottom.fres.Domain[1]), xaxis, yaxis)
         tr = rh.Transform.PlaneToPlane(bound_plane, self.parent_plane)
         return tr
-
-    @property
-    def plane_disp(self):
-        xaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[0] + 0.01) - self.bottom.fres.PointAt(
-            self.bottom.fres.Domain[1] - 0.01))
-        yaxis = rh.Vector3d(self.bottom.fres.PointAt(self.bottom.fres.Domain[0] + 0.01) - self.bottom.fres.PointAt(
-            self.bottom.fres.Domain[1] - 0.01))
-        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
-        bound_plane = rh.Plane(self.bottom.fres.PointAt(self.bottom.fres.Domain[1]), xaxis, yaxis)
-        return bound_plane
 
     @property
     def top_parts(self):
@@ -225,20 +210,15 @@ class BendLikePanel(SimplePanel):
 
     @property
     def grav(self):
+
         if self.mark_crv is not None:
             unrol = list(self.mark_crv)
             circ = []
             for i in unrol:
-                if i.GetLength() >= 150:
-                    num =2
-                else:
-                    num= 1
 
-                c = divide_edge(i, num=num)
-                for ii in c:
-                    cc = rh.Circle(ii, 3.25)
-                    cc.Transform(self.bound_plane)
-                    circ.append(cc.ToNurbsCurve())
+                cc = i.DuplicateCurve()
+                cc.Transform(self.bound_plane)
+                circ.append(cc.ToNurbsCurve())
 
 
             return circ
@@ -247,6 +227,7 @@ class BendLikePanel(SimplePanel):
 
     def __init__(self, surf, tag=None, cogs_bend=None, mark_crv=None, **kwargs):
         SimplePanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend)
+        print(mark_crv, 'markcrv')
 
         self.mark_crv = mark_crv
         self.edges = self.surf.Curves3D
@@ -256,11 +237,33 @@ class BendLikePanel(SimplePanel):
     def gen_side_types(self):
         self.niche = Side(self.edges[1])
         self.bottom = BottomBoard(self.edges[3])
-        self.side = [HolesSideOneExtra(self.edges[0], True), HolesSideOneExtra(self.edges[2], False)]
+        self.side = [HolesSideOne(self.edges[0]), HolesSideTwo(self.edges[2])]
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 
+class BendLikePanel_Two(BendLikePanel):
+
+    def __init__(self, surf, tag=None, cogs_bend=None, mark_crv=None, **kwargs):
+        BendLikePanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv)
+
+    @property
+    def bound_plane(self):
+        xaxis = rh.Vector3d(self.bottom.fres.PointAtStart - self.bottom.fres.PointAtEnd)
+        yaxis = rh.Vector3d(self.bottom.fres.PointAtStart - self.bottom.fres.PointAtEnd)
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(self.bottom.fres.PointAt(self.bottom.fres.Domain[1]), xaxis, yaxis)
+        setattr(self, 'bpl', bound_plane)
+        tr = rh.Transform.PlaneToPlane(bound_plane, self.parent_plane)
+        return tr
+
+    def gen_side_types(self):
+        self.niche = Side(self.edges[2])
+        self.bottom = BottomBoard(self.edges[0])
+        self.side = [HolesSideOne(self.edges[3]), HolesSideTwo(self.edges[1])]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
 
 
 class BoardPanel(MainPanel):
@@ -433,6 +436,172 @@ class BoardPanel(MainPanel):
         top_side = bound_rec.GetEdges()[2]
         return top_side.ToNurbsCurve()
 
+
+class BoardPanel_ConeBay(MainPanel):
+
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, top_surf=None, bot_surf=None, top_mark=None, side_mark=None,
+                 bot_mark=None, rib_mark=None, **kwargs):
+        MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
+
+        self.mark_name = ['2', '3', '4', '5', '6', '7']
+
+        try:
+            self.top_surf = top_surf
+            top_unr = rh.Unroller(self.top_surf)
+            if top_mark is not None:
+                top_unr.AddFollowingGeometry(curves=top_mark)
+            self.top_unrol = top_unr.PerformUnroll()
+        except:
+            pass
+
+        try:
+            self.bot_surf = bot_surf
+            bot_unr = rh.Unroller(self.bot_surf)
+            if bot_mark is not None:
+                bot_unr.AddFollowingGeometry(curves=bot_mark)
+            self.bot_unrol = bot_unr.PerformUnroll()
+        except:
+            pass
+
+        self.side_surf = surf
+        side_surf = rh.Unroller(self.side_surf)
+        if side_mark is not None:
+            side_surf.AddFollowingGeometry(curves=side_mark)
+            #self.rib_mark = side_surf.PerformUnroll()[1][0:6]
+            self.side_mark = side_surf.PerformUnroll()[1]
+
+        self.top_panel = BendLikePanel(self.top_unrol[0][0], mark_crv=self.top_unrol[1])
+        setattr(self.top_panel, 'parent_plane', self.parent_top)
+
+        self.bot_panel = BendLikePanel_Two(self.bot_unrol[0][0], mark_crv=self.bot_unrol[1])
+        setattr(self.bot_panel, 'parent_plane', self.parent_bot)
+
+    @property
+    def parent_top(self):
+        xaxis = rh.Vector3d(self.top.fres.PointAtEnd - self.top.fres.PointAtStart)
+        yaxis = rh.Vector3d(self.top.fres.PointAtEnd - self.top.fres.PointAtStart)
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        parent_plane = rh.Plane(self.top.fres.PointAtStart, xaxis, yaxis)
+        return parent_plane
+
+    @property
+    def parent_bot(self):
+        xaxis = rh.Vector3d(self.bottom.fres.PointAtEnd - self.bottom.fres.PointAtStart)
+        yaxis = rh.Vector3d(self.bottom.fres.PointAtEnd - self.bottom.fres.PointAtStart)
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        parent_plane = rh.Plane(self.bottom.fres.PointAtStart, xaxis, yaxis)
+        return parent_plane
+
+    def gen_side_types(self):
+
+        self.bottom = BottomBoard(self.edges[2])
+        self.top = BottomBoard(self.edges[0])
+        self.side = [HolesSideTwo(self.edges[1]), HolesSideOne(self.edges[3])]
+
+        self.side_types = [self.bottom, self.top, self.side[0], self.side[1]]
+        self.intersect()
+
+    @property
+    def top_parts(self):
+        top = [self.side[0].top_part.DuplicateCurve(), self.side[1].top_part.DuplicateCurve()]
+        top += self.top_panel.top_parts
+        top += self.bot_panel.top_parts
+        #[i.Transform(self.bound_plane) for i in top]
+        return top
+
+    @property
+    def cut(self):
+        crv = self.top_panel.cut + [self.side[0].join, self.side[1].join] + self.bot_panel.cut
+        s = rh.Curve.JoinCurves(crv, 0.2)[0]
+        side = s.ToNurbsCurve()
+        #side.Transform(self.bound_plane)
+
+        return [side]
+
+    @property
+    def fres(self):
+        s_o = rh.Curve.JoinCurves([self.top_panel.fres[0].DuplicateCurve(), self.side[0].fres.DuplicateCurve(),
+                                   self.bot_panel.fres[0].DuplicateCurve()], 1.3)[0]
+        s_t = rh.Curve.JoinCurves([self.top_panel.fres[2].DuplicateCurve(),self.side[1].fres.DuplicateCurve(),
+                                   self.bot_panel.fres[2].DuplicateCurve()], 1.3)[0]
+        #fres = rh.Curve.JoinCurves([s_o.DuplicateCurve(), self.top_panel.fres[1].DuplicateCurve(),
+        #                                s_t.DuplicateCurve(), self.bot_panel.fres[1].DuplicateCurve()], 0.2)[0]
+
+        #tr = rh.Curve.Trim(self.bottom.fres.DuplicateCurve(), self.bottom.fres.Domain[0],
+                               #self.bottom.fres.Domain[1] - 0.015)
+        fres = [s_o, s_t]
+
+        #[i.Transform(self.bound_plane) for i in fres]
+        return fres
+
+    @property
+    def fres_for_frame(self):
+        fres = [self.side[0].fres.DuplicateCurve(), self.bottom.fres.DuplicateCurve(),
+                    self.side[1].fres.DuplicateCurve(), self.top.fres.DuplicateCurve()] \
+                   + self.extra_panel.fres
+
+        [i.Transform(self.bound_plane) for i in fres]
+        return fres
+
+    @property
+    def ribs_marker(self):
+        pairs = []
+        for n, c in zip(self.mark_name, self.bend_mark[1::2]):
+            cent = c.PointAtNormalizedLength(1.0)
+            cent.Transform(self.bound_plane)
+            pairs.append([n, cent])
+
+        return pairs
+
+    @property
+    def cut_holes(self):
+        cut = []
+        for v in self.side:
+            for i in v.holes_curve:
+                ii = i.DuplicateCurve()
+                #ii.Transform(self.bound_plane)
+                cut.append(ii)
+
+        for i in self.top_panel.cut_holes:
+            ii = i.DuplicateCurve()
+            #ii.Transform(self.bound_plane)
+            cut.append(ii)
+
+        for i in self.bot_panel.cut_holes:
+            ii = i.DuplicateCurve()
+            #ii.Transform(self.bound_plane)
+            cut.append(ii)
+
+        return cut
+
+    @property
+    def grav(self):
+        if self.side_surf is not None:
+            unrol = list(self.side_mark)
+            circ = []
+            for i in unrol:
+                cc = i.DuplicateCurve()
+                #cc.Transform(self.bound_plane)
+                circ.append(cc.ToNurbsCurve())
+
+            for i in self.top_panel.grav:
+                ii = i.DuplicateCurve()
+                #ii.Transform(self.bound_plane)
+                circ.append(ii)
+
+            for i in self.bot_panel.grav:
+                ii = i.DuplicateCurve()
+                #ii.Transform(self.bound_plane)
+                circ.append(ii)
+
+            #for i in self.rib_mark:
+                #ii = i.DuplicateCurve()
+                #ii.Transform(self.bound_plane)
+                #circ.append(ii)
+
+            return circ
+        else:
+            pass
 
 
 class BoardEdge(SimplePanel):

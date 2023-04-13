@@ -52,7 +52,7 @@ boardfile, boardfilename, (boardsuffix, boardmode, boardtype) = imp.find_module(
 board_panels = imp.load_module("board_panels", boardfile, boardfilename, (boardsuffix, boardmode, boardtype))
 
 board_panels.__init__("board_panels", "generic nodule")
-from board_panels import BoardPanel, BoardEdge, ArcConePanel
+from board_panels import BoardPanel, BoardEdge, ArcConePanel, BoardPanel_ConeBay
 
 reload(board_panels)
 import main_tagging
@@ -690,3 +690,11 @@ class BC_1(NichePanel):
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
 
+
+class BC_Bay_1(BoardPanel_ConeBay):
+
+    def __init__(self, surf, tag=None, cogs_bend=None, holes=None, top_surf=None, bot_surf=None, top_mark=None,
+                 side_mark=None, bot_mark=None, rib_mark=None, **kwargs):
+        BoardPanel_ConeBay.__dict__['__init__'](self, surf, tag=tag, cogs_bend=cogs_bend, holes=holes, top_surf=top_surf,
+                                                bot_surf=bot_surf, top_mark=top_mark, side_mark=side_mark,
+                                                bot_mark=bot_mark, rib_mark=rib_mark)
