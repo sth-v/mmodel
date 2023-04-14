@@ -227,7 +227,6 @@ class BendLikePanel(SimplePanel):
 
     def __init__(self, surf, tag=None, cogs_bend=None, mark_crv=None, **kwargs):
         SimplePanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend)
-        print(mark_crv, 'markcrv')
 
         self.mark_crv = mark_crv
         self.edges = self.surf.Curves3D
@@ -492,6 +491,33 @@ class BoardPanel_ConeBay(MainPanel):
         parent_plane = rh.Plane(self.bottom.fres.PointAtStart, xaxis, yaxis)
         return parent_plane
 
+    @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves(self.top_panel.cut + [self.side[0].join, self.side[1].join] + self.bot_panel.cut)[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        xaxis = rh.Vector3d(self.bot_panel.fres[1].PointAtEnd - self.bot_panel.fres[1].PointAtStart)
+        yaxis = rh.Vector3d(self.bot_panel.fres[1].PointAtEnd - self.bot_panel.fres[1].PointAtStart)
+        yaxis.Rotate(math.pi / 2, rh.Plane.WorldXY.ZAxis)
+        bound_plane = rh.Plane(rh.Point3d(b_r.Max[0], b_r.Min[1], 0), xaxis, yaxis)
+        setattr(self, 'bpl', bound_plane)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    @property
+    def frame_dict(self):
+        diag = self.diag_side(
+            [self.top_parts[2].PointAtEnd, self.top_parts[1].PointAtStart, self.fres_for_frame[1].PointAtStart])
+        top = self.top_side()
+        p_niche = self.fres_for_frame[1]
+        p_bend = self.fres_for_frame[2]
+        side_bend = self.fres_for_frame[3]
+        top_bend = self.fres_for_frame[7]
+        order = [[p_niche, self.niche_ofs, 'st'], [diag, self.diag, False], [p_bend, self.bend_ofs, 'both'],
+                 [side_bend, self.bend_ofs, 'both'],[top_bend, self.bend_ofs,'both', 50], [top, self.top_ofs, 'e']]
+        bridge = [[0, self.top_parts[1], None], [2, self.top_parts[2], None], [3, self.top_parts[3], None], [4, self.top_parts[7], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
     def gen_side_types(self):
 
         self.bottom = BottomBoard(self.edges[2])
@@ -503,10 +529,10 @@ class BoardPanel_ConeBay(MainPanel):
 
     @property
     def top_parts(self):
-        top = [self.side[0].top_part.DuplicateCurve(), self.side[1].top_part.DuplicateCurve()]
+        top = self.bot_panel.top_parts
+        top += [self.side[0].top_part.DuplicateCurve(), self.side[1].top_part.DuplicateCurve()]
         top += self.top_panel.top_parts
-        top += self.bot_panel.top_parts
-        #[i.Transform(self.bound_plane) for i in top]
+        [i.Transform(self.bound_plane) for i in top]
         return top
 
     @property
@@ -514,31 +540,28 @@ class BoardPanel_ConeBay(MainPanel):
         crv = self.top_panel.cut + [self.side[0].join, self.side[1].join] + self.bot_panel.cut
         s = rh.Curve.JoinCurves(crv, 0.2)[0]
         side = s.ToNurbsCurve()
-        #side.Transform(self.bound_plane)
+        side.Transform(self.bound_plane)
 
         return [side]
 
     @property
     def fres(self):
-        s_o = rh.Curve.JoinCurves([self.top_panel.fres[0].DuplicateCurve(), self.side[0].fres.DuplicateCurve(),
-                                   self.bot_panel.fres[0].DuplicateCurve()], 1.3)[0]
-        s_t = rh.Curve.JoinCurves([self.top_panel.fres[2].DuplicateCurve(),self.side[1].fres.DuplicateCurve(),
-                                   self.bot_panel.fres[2].DuplicateCurve()], 1.3)[0]
-        #fres = rh.Curve.JoinCurves([s_o.DuplicateCurve(), self.top_panel.fres[1].DuplicateCurve(),
-        #                                s_t.DuplicateCurve(), self.bot_panel.fres[1].DuplicateCurve()], 0.2)[0]
+        s_o = rh.Curve.JoinCurves([self.top_panel.fres[0].DuplicateCurve(), self.side[1].fres.DuplicateCurve(),
+                                   self.bot_panel.fres[0].DuplicateCurve()], 0.2)[0]
+        s_t = rh.Curve.JoinCurves([self.top_panel.fres[2].DuplicateCurve(),self.side[0].fres.DuplicateCurve(),
+                                   self.bot_panel.fres[2].DuplicateCurve()], 0.2)[0]
+        fres = rh.Curve.JoinCurves([s_o.DuplicateCurve(), self.top_panel.fres[1].DuplicateCurve(),
+                                        s_t.DuplicateCurve(), self.bot_panel.fres[1].DuplicateCurve()], 0.2)[0]
 
-        #tr = rh.Curve.Trim(self.bottom.fres.DuplicateCurve(), self.bottom.fres.Domain[0],
-                               #self.bottom.fres.Domain[1] - 0.015)
-        fres = [s_o, s_t]
+        fres = [fres, self.bottom.fres.DuplicateCurve(), self.top.fres.DuplicateCurve()]
 
-        #[i.Transform(self.bound_plane) for i in fres]
+        [i.Transform(self.bound_plane) for i in fres]
         return fres
 
     @property
     def fres_for_frame(self):
-        fres = [self.side[0].fres.DuplicateCurve(), self.bottom.fres.DuplicateCurve(),
-                    self.side[1].fres.DuplicateCurve(), self.top.fres.DuplicateCurve()] \
-                   + self.extra_panel.fres
+        fres = self.bot_panel.fres + [self.side[0].fres.DuplicateCurve(),
+                    self.side[1].fres.DuplicateCurve()] + self.top_panel.fres
 
         [i.Transform(self.bound_plane) for i in fres]
         return fres
@@ -559,17 +582,17 @@ class BoardPanel_ConeBay(MainPanel):
         for v in self.side:
             for i in v.holes_curve:
                 ii = i.DuplicateCurve()
-                #ii.Transform(self.bound_plane)
+                ii.Transform(self.bound_plane)
                 cut.append(ii)
 
         for i in self.top_panel.cut_holes:
             ii = i.DuplicateCurve()
-            #ii.Transform(self.bound_plane)
+            ii.Transform(self.bound_plane)
             cut.append(ii)
 
         for i in self.bot_panel.cut_holes:
             ii = i.DuplicateCurve()
-            #ii.Transform(self.bound_plane)
+            ii.Transform(self.bound_plane)
             cut.append(ii)
 
         return cut
@@ -581,17 +604,17 @@ class BoardPanel_ConeBay(MainPanel):
             circ = []
             for i in unrol:
                 cc = i.DuplicateCurve()
-                #cc.Transform(self.bound_plane)
+                cc.Transform(self.bound_plane)
                 circ.append(cc.ToNurbsCurve())
 
             for i in self.top_panel.grav:
                 ii = i.DuplicateCurve()
-                #ii.Transform(self.bound_plane)
+                ii.Transform(self.bound_plane)
                 circ.append(ii)
 
             for i in self.bot_panel.grav:
                 ii = i.DuplicateCurve()
-                #ii.Transform(self.bound_plane)
+                ii.Transform(self.bound_plane)
                 circ.append(ii)
 
             #for i in self.rib_mark:

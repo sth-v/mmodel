@@ -56,7 +56,7 @@ main_framing.__init__("main_framing", "generic nodule")
 
 reload(main_framing)
 
-from main_framing import MainFrame, MiniFrame,WardFrame, ConeFrame
+from main_framing import MainFrame, MiniFrame,WardFrame, ConeFrame, BoardFrame
 
 import main_tagging
 
@@ -148,7 +148,7 @@ class UnrollPackage:
                 except AttributeError:
                     pass
                 # setattr(self, key, MainFrame(new))
-                setattr(self, key, new)
+                setattr(self, key, BoardFrame(new))
 
             else:
                 new = self.panels_dict[key](**value)

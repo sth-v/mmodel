@@ -94,27 +94,36 @@ def intersect(values):
     return res
 
 
-def offset_side(elem, dist, extend=None, extend_dist=10.65):
+def offset_side(elem, dist, extend=None, extend_dist=0.3):
     if extend == 'st':
-        if abs(elem.Domain[1] - elem.Domain[0]) > 1.5:
-            det = offset(elem, dist, extend=[elem.Domain[0] - 200, elem.Domain[1]])
+        if abs(elem.Domain[1] + elem.Domain[0]) > 1.5:
+            det = offset(elem, dist, extend=[elem.Domain[0] - 75, elem.Domain[1]])
         else:
             det = offset(elem, dist, extend=[elem.Domain[0] - extend_dist, elem.Domain[1]])
     elif extend == 'e':
-        if abs(elem.Domain[1]) - abs(elem.Domain[0]) > 1.5:
-            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 200])
+        if abs(elem.Domain[1]) + abs(elem.Domain[0]) > 1.5:
+            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 75])
         else:
             det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1]+ extend_dist])
 
     elif extend == 'both':
-        if abs(elem.Domain[1] - elem.Domain[0]) > 1.1:
-            det = offset(elem, dist, extend=[elem.Domain[0] + 155, elem.Domain[1] - 155])
+        if abs(elem.Domain[1] + elem.Domain[0]) > 1.1:
+            if extend_dist > 1:
+                det = offset(elem, dist, extend=[elem.Domain[0] + extend_dist, elem.Domain[1] - extend_dist])
+            else:
+                det = offset(elem, dist, extend=[elem.Domain[0] + 25, elem.Domain[1] - 25])
+
+
             if det is None:
-                det = offset(elem, dist, extend=[elem.Domain[0] - 150, elem.Domain[1] + 135])
+                if extend_dist > 1:
+                    det = offset(elem, dist, extend=[elem.Domain[0] - extend_dist, elem.Domain[1] + extend_dist])
+                else:
+                    det = offset(elem, dist, extend=[elem.Domain[0] - 25, elem.Domain[1] + 25])
+
         else:
-            det = offset(elem, dist, extend=[elem.Domain[0] + extend_dist, elem.Domain[1] - extend_dist])
+            det = offset(elem, dist, extend=[elem.Domain[0] + 0.3, elem.Domain[1] - 0.3])
             if det is None:
-                det = offset(elem, dist, extend=[elem.Domain[0] - extend_dist, elem.Domain[1] + extend_dist])
+                det = offset(elem, dist, extend=[elem.Domain[0] - 0.3, elem.Domain[1] + 0.3])
     else:
         det = offset(elem, dist)
     return det
@@ -400,6 +409,7 @@ class MainFrame:
 
         all_offset = []
         for i in self.order:
+
             e = offset_side(*i)
             all_offset.append(e)
 
@@ -497,13 +507,22 @@ class BoardFrame(MainFrame):
     @property
     def region(self):
         ofs_sides = self.all_offset()
-        o, t, th = ofs_sides[self.bridge[0][0]], ofs_sides[self.bridge[1][0]], ofs_sides[self.bridge[2][0]]
+        if len(self.bridge) == 4:
+            o, t, th, f = ofs_sides[self.bridge[0][0]], ofs_sides[self.bridge[1][0]], ofs_sides[self.bridge[2][0]], ofs_sides[self.bridge[3][0]]
+        else:
+            o, t, th = ofs_sides[self.bridge[0][0]], ofs_sides[self.bridge[1][0]], ofs_sides[self.bridge[2][0]]
+
         spec = self.bridge[0][2]
 
         if self.cogs is True:
             elems = self.cogs_points(o) + self.simple_points(t, self.bridge[1][1], spec) + self.simple_points(th, self.bridge[2][1], spec)
         else:
-            elems = self.simple_points(o, self.bridge[0][1], spec) + self.simple_points(t, self.bridge[1][1], spec) + self.simple_points(th, self.bridge[2][1], spec)
+            if len(self.bridge) == 4:
+                elems = self.simple_points(o, self.bridge[0][1], spec) + self.simple_points(t, self.bridge[1][1], spec) \
+                        + self.simple_points(th, self.bridge[2][1], spec)+ self.simple_points(f, self.bridge[3][1], spec)
+            else:
+                elems = self.simple_points(o, self.bridge[0][1], spec) + self.simple_points(t, self.bridge[1][1], spec) + self.simple_points(th, self.bridge[2][1], spec)
+
 
         elems.append(self.frame_offset)
         elems.extend(self.panel.cut)
