@@ -611,12 +611,16 @@ class FramerBoard:
 
 
         elif p_mark is not None:
-            crv = rh.Curve.Offset(self._cls.panel.fres_for_frame[0], rh.Plane.WorldXY, -80 + u, 0.01,
+            if p_mark == 0:
+                n = 0
+            else:
+                n = p_mark
+            crv = rh.Curve.Offset(self._cls.panel.fres_for_frame[n], rh.Plane.WorldXY, -80 + u, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
             center = crv.PointAtNormalizedLength(0.3)
 
-            crv_check = rh.Curve.Offset(self._cls.panel.fres_for_frame[0], rh.Plane.WorldXY, -150, 0.01,
+            crv_check = rh.Curve.Offset(self._cls.panel.fres_for_frame[n], rh.Plane.WorldXY, -150, 0.01,
                                         rh.CurveOffsetCornerStyle.__dict__['None'])[0]
 
             center_check = crv_check.PointAtNormalizedLength(0.3)

@@ -442,7 +442,7 @@ class BoardPanel_ConeBay(MainPanel):
                  bot_mark=None, rib_mark=None, **kwargs):
         MainPanel.__dict__['__init__'](self, surf=surf, tag=tag, cogs_bend=cogs_bend, holes=holes)
 
-        self.mark_name = ['2', '3', '4', '5', '6', '7']
+        self.mark_name = rib_mark
 
         try:
             self.top_surf = top_surf
@@ -466,7 +466,6 @@ class BoardPanel_ConeBay(MainPanel):
         side_surf = rh.Unroller(self.side_surf)
         if side_mark is not None:
             side_surf.AddFollowingGeometry(curves=side_mark)
-            #self.rib_mark = side_surf.PerformUnroll()[1][0:6]
             self.side_mark = side_surf.PerformUnroll()[1]
 
         self.top_panel = BendLikePanel(self.top_unrol[0][0], mark_crv=self.top_unrol[1])
@@ -569,7 +568,7 @@ class BoardPanel_ConeBay(MainPanel):
     @property
     def ribs_marker(self):
         pairs = []
-        for n, c in zip(self.mark_name, self.bend_mark[1::2]):
+        for n, c in zip(self.mark_name, self.side_mark[0:len(self.mark_name)]):
             cent = c.PointAtNormalizedLength(1.0)
             cent.Transform(self.bound_plane)
             pairs.append([n, cent])
