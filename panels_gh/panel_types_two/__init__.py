@@ -67,6 +67,152 @@ def bound_rec(crv):
     bound_rec = rh.PolyCurve.GetBoundingBox(join, rh.Plane.WorldXY)
     return bound_rec
 
+class W_1(ArcPanel):
+
+    def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        ArcPanel.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+
+    @property
+    def frame_dict(self):
+
+        diag = self.diag_side([self.top_parts[1].PointAtEnd, self.top_parts[0].PointAtStart, self.fres[1].PointAtEnd])
+        top = self.top_side()
+        p_niche = self.fres[1]
+        p_bend = self.fres[0]
+
+        order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'spec'],
+                     [top, self.top_ofs, 'e']]
+        bridge = [[2, self.top_parts[1], None], [0, self.top_parts[0], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+    @property
+    def grav(self):
+
+        if self.u_p_m is not None:
+            unrol = list(self.u_p_m[1])
+            circ = []
+            for i in unrol:
+                c = i.DuplicateCurve()
+                c.Transform(self.bound_plane)
+                circ.append(c.ToNurbsCurve())
+            res = circ
+
+            return res
+        else:
+            pass
+
+    def gen_side_types(self):
+
+        if self.tag[2] == 'L':
+
+            self.niche = NicheShortenedBoard(self.edges[1], self.cogs_bend)
+            self.bottom = Bottom(self.edges[3])
+            self.side = [HolesSideOne(self.edges[0], True), HolesSideTwo(self.edges[2], False)]
+
+        else:
+            edge = [i.DuplicateCurve() for i in self.edges]
+            [i.Reverse() for i in edge]
+            self.niche = NicheShortenedBoard(edge[1], self.cogs_bend)
+            self.bottom = Bottom(edge[3])
+            self.side = [HolesSideOne(edge[2], True), HolesSideTwo(edge[0], False)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+class W_2(W_1):
+
+    def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        W_1.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+
+    @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[0])[1]
+        bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
+        setattr(self, 'bpl', fr)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    def gen_side_types(self):
+
+        if self.tag[2] == 'R':
+
+            self.niche = NicheShortenedBoard(self.edges[3], self.cogs_bend)
+            self.bottom = Bottom(self.edges[1])
+            self.side = [HolesSideOne(self.edges[0], True), HolesSideTwo(self.edges[2], False)]
+
+        else:
+            edge = [i.DuplicateCurve() for i in self.edges]
+            [i.Reverse() for i in edge]
+            self.niche = NicheShortenedBoard(edge[3], self.cogs_bend)
+            self.bottom = Bottom(edge[1])
+            self.side = [HolesSideOne(edge[2], True), HolesSideTwo(edge[0], False)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
+class W_3(W_2):
+
+    def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        W_2.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+
+    @property
+    def bound_plane(self):
+        j = rh.Curve.JoinCurves([self.side[0].join, self.niche.join, self.side[1].join, self.bottom.fres])[0]
+        b_r = j.GetBoundingBox(rh.Plane.WorldXY)
+        fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[0])[1]
+        if self.tag[2] == 'L':
+            bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
+        else:
+            bound_plane = rh.Plane(b_r.Min, fr.XAxis, -fr.YAxis)
+
+        setattr(self, 'bpl', fr)
+        tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
+        return tr
+
+    @property
+    def frame_dict(self):
+        diag = self.diag_side([self.top_parts[1].PointAtEnd, self.top_parts[0].PointAtStart, self.fres[1].PointAtEnd])
+        top = self.top_side()
+        p_niche = self.fres[1]
+        p_bend = self.fres[0]
+
+        order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'spec', 250],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[2, self.top_parts[1], None], [0, self.top_parts[0], None]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+    def top_side(self):
+        bound = bound_rec(self.fres[:2])
+        top_side = bound.GetEdges()[2]
+        return top_side.ToNurbsCurve()
+
+class W_5(W_1):
+
+    def __init__(self, surf=None, holes=None, pins=None, cogs_bend=None, tag=None, **kwargs):
+        W_1.__dict__['__init__'](self, surf=surf, holes=holes, pins=pins, cogs_bend=cogs_bend, tag=tag, **kwargs)
+
+    def gen_side_types(self):
+
+        if self.tag[2] == 'L':
+            j = rh.Curve.JoinCurves([self.edges[0], self.edges[1]])[0]
+            self.niche = NicheShortenedBoard(self.edges[3], self.cogs_bend)
+            self.bottom = Bottom(j)
+            self.side = [HolesSideOne(self.edges[2], True), HolesSideTwo(self.edges[4], False)]
+
+        else:
+            edge = [i.DuplicateCurve() for i in self.edges]
+            [i.Reverse() for i in edge]
+            j = rh.Curve.JoinCurves([edge[0], edge[1]])[0]
+            self.niche = NicheShortenedBoard(edge[3], self.cogs_bend)
+            self.bottom = Bottom(j)
+            self.side = [HolesSideOne(edge[4], True), HolesSideTwo(edge[2], False)]
+
+        self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
 
 
 class PB_1(ArcPanel):

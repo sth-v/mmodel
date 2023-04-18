@@ -56,13 +56,20 @@ import rhinoscriptsyntax as rs
 import math
 
 
-def offset(crv, ofs_dist, extend=None):
+def offset(crv, ofs_dist, extend=None, dist=None):
     if ofs_dist != 0:
         c = rh.Curve.Offset(crv, rh.Plane.WorldXY, ofs_dist, 0.01, rh.CurveOffsetCornerStyle.Sharp)[0]
     else:
         c = crv
     if extend is not None:
-        c = rh.Curve.Extend(c, rh.Interval(extend[0], extend[1]))
+        if extend == 'spec':
+            if dist>1:
+                c = rh.Curve.Extend(c, side=rh.CurveEnd.Start, length=dist, style=rh.CurveExtensionStyle.Line)
+            else:
+                c = rh.Curve.Extend(c, side=rh.CurveEnd.Start, length=125, style=rh.CurveExtensionStyle.Line)
+
+        else:
+            c = rh.Curve.Extend(c, rh.Interval(extend[0], extend[1]))
     return c
 
 
@@ -99,33 +106,41 @@ def offset_side(elem, dist, extend=None, extend_dist=0.3):
         if abs(elem.Domain[1] + elem.Domain[0]) > 1.5:
             det = offset(elem, dist, extend=[elem.Domain[0] - 75, elem.Domain[1]])
         else:
-            det = offset(elem, dist, extend=[elem.Domain[0] - extend_dist, elem.Domain[1]])
+            det = offset(elem, dist, extend=[elem.Domain[0] - 0.3, elem.Domain[1]])
     elif extend == 'e':
         if abs(elem.Domain[1]) + abs(elem.Domain[0]) > 1.5:
-            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 75])
+            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 225])
         else:
-            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1]+ extend_dist])
+            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1]+ 0.3])
 
     elif extend == 'both':
         if abs(elem.Domain[1] + elem.Domain[0]) > 1.1:
             if extend_dist > 1:
                 det = offset(elem, dist, extend=[elem.Domain[0] + extend_dist, elem.Domain[1] - extend_dist])
             else:
-                det = offset(elem, dist, extend=[elem.Domain[0] + 25, elem.Domain[1] - 25])
+                det = offset(elem, dist, extend=[elem.Domain[0] + 55, elem.Domain[1] - 55])
 
 
             if det is None:
                 if extend_dist > 1:
                     det = offset(elem, dist, extend=[elem.Domain[0] - extend_dist, elem.Domain[1] + extend_dist])
                 else:
-                    det = offset(elem, dist, extend=[elem.Domain[0] - 25, elem.Domain[1] + 25])
+                    det = offset(elem, dist, extend=[elem.Domain[0] - 55, elem.Domain[1] + 55])
 
         else:
             det = offset(elem, dist, extend=[elem.Domain[0] + 0.3, elem.Domain[1] - 0.3])
             if det is None:
                 det = offset(elem, dist, extend=[elem.Domain[0] - 0.3, elem.Domain[1] + 0.3])
+
+    elif extend == 'spec':
+        det = offset(elem, dist, extend='spec', dist=extend_dist )
+
+
     else:
-        det = offset(elem, dist)
+        if extend_dist != 0.3:
+            det = offset(elem, dist, extend=[elem.Domain[0] - extend_dist, elem.Domain[1] + extend_dist])
+        else:
+            det = offset(elem, dist)
     return det
 
 

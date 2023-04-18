@@ -132,7 +132,7 @@ class BendSide(object):
 
     @property
     def top_offset(self):
-        self._top_offset = self.length / math.tan(math.radians(self.angle))
+        self._top_offset = abs(self.length) / math.tan(math.radians(self.angle))
         return self._top_offset
 
     @property
@@ -430,6 +430,7 @@ class NicheShortenedBoard(NicheShortened):
         NicheShortened.__dict__['__init__'](self, curve, init_cogs=init_cogs)
 
 
+
 class Side(BendSide):
     side_offset = 0.5
     angle = 30
@@ -496,6 +497,8 @@ class HolesSideOne(Side):
 
         self.spec_dist = spec_dist
 
+
+
 class BoardHolesOne(HolesSideOne):
     side_offset = None
     def __init__(self, curve, reverse=None, holes=True, spec_dist=None):
@@ -549,6 +552,7 @@ class HolesSideTwo(HolesSideOne):
         self.holes = None
 
         self.spec_dist = spec_dist
+
 
 
 class HolesSideTwoExtra(HolesSideTwo):

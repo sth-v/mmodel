@@ -290,9 +290,12 @@ class ArcPanel(MainPanel):
         self.u_p = u_pins.PerformUnroll()
 
         u_pins_mark = rh.Unroller(self.surf)
-        if self.pins is not None:
-            a = [self.surf.ClosestPoint(i) for i in self.pins_mark]
-            u_pins_mark.AddFollowingGeometry(points=a)
+        if self.pins_mark is not None:
+            try:
+                a = [self.surf.ClosestPoint(i) for i in self.pins_mark]
+                u_pins_mark.AddFollowingGeometry(points=a)
+            except:
+                u_pins_mark.AddFollowingGeometry(curves=self.pins_mark)
 
         self.u_p_m = u_pins_mark.PerformUnroll()
         self.gen_side_types()
