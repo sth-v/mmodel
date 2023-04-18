@@ -28,7 +28,7 @@ main_sides = imp.load_module("main_sides", sidesfile, sidesfilename, (sidessuffi
 main_sides.__init__("main_sides", "generic nodule")
 from main_sides import Niche, Bottom, Side, NicheShortened, HolesSideOne, HolesSideTwo, HeatSchov, BottomPanel, \
     RibsSide, HolesSideThree, RibsSideTwo, BoardEdgeOne, BoardEdgeTwo, NicheShortenedBoard, BottomBoard, BottomHeat, \
-    BoardEdgeTwo_reverse, BoardEdgeOne_reverse
+    BoardEdgeTwo_reverse, BoardEdgeOne_reverse, BoardEdgeThree_reverse, BoardEdgeThree, BoardEdgeFour_reverse, BoardEdgeFour
 
 reload(main_sides)
 
@@ -939,6 +939,70 @@ class B_3(BoardEdge):
 
             trimed = rh.Curve.Trim(v.fres, param[0], param[1])
             v.fres = trimed
+
+
+
+class B_4(BoardEdge):
+
+    def __init__(self, surf=None, holes=None, cogs_bend=None, tag=None, params=None, **kwargs):
+        BoardEdge.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, params=params,
+                                       **kwargs)
+
+    @property
+    def fres(self):
+        fres = [self.side[0].fres_shift.DuplicateCurve(), self.side[1].fres_shift.DuplicateCurve(),
+                self.side[6].fres_shift.DuplicateCurve(), self.side[-1].fres_shift.DuplicateCurve()]
+        return fres
+
+    @property
+    def cut(self):
+
+        ss = [i.fres for i in self.side[2:4]]
+        ee =[i.fres for i in self.side[5:7]]
+
+
+        side = rh.Curve.JoinCurves([self.side[0].join] + [self.side[1].join] + ss + [self.side[4].join] + ee +
+                                   [self.side[7].join])[0]
+        hls = self.side[0].holes_curve + self.side[1].holes_curve + self.side[-1].holes_curve
+
+        for i in hls:
+            side = rh.Curve.CreateBooleanDifference(side,i)[0]
+
+        fillet = rh.Curve.CreateFilletCornersCurve(side, 2, 0.1, 0.1)
+
+        if len(self.unrol[1]) >=1:
+            return [fillet] + list(self.unrol[1])
+        else:
+            return [fillet]
+
+
+
+    def gen_side_types(self):
+
+        num = 2
+
+        ss = [Bottom(i) for i in list(self.edges)[2:4]]
+        ee = [Bottom(i) for i in list(self.edges)[4:6]]
+
+        if self.tag[2] == 'L':
+            self.side = [BoardEdgeThree(list(self.edges)[0], params=self.trim_params.side, spec_dist=2, tag=self.tag)] + \
+                        [BoardEdgeOne(list(self.edges)[1], params=self.trim_params.top, rev=True, spec_dist=num, tag=self.tag)] + ss + \
+            [BoardEdgeFour(list(self.edges)[6], params=self.trim_params.wall, spec_dist=num, tag=self.tag)] + ee + \
+                        [BoardEdgeOne(list(self.edges)[7], params=self.trim_params.bot, spec_dist=num, tag=self.tag)]
+
+        else:
+            self.side = [BoardEdgeThree_reverse(list(self.edges)[0], params=self.trim_params.side, spec_dist=2,
+                                      tag=self.tag)] + \
+                        [BoardEdgeOne_reverse(list(self.edges)[1], params=self.trim_params.top, rev=True, spec_dist=num,
+                                      tag=self.tag)] + ss + \
+                        [BoardEdgeFour_reverse(list(self.edges)[6], params=self.trim_params.wall, spec_dist=num, tag=self.tag)] + ee + \
+                        [BoardEdgeOne_reverse(list(self.edges)[7], params=self.trim_params.bot, spec_dist=num, tag=self.tag)]
+
+        self.side_types = self.side
+        self.intersect()
+
+
+
 
 
 

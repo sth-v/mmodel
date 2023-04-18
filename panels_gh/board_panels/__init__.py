@@ -569,7 +569,7 @@ class BoardPanel_ConeBay(MainPanel):
     def ribs_marker(self):
         pairs = []
         for n, c in zip(self.mark_name, self.side_mark[0:len(self.mark_name)]):
-            cent = c.PointAtNormalizedLength(1.0)
+            cent = c.PointAtNormalizedLength(0.0)
             cent.Transform(self.bound_plane)
             pairs.append([n, cent])
 

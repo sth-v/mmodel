@@ -973,7 +973,6 @@ class BoardEdgeOne_reverse(BoardEdgeOne):
 
         return circ
 
-
 class BoardEdgeTwo(BoardEdgeOne):
 
     def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
@@ -996,13 +995,6 @@ class BoardEdgeTwo(BoardEdgeOne):
     @property
     def holes_curve(self):
 
-        '''if self.tag[2] == 'L' or self.tag[2] == 'C':
-            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
-                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
-
-        else:
-            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
-                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]'''
         if self.tag[2] == 'L' or self.tag[2] == 'C':
             crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
                                   rh.CurveOffsetCornerStyle.__dict__['None'])[0]
@@ -1179,5 +1171,72 @@ class BoardEdgeTwo_reverse(BoardEdgeOne_reverse):
         return tr_t
 
 
+class BoardEdgeThree(BoardEdgeTwo):
+
+    def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
+        BoardEdgeTwo.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
+
+        self.other_trim_dist = -params.trim_bot
+
+    @property
+    def join(self):
+        crv = self.fres_trim()
+        sm_tr = self.small_trim()
+        one = rh.Line(crv.PointAtStart, self.top_part.PointAtStart).ToNurbsCurve()
+        two = rh.Line(crv.PointAtEnd, self.top_part.PointAtEnd).ToNurbsCurve()
+
+        join = rh.Curve.JoinCurves([one, self.top_part, two])[0]
+        fillet = rh.Curve.CreateFilletCornersCurve(join, self.fillet_r, 0.1, 0.1)
+
+        # self._join = rh.Curve.JoinCurves([sm_tr, fillet])
+
+        return fillet
+
+    def fres_trim(self):
+        fres = self.fres.DuplicateCurve()
+        return fres
+
+    def small_trim(self):
+        fres = self.fres.DuplicateCurve()
+        return fres
 
 
+class BoardEdgeThree_reverse(BoardEdgeTwo_reverse):
+
+    def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
+        BoardEdgeTwo_reverse.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
+
+        self.other_trim_dist = -params.trim_bot
+
+    @property
+    def join(self):
+        crv = self.fres_trim()
+        sm_tr = self.small_trim()
+        one = rh.Line(crv.PointAtStart, self.top_part.PointAtStart).ToNurbsCurve()
+        two = rh.Line(crv.PointAtEnd, self.top_part.PointAtEnd).ToNurbsCurve()
+
+        join = rh.Curve.JoinCurves([one, self.top_part, two])[0]
+        fillet = rh.Curve.CreateFilletCornersCurve(join, self.fillet_r, 0.1, 0.1)
+
+        # self._join = rh.Curve.JoinCurves([sm_tr, fillet])
+
+        return fillet
+
+    def fres_trim(self):
+        fres = self.fres.DuplicateCurve()
+        return fres
+
+    def small_trim(self):
+        fres = self.fres.DuplicateCurve()
+        return fres
+
+
+class BoardEdgeFour(BoardEdgeOne):
+
+    def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
+        BoardEdgeOne.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
+
+class BoardEdgeFour_reverse(BoardEdgeOne_reverse):
+
+    def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
+        BoardEdgeOne_reverse.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
