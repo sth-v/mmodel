@@ -740,6 +740,7 @@ class B_1(BoardPanel):
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
         BoardPanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
 
+
 class B_1_T(BoardPanel):
     def __init__(self, surf, tag=None, cogs_bend=None, holes=None, **kwargs):
         BoardPanel.__dict__['__init__'](self, surf=surf, cogs_bend=cogs_bend, tag=tag, holes=holes, **kwargs)
@@ -775,8 +776,6 @@ class B_1_T(BoardPanel):
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
-
-
 
 
 
@@ -970,8 +969,8 @@ class B_4(BoardEdge):
 
         fillet = rh.Curve.CreateFilletCornersCurve(side, 2, 0.1, 0.1)
 
-        if len(self.unrol[1]) >=1:
-            return [fillet] + list(self.unrol[1])
+        if len(self.side[4].holes_curve) >=1:
+            return [fillet] + self.side[4].holes_curve
         else:
             return [fillet]
 
@@ -1000,10 +999,6 @@ class B_4(BoardEdge):
 
         self.side_types = self.side
         self.intersect()
-
-
-
-
 
 
 class NC_1(N_1):

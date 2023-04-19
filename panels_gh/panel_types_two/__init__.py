@@ -788,7 +788,7 @@ class BC_2(NC_3):
         pairs = []
         gr = self.grav
         for n, c in zip(self.mark_name, gr[0::3]):
-            cent = c.PointAtNormalizedLength(1.0)
+            cent = c.PointAtNormalizedLength(0.0)
             pairs.append([n, cent])
         return pairs
 
@@ -799,6 +799,22 @@ class BC_2(NC_3):
 
         self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
         self.intersect()
+
+
+class BC_3(BC_2):
+
+    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, cone_mark=None, **kwargs):
+        BC_2.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
+                                  cone_mark=cone_mark, **kwargs)
+
+    def gen_side_types(self):
+        self.top = Bottom(self.edges[1])
+        self.bottom = Bottom(self.edges[3])
+        self.side = [HolesSideOne(self.edges[2]), HolesSideTwo(self.edges[0])]
+
+        self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
 
 
 class BC_1(NichePanel):
@@ -835,6 +851,55 @@ class BC_1(NichePanel):
 
         self.side_types = [self.niche, self.bottom, self.side[0], self.side[1]]
         self.intersect()
+
+
+class BC_Bay_2(N_2):
+
+    def __init__(self, surf, holes=None, tag=None, cogs_bend=False, mark_crv=None, **kwargs):
+        N_2.__dict__['__init__'](self, surf=surf, holes=holes, tag=tag, cogs_bend=cogs_bend, mark_crv=mark_crv,
+                                        **kwargs)
+
+        self.gen_side_types()
+
+    @property
+    def ribs_marker(self):
+        pairs = []
+        gr = self.grav
+
+        for n, c in zip(self.mark_name, gr[0::3]):
+            cent = c.PointAtNormalizedLength(1.0)
+            pairs.append([n, cent])
+        return pairs
+
+    @property
+    def frame_dict(self):
+        bf = self.top.fres.DuplicateCurve()
+        bf.Transform(self.bound_plane)
+        p_niche = bf
+        p_bend = self.fres[0]
+
+        ll = [self.fres[0]]
+        ll.append(p_niche)
+        bound = bound_rec(ll)
+        top = bound.GetEdges()[2].ToNurbsCurve()
+
+        order = [[p_niche, self.niche_ofs, 'spec'], [p_bend, self.bend_ofs, 'both'],
+                 [top, self.top_ofs, 'e']]
+        bridge = [[0, p_niche, None], [1, self.top_parts[0], True]]
+
+        return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
+
+    def gen_side_types(self):
+        edges = [i.DuplicateCurve() for i in self.edges]
+        [i.Reverse() for i in edges]
+
+        self.top = Bottom(edges[3])
+        self.bottom = Bottom(edges[1])
+        self.side = [HolesSideOne(edges[0]), HolesSideTwo(edges[2])]
+
+        self.side_types = [self.top, self.bottom, self.side[0], self.side[1]]
+        self.intersect()
+
 
 
 class BC_Bay_1(BoardPanel_ConeBay):

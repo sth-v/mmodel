@@ -86,11 +86,14 @@ def translate(point, crv):
     tr = rh.Transform.PlaneToPlane(rh.Plane.WorldXY, frame)
     return tr
 
-def divide_edge(crv, ofs=20, num=2):
-    if crv.GetLength() < 45:
-        ofs = 10
+def divide_edge(crv, ofset=None, num=2):
+    if ofset is None:
+        if crv.GetLength() < 45:
+            ofs = 10
+        else:
+            ofs = 20
     else:
-        ofs = 20
+        ofs = ofset
     st = crv.ClosestPoint(crv.PointAtLength(ofs))[1]
     end = crv.ClosestPoint(crv.PointAtLength(crv.GetLength() - ofs))[1]
     curve = crv.Trim(st, end)
@@ -1236,7 +1239,60 @@ class BoardEdgeFour(BoardEdgeOne):
     def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
         BoardEdgeOne.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
 
+    @property
+    def holes_curve(self):
+
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
+            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        else:
+            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+
+        if self.spec_dist is not None:
+            points = divide_edge(crv, ofset=15, num=self.spec_dist)
+        else:
+            points = divide_edge(crv, ofset=15)
+
+        setattr(self, "points_v", points)
+        setattr(self, "crv_tr", crv)
+
+        circ = []
+        for i, v in enumerate(points):
+            c = rh.Circle(v, 1.25)
+            circ.append(c)
+
+        return circ
+
 class BoardEdgeFour_reverse(BoardEdgeOne_reverse):
 
     def __init__(self, curve, params=None, rev=False, spec_dist=None, tag=None):
         BoardEdgeOne_reverse.__dict__['__init__'](self, curve, params=params, rev=rev, spec_dist=spec_dist, tag=tag)
+
+    @property
+    def holes_curve(self):
+
+        if self.tag[2] == 'L' or self.tag[2] == 'C':
+            crv = self.crv.Offset(rh.Plane.WorldXY, -self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        else:
+            crv = self.crv.Offset(rh.Plane.WorldXY, self.holes_offset, 0.01,
+                                  rh.CurveOffsetCornerStyle.__dict__['None'])[0]
+
+        if self.spec_dist is not None:
+            points = divide_edge(crv, ofset=15, num=self.spec_dist)
+        else:
+            points = divide_edge(crv, ofset=15)
+
+        setattr(self, "points_v", points)
+        setattr(self, "crv_tr", crv)
+
+        circ = []
+        for i, v in enumerate(points):
+            c = rh.Circle(v, 1.25)
+            circ.append(c)
+
+        return circ
