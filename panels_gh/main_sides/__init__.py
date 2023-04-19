@@ -1262,7 +1262,7 @@ class BoardEdgeFour(BoardEdgeOne):
         circ = []
         for i, v in enumerate(points):
             c = rh.Circle(v, 1.25)
-            circ.append(c)
+            circ.append(c.ToNurbsCurve())
 
         return circ
 
@@ -1293,6 +1293,6 @@ class BoardEdgeFour_reverse(BoardEdgeOne_reverse):
         circ = []
         for i, v in enumerate(points):
             c = rh.Circle(v, 1.25)
-            circ.append(c)
+            circ.append(c.ToNurbsCurve())
 
         return circ
