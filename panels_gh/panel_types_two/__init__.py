@@ -223,7 +223,7 @@ class PB_1(ArcPanel):
                                  self.left[1].fres, self.bottom.join])[0]
         b_r = j.GetBoundingBox(rh.Plane.WorldXY)
         fr = self.side[0].fres.FrameAt(self.side[0].fres.Domain[1])[1]
-        bound_plane = rh.Plane(b_r.Min, fr.XAxis, fr.YAxis)
+        bound_plane = rh.Plane(b_r.Max, fr.XAxis, fr.YAxis)
         setattr(self, 'bpl', bound_plane)
         tr = rh.Transform.PlaneToPlane(bound_plane, rh.Plane.WorldXY)
         return tr
@@ -237,7 +237,7 @@ class PB_1(ArcPanel):
         p_bend = self.fres[0]
         #order = [[p_bend, self.bend_ofs, 'st'], [diag, self.diag, False], [p_niche, self.niche_ofs, 'both'],
         #         [top, self.top_ofs, 'e']]
-        order = [[p_bend, self.bend_ofs, 'st'], [p_niche, self.niche_ofs, 'both'], [top, self.top_ofs, 'e']]
+        order = [[p_bend, self.bend_ofs, 'st'], [p_niche, self.niche_ofs, 'spec', 250], [top, self.top_ofs, 'e']]
         bridge = [[1, self.top_parts[1], None], [0, self.top_parts[0], None]]
 
         return {'p_niche': p_niche, 'p_bend': p_bend, 'order': order, 'bridge': bridge}
@@ -787,8 +787,8 @@ class BC_2(NC_3):
     def ribs_marker(self):
         pairs = []
         gr = self.grav
-        for n, c in zip(self.mark_name, gr[0::3]):
-            cent = c.PointAtNormalizedLength(0.0)
+        for n, c in zip(self.mark_name, gr[-len(self.mark_name)::]):
+            cent = c.PointAtNormalizedLength(1.0)
             pairs.append([n, cent])
         return pairs
 
@@ -866,8 +866,8 @@ class BC_Bay_2(N_2):
         pairs = []
         gr = self.grav
 
-        for n, c in zip(self.mark_name, gr[0::3]):
-            cent = c.PointAtNormalizedLength(1.0)
+        for n, c in zip(self.mark_name, gr[-len(self.mark_name)::]):
+            cent = c.PointAtNormalizedLength(0.0)
             pairs.append([n, cent])
         return pairs
 

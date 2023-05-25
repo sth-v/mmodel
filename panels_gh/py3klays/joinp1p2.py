@@ -28,26 +28,26 @@ class RH:
 
     def write(self):
         spl = self.tag.split("-")
-        if self.tag[-2] != '1':
+        if self.tag[-2] != 'a':
             print(self.tag)
 
             try:
-                os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag[:-2]}", exist_ok=False)
-                os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag[:-2]}", exist_ok=False)
-                #os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag}", exist_ok=False)
-                #os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag}", exist_ok=False)
+                #os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag[:-2]}", exist_ok=False)
+                #os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag[:-2]}", exist_ok=False)
+                os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag}", exist_ok=False)
+                os.makedirs(f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag}", exist_ok=False)
             except:
                 pass
-            fp = f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag[:-2]}/{self.tag}.3dm"
-            fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag[:-2]}/{self.tag}.3dm"
-            #fp = f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag}/{self.tag}.3dm"
-            #fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag}/{self.tag}.3dm"
+            #fp = f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag[:-2]}/{self.tag}.3dm"
+            #fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag[:-2]}/{self.tag}.3dm"
+            fp = f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag}/{self.tag}.3dm"
+            fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag}/{self.tag}.3dm"
 
         else:
             fp = f"{os.getenv('PANELS_GH_DUMPS')}/build/cut/{self.tag[:-3]}/{self.tag}.3dm"
             fpfrez = f"{os.getenv('PANELS_GH_DUMPS')}/build/frez/{self.tag[:-3]}/{self.tag}.3dm"
 
-        if int(self.tag[-1])  in [1] and self.tag[-2] != '1':
+        if int(self.tag[-1]) in ['a'] and self.tag[-2] != '1':
             for l in copy.deepcopy(self._layers):
                 self.layers.append(Lay(model=self.model, **l))
             for l2 in self._layers:

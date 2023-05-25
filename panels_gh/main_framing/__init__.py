@@ -64,9 +64,9 @@ def offset(crv, ofs_dist, extend=None, dist=None):
     if extend is not None:
         if extend == 'spec':
             if dist>1:
-                c = rh.Curve.Extend(c, side=rh.CurveEnd.Start, length=dist, style=rh.CurveExtensionStyle.Line)
+                c = rh.Curve.Extend(c, side=rh.CurveEnd.Both, length=dist, style=rh.CurveExtensionStyle.Line)
             else:
-                c = rh.Curve.Extend(c, side=rh.CurveEnd.Start, length=125, style=rh.CurveExtensionStyle.Line)
+                c = rh.Curve.Extend(c, side=rh.CurveEnd.Both, length=125, style=rh.CurveExtensionStyle.Line)
 
         else:
             c = rh.Curve.Extend(c, rh.Interval(extend[0], extend[1]))
@@ -101,36 +101,36 @@ def intersect(values):
     return res
 
 
-def offset_side(elem, dist, extend=None, extend_dist=0.3):
+def offset_side(elem, dist, extend=None, extend_dist=0.4):
     if extend == 'st':
         if abs(elem.Domain[1] + elem.Domain[0]) > 1.5:
-            det = offset(elem, dist, extend=[elem.Domain[0] - 75, elem.Domain[1]])
+            det = offset(elem, dist, extend=[elem.Domain[0] - 125, elem.Domain[1]])
         else:
-            det = offset(elem, dist, extend=[elem.Domain[0] - 0.3, elem.Domain[1]])
+            det = offset(elem, dist, extend=[elem.Domain[0] - 0.4, elem.Domain[1]])
     elif extend == 'e':
         if abs(elem.Domain[1]) + abs(elem.Domain[0]) > 1.5:
-            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 225])
+            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1] + 255])
         else:
-            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1]+ 0.3])
+            det = offset(elem, dist, extend=[elem.Domain[0], elem.Domain[1]+ 0.4])
 
     elif extend == 'both':
         if abs(elem.Domain[1] + elem.Domain[0]) > 1.1:
             if extend_dist > 1:
                 det = offset(elem, dist, extend=[elem.Domain[0] + extend_dist, elem.Domain[1] - extend_dist])
             else:
-                det = offset(elem, dist, extend=[elem.Domain[0] + 55, elem.Domain[1] - 55])
+                det = offset(elem, dist, extend=[elem.Domain[0] + 85, elem.Domain[1] - 85])
 
 
             if det is None:
                 if extend_dist > 1:
                     det = offset(elem, dist, extend=[elem.Domain[0] - extend_dist, elem.Domain[1] + extend_dist])
                 else:
-                    det = offset(elem, dist, extend=[elem.Domain[0] - 55, elem.Domain[1] + 55])
+                    det = offset(elem, dist, extend=[elem.Domain[0] - 85, elem.Domain[1] + 85])
 
         else:
-            det = offset(elem, dist, extend=[elem.Domain[0] + 0.3, elem.Domain[1] - 0.3])
+            det = offset(elem, dist, extend=[elem.Domain[0] + 0.4, elem.Domain[1] - 0.4])
             if det is None:
-                det = offset(elem, dist, extend=[elem.Domain[0] - 0.3, elem.Domain[1] + 0.3])
+                det = offset(elem, dist, extend=[elem.Domain[0] - 0.4, elem.Domain[1] + 0.4])
 
     elif extend == 'spec':
         det = offset(elem, dist, extend='spec', dist=extend_dist )
@@ -172,6 +172,14 @@ class MiniFrame(object):
             "layers": self.all_elems
 
         }
+
+    @property
+    def bound_rec(self):
+        rec = bound_rec(self.panel.cut)
+
+        bound_frame = rh.Rectangle3d(rh.Plane.WorldXY, rec.Min, rec.Max)
+
+        return bound_frame
 
     @property
     def layers(self):

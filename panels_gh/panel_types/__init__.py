@@ -246,8 +246,8 @@ class P_3(SimplePanel):
 
     # edge2_vector.Unitize()
     def gen_side_types(self):
-        self.side = [Bottom(self.edges[0]), HeatSchov(self.edges[1]), Bottom(self.edges[2]),
-                     HeatSchov(self.edges[3])]
+        self.side = [Bottom(self.edges[1]), HeatSchov(self.edges[0]), Bottom(self.edges[3]),
+                     HeatSchov(self.edges[2])]
         self.side_types = self.side
         self.intersect()
 

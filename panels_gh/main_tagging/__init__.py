@@ -288,6 +288,7 @@ class MiniFramer():
     def __init__(self, cls):
         self._cls = cls
         self._cls.text_geometry = [[], [], [], [], [], []]
+
         try:
             self.rect = self._cls.bound_rec
         except:
